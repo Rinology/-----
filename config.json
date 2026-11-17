@@ -1,0 +1,7 @@
+{
+  "hotkey": "<alt>+q",
+  "csv_file": "chat_templates.csv",
+  "remote_csv_url": "",
+  "restore_clipboard": true,
+  "paste_delay_ms": 70
+}
