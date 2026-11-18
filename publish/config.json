@@ -1,7 +1,8 @@
 {
   "Version": "v2.0.0 (Millennium Edition)",
   "BuildDate": "2026-11-18",
-  "CurrentUserId": "",
+  "CurrentUserId": "taerin",
+  "SavedPassword": "",
   "KeepLoggedIn": false,
   "UserCsvUrl": "",
   "LocalUserCsvPath": "users.csv",
