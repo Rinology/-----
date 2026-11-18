@@ -109,17 +109,20 @@ public partial class QuickSearchWindow : Window
             var btn = new Button
             {
                 Content = isSelected ? $"✔ {cat}" : cat,
-                Margin = new Thickness(0, 0, 6, 0),
-                Padding = new Thickness(14, 5, 14, 5),
-                FontSize = 12.5,
+                Margin = new Thickness(0, 0, 4, 0),
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 11.5,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
                 FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
                 Cursor = Cursors.Hand,
                 Background = isSelected 
-                    ? (Brush)new BrushConverter().ConvertFromString("#2563EB")! 
-                    : (Brush)new BrushConverter().ConvertFromString("#3F3F46")!,
-                Foreground = Brushes.White,
-                BorderBrush = (Brush)FindResource("ThemeBorder"),
-                BorderThickness = new Thickness(isSelected ? 2 : 1),
+                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")) // Win98 네이비
+                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0")), // Win98 실버 그레이
+                Foreground = isSelected ? Brushes.White : Brushes.Black,
+                BorderBrush = isSelected 
+                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000000")) 
+                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080")),
+                BorderThickness = new Thickness(1),
                 Focusable = false
             };
 

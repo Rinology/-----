@@ -96,7 +96,8 @@ public partial class SuggestionBar : Window
                 Text = tabKeyHint,
                 Foreground = Brushes.White,
                 FontSize = badgeFontSize,
-                FontWeight = FontWeights.Bold
+                FontWeight = FontWeights.Bold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
             };
             badge.Child = badgeText;
             ItemsPanel.Children.Add(badge);
@@ -113,6 +114,7 @@ public partial class SuggestionBar : Window
                 Cursor = Cursors.Hand,
                 FontSize = contentFontSize,
                 FontWeight = FontWeights.SemiBold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
                 Focusable = false
             };
             btn.Click += (s, e) => SelectItem(topItem);
@@ -145,6 +147,7 @@ public partial class SuggestionBar : Window
                     Padding = badgePadding,
                     Cursor = Cursors.Hand,
                     FontSize = contentFontSize - 2,
+                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
                     FontWeight = (i == 0) ? FontWeights.Bold : FontWeights.Normal,
                     Focusable = false
                 };

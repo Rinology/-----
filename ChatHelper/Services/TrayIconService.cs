@@ -51,6 +51,37 @@ public class TrayIconService : IDisposable
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
 
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
+
+    private const uint IMAGE_ICON = 1;
+    private const uint LR_LOADFROMFILE = 0x00000010;
+
+    private static IntPtr GetAppIconHandle()
+    {
+        try
+        {
+            string iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "app.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                IntPtr hIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+                if (hIcon != IntPtr.Zero) return hIcon;
+            }
+        }
+        catch { }
+
+        try
+        {
+            using var curProcess = System.Diagnostics.Process.GetCurrentProcess();
+            var hMod = Win32Api.GetModuleHandle(curProcess.MainModule?.ModuleName);
+            IntPtr modIcon = LoadIcon(hMod, (IntPtr)1);
+            if (modIcon != IntPtr.Zero) return modIcon;
+        }
+        catch { }
+
+        return LoadIcon(IntPtr.Zero, (IntPtr)32512);
+    }
+
     private readonly Window _parentWindow;
     private IntPtr _hwnd;
     private HwndSource? _hwndSource;
@@ -82,8 +113,8 @@ public class TrayIconService : IDisposable
             uID = 1001,
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
             uCallbackMessage = WM_TRAYICON,
-            hIcon = LoadIcon(IntPtr.Zero, (IntPtr)32512), // IDI_APPLICATION
-            szTip = "ChatHelper v2.0 (실행 중 - 클릭하여 열기)"
+            hIcon = GetAppIconHandle(),
+            szTip = "ChatHelper Millennium Edition (실행 중 - 클릭하여 열기)"
         };
 
         _isCreated = Shell_NotifyIcon(NIM_ADD, ref data);

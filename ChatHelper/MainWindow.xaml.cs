@@ -183,14 +183,13 @@ public partial class MainWindow : Window
         };
 
         bool isEnabled = _configManager.Config.IsEnabled;
-        string themeTag = "Win98 ME";
 
         // 활성 상태 프로그램창 투명도 적용 (바탕화면 은은하게 비침)
         Opacity = Math.Clamp(_configManager.Config.StatusWindowOpacity, 0.35, 1.0);
 
         if (isEnabled)
         {
-            TxtTitleBar.Text = $"🟢 ChatHelper ({themeTag}) - 실행 중";
+            TxtTitleBar.Text = "ChatHelper Millennium Edition - 실행 중";
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00B000"));
             LblRunningStatus.Text = "자동완성 작동 중 (ON)";
             LblRunningStatus.Foreground = (Brush)FindResource("ThemeText");
@@ -198,7 +197,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            TxtTitleBar.Text = $"🟡 ChatHelper ({themeTag}) - 일시정지됨";
+            TxtTitleBar.Text = "ChatHelper Millennium Edition - 일시정지됨";
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D08000"));
             LblRunningStatus.Text = "자동완성 일시정지 (OFF)";
             LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#800000"));
