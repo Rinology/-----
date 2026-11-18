@@ -13,6 +13,11 @@ VK_V = 0x56
 VK_MENU = 0x12  # ALT
 KEYEVENTF_KEYUP = 0x0002
 
+GWL_EXSTYLE = -20
+WS_EX_NOACTIVATE = 0x08000000
+WS_EX_TOPMOST = 0x00000008
+WS_EX_TOOLWINDOW = 0x00000080
+
 
 class GUITHREADINFO(ctypes.Structure):
     _fields_ = [
@@ -30,6 +35,15 @@ class GUITHREADINFO(ctypes.Structure):
 
 class POINT(ctypes.Structure):
     _fields_ = [('x', ctypes.c_long), ('y', ctypes.c_long)]
+
+
+def make_window_non_activating(hwnd: int):
+    """지정된 윈도우가 마우스 클릭이나 팝업 시 포커스를 뺏지 않도록(WS_EX_NOACTIVATE) 설정"""
+    try:
+        ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST)
+    except Exception as e:
+        print(f"[make_window_non_activating 오류] {e}")
 
 
 def get_foreground_window() -> int:
@@ -77,7 +91,6 @@ def get_caret_or_cursor_pos() -> Tuple[int, int]:
             target_hwnd = gui.hwndCaret if gui.hwndCaret else gui.hwndFocus
             if target_hwnd:
                 pt = POINT(gui.rcCaret.left, gui.rcCaret.bottom)
-                # (0, 0)이 아닌 유효한 캐럿 좌표가 존재할 때
                 if (gui.rcCaret.left != 0 or gui.rcCaret.top != 0 or
                         gui.rcCaret.right != 0 or gui.rcCaret.bottom != 0):
                     user32.ClientToScreen(target_hwnd, ctypes.byref(pt))
@@ -100,7 +113,7 @@ def send_backspaces(count: int, delay: float = 0.01):
             time.sleep(delay)
 
 
-def paste_text_to_window(text: str, target_hwnd: int, restore_clipboard: bool = True, delay_ms: int = 70):
+def paste_text_to_window(text: str, target_hwnd: int, restore_clipboard: bool = True, delay_ms: int = 60):
     """지정된 창에 텍스트를 클립보드로 붙여넣기"""
     original_clipboard = None
     if restore_clipboard:
@@ -137,10 +150,8 @@ def replace_text_at_cursor(delete_count: int, new_text: str, target_hwnd: int, r
     force_set_foreground_window(target_hwnd)
     time.sleep(0.03)
 
-    # 직전 타이핑한 글자 수만큼 지우기
     if delete_count > 0:
         send_backspaces(delete_count)
         time.sleep(0.03)
 
-    # 새 문장 붙여넣기
     paste_text_to_window(new_text, target_hwnd, restore_clipboard=restore_clipboard, delay_ms=40)

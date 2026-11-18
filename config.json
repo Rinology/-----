@@ -1,5 +1,6 @@
 {
   "hotkey": "<alt>+q",
+  "floating_bar_mode": "inline_pill",
   "popup_at_cursor": true,
   "enable_text_expansion": true,
   "expansion_prefix": "\\",
