@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal, QEvent
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QListWidget,
-    QListWidgetItem, QLabel, QFrame, QGraphicsDropShadowEffect,
+    QListWidgetItem, QLabel, QFrame, QPushButton, QGraphicsDropShadowEffect,
     QApplication
 )
 from PyQt6.QtGui import QColor, QFont, QKeyEvent
@@ -11,7 +11,7 @@ import windows_helper
 
 
 class SuggestionItemWidget(QWidget):
-    """각 제안 항목의 스마트폰 스타일 커스텀 UI 위젯"""
+    """각 제안 항목의 커스텀 UI 위젯"""
     def __init__(self, index: int, item: TemplateItem, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -22,7 +22,6 @@ class SuggestionItemWidget(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         top_layout.setSpacing(6)
 
-        # 1. 숫자 단축키 뱃지 (1~9)
         if index < 9:
             num_label = QLabel(f"{index + 1}")
             num_label.setStyleSheet("""
@@ -35,7 +34,6 @@ class SuggestionItemWidget(QWidget):
             """)
             top_layout.addWidget(num_label)
 
-        # 2. 키워드/단축어 뱃지
         if item.keyword:
             self.badge_label = QLabel(f"[{item.keyword}]")
             self.badge_label.setStyleSheet("""
@@ -45,7 +43,6 @@ class SuggestionItemWidget(QWidget):
             """)
             top_layout.addWidget(self.badge_label)
 
-        # 3. 제목
         self.title_label = QLabel(item.title)
         self.title_label.setStyleSheet("""
             color: #f4f4f5;
@@ -54,7 +51,6 @@ class SuggestionItemWidget(QWidget):
         """)
         top_layout.addWidget(self.title_label)
 
-        # 4. 카테고리 태그
         if item.category and item.category != "일반":
             cat_label = QLabel(item.category)
             cat_label.setStyleSheet("""
@@ -70,35 +66,31 @@ class SuggestionItemWidget(QWidget):
         top_layout.addStretch()
         layout.addLayout(top_layout)
 
-        # 5. 내용 미리보기 (첫 줄 요약)
         preview_text = item.content.strip().replace("\n", "  ↵  ")
         if len(preview_text) > 65:
             preview_text = preview_text[:65] + "..."
         self.content_label = QLabel(preview_text)
-        self.content_label.setStyleSheet("""
-            color: #9ca3af;
-            font-size: 11px;
-            padding-left: 2px;
-        """)
+        self.content_label.setStyleSheet("color: #9ca3af; font-size: 11px; padding-left: 2px;")
         layout.addWidget(self.content_label)
 
 
 class OverlayWindow(QWidget):
-    request_paste = pyqtSignal(str, int)  # 텍스트, target_hwnd
+    request_paste = pyqtSignal(str, int)
+    open_settings_signal = pyqtSignal()
+    mode_changed_signal = pyqtSignal(str)
 
     def __init__(self, manager: TemplateManager):
         super().__init__()
         self.manager = manager
         self.target_hwnd = 0
 
-        # 창 속성: 프레임리스, 항상 최상위, 툴 윈도우(작업표시줄 미표시)
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setFixedSize(450, 300)
+        self.setFixedSize(460, 340)
 
         self.init_ui()
 
@@ -106,7 +98,6 @@ class OverlayWindow(QWidget):
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(8, 8, 8, 8)
 
-        # 메인 카드 컨테이너 (스마트폰 플로팅 툴팁 테마)
         self.card = QFrame(self)
         self.card.setObjectName("MainCard")
         self.card.setStyleSheet("""
@@ -117,7 +108,6 @@ class OverlayWindow(QWidget):
             }
         """)
 
-        # 그림자 효과
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(20)
         shadow.setColor(QColor(0, 0, 0, 180))
@@ -128,7 +118,45 @@ class OverlayWindow(QWidget):
         card_layout.setContentsMargins(10, 10, 10, 8)
         card_layout.setSpacing(6)
 
-        # 1. 상단 미니 검색창
+        # 1. 상단: 모드 즉시 전환 탭 버튼 (옵션 1 / 옵션 2 / 수동)
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(0, 0, 0, 2)
+        top_bar.setSpacing(4)
+
+        self.btn_mode1 = QPushButton("💡 옵션1 (인라인 툴팁)")
+        self.btn_mode2 = QPushButton("📊 옵션2 (가로 추천바)")
+        self.btn_mode3 = QPushButton("⌨️ 옵션3 (수동)")
+
+        for btn in (self.btn_mode1, self.btn_mode2, self.btn_mode3):
+            btn.setFixedHeight(24)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.btn_mode1.clicked.connect(lambda: self.switch_mode("inline_pill"))
+        self.btn_mode2.clicked.connect(lambda: self.switch_mode("horizontal_bar"))
+        self.btn_mode3.clicked.connect(lambda: self.switch_mode("manual_only"))
+
+        top_bar.addWidget(self.btn_mode1)
+        top_bar.addWidget(self.btn_mode2)
+        top_bar.addWidget(self.btn_mode3)
+
+        btn_settings = QPushButton("⚙️")
+        btn_settings.setToolTip("상세 설정 열기")
+        btn_settings.setFixedSize(26, 24)
+        btn_settings.setStyleSheet("""
+            QPushButton {
+                background-color: #27272a;
+                color: #e4e4e7;
+                border: 1px solid #3f3f46;
+                border-radius: 4px;
+            }
+            QPushButton:hover { background-color: #3f3f46; }
+        """)
+        btn_settings.clicked.connect(self.on_click_settings)
+        top_bar.addWidget(btn_settings)
+
+        card_layout.addLayout(top_bar)
+
+        # 2. 검색창
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("💬 검색 또는 1~9 숫자 선택 (Enter 완성)")
         self.search_input.setFixedHeight(34)
@@ -141,43 +169,28 @@ class OverlayWindow(QWidget):
                 padding: 0 10px;
                 font-size: 13px;
             }
-            QLineEdit:focus {
-                border: 1.5px solid #3b82f6;
-            }
+            QLineEdit:focus { border: 1.5px solid #3b82f6; }
         """)
         self.search_input.textChanged.connect(self.on_search_changed)
         card_layout.addWidget(self.search_input)
 
-        # 2. 제안 리스트 (컴팩트 카드)
+        # 3. 제안 리스트
         self.list_widget = QListWidget()
         self.list_widget.setStyleSheet("""
-            QListWidget {
-                background-color: transparent;
-                border: none;
-                outline: none;
-            }
-            QListWidget::item {
-                background-color: #27272a;
-                border-radius: 6px;
-                margin-bottom: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #1e3a8a;
-                border: 1px solid #3b82f6;
-            }
-            QListWidget::item:hover:!selected {
-                background-color: #323238;
-            }
+            QListWidget { background-color: transparent; border: none; outline: none; }
+            QListWidget::item { background-color: #27272a; border-radius: 6px; margin-bottom: 4px; }
+            QListWidget::item:selected { background-color: #1e3a8a; border: 1px solid #3b82f6; }
+            QListWidget::item:hover:!selected { background-color: #323238; }
         """)
         self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.list_widget.itemDoubleClicked.connect(self.select_current_item)
         card_layout.addWidget(self.list_widget)
 
-        # 3. 하단 팁 라벨
+        # 4. 하단 상태 바
         bottom_layout = QHBoxLayout()
         bottom_layout.setContentsMargins(2, 0, 2, 0)
 
-        self.tip_label = QLabel("↵ Enter: 완성 후 즉시 복원  |  Esc: 닫기")
+        self.tip_label = QLabel("↵ Enter: 입력  |  Esc: 닫기  |  Ctrl+R: 새로고침")
         self.tip_label.setStyleSheet("color: #71717a; font-size: 11px;")
         bottom_layout.addWidget(self.tip_label)
 
@@ -190,14 +203,34 @@ class OverlayWindow(QWidget):
         card_layout.addLayout(bottom_layout)
         root_layout.addWidget(self.card)
 
-        # 키보드 이벤트 필터 설치
         self.search_input.installEventFilter(self)
+        self.update_mode_buttons()
+
+    def update_mode_buttons(self):
+        cur_mode = self.manager.config.get("floating_bar_mode", "inline_pill")
+        active_style = "background-color: #2563eb; color: #ffffff; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; font-weight: bold;"
+        inactive_style = "background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 4px; font-size: 11px;"
+
+        self.btn_mode1.setStyleSheet(active_style if cur_mode == "inline_pill" else inactive_style)
+        self.btn_mode2.setStyleSheet(active_style if cur_mode == "horizontal_bar" else inactive_style)
+        self.btn_mode3.setStyleSheet(active_style if cur_mode == "manual_only" else inactive_style)
+
+    def switch_mode(self, mode: str):
+        self.manager.config["floating_bar_mode"] = mode
+        self.manager.save_config()
+        self.update_mode_buttons()
+        self.mode_changed_signal.emit(mode)
+        mode_label = "옵션 1 (인라인 툴팁)" if mode == "inline_pill" else ("옵션 2 (가로 추천바)" if mode == "horizontal_bar" else "옵션 3 (수동)")
+        self.tip_label.setText(f"모드 전환됨: {mode_label}")
+
+    def on_click_settings(self):
+        self.hide_overlay()
+        self.open_settings_signal.emit()
 
     def eventFilter(self, source, event):
         if source == self.search_input and event.type() == QEvent.Type.KeyPress:
             key = event.key()
 
-            # 방향키 위/아래 이동
             if key == Qt.Key.Key_Down:
                 cur_row = self.list_widget.currentRow()
                 if cur_row < self.list_widget.count() - 1:
@@ -208,26 +241,18 @@ class OverlayWindow(QWidget):
                 if cur_row > 0:
                     self.list_widget.setCurrentRow(cur_row - 1)
                 return True
-
-            # 엔터 입력 -> 완성 및 대상 창 복원
             elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.select_current_item()
                 return True
-
-            # ESC 키 -> 닫기
             elif key == Qt.Key.Key_Escape:
                 self.hide_overlay()
                 return True
-
-            # 숫자 1~9 단축 선택 (검색창이 비어있을 때 빠른 선택)
             elif not self.search_input.text() and Qt.Key.Key_1 <= key <= Qt.Key.Key_9:
                 idx = key - Qt.Key.Key_1
                 if idx < self.list_widget.count():
                     self.list_widget.setCurrentRow(idx)
                     self.select_current_item()
                     return True
-
-            # Ctrl+R 새로고침
             elif key == Qt.Key.Key_R and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
                 self.refresh_templates()
                 return True
@@ -243,38 +268,28 @@ class OverlayWindow(QWidget):
             super().keyPressEvent(event)
 
     def show_overlay_at_cursor(self, previous_hwnd: int):
-        """현재 입력 커서(Caret) 위치 바로 아래에 플로팅 팝업 표시"""
         self.target_hwnd = previous_hwnd
+        self.update_mode_buttons()
 
-        # 1. 커서 위치 획득
         cx, cy = windows_helper.get_caret_or_cursor_pos()
-
-        # 2. 현재 화면의 작업 영역(Screen Geometry) 획득
-        screen = QApplication.screenAt(QPoint(cx, cy))
-        if not screen:
-            screen = QApplication.primaryScreen()
+        screen = QApplication.screenAt(QPoint(cx, cy)) or QApplication.primaryScreen()
         screen_geo = screen.availableGeometry()
 
-        # 3. 팝업 배치 위치 계산 (기본: 커서 바로 아래 +18px)
         w, h = self.width(), self.height()
         target_x = cx
         target_y = cy + 20
 
-        # 오른쪽 경계 초과 방지
         if target_x + w > screen_geo.right():
             target_x = screen_geo.right() - w - 10
         if target_x < screen_geo.left():
             target_x = screen_geo.left() + 10
 
-        # 아래쪽 경계 초과 시 커서 위쪽으로 배치
         if target_y + h > screen_geo.bottom():
             target_y = cy - h - 10
         if target_y < screen_geo.top():
             target_y = screen_geo.top() + 10
 
         self.move(target_x, target_y)
-
-        # 4. 검색창 초기화 및 포커스
         self.search_input.clear()
         self.update_list("")
 
@@ -315,7 +330,6 @@ class OverlayWindow(QWidget):
         content = item.content
         target_hwnd = self.target_hwnd
 
-        # 창을 숨기고 대상 창으로 텍스트 붙여넣기
         self.hide_overlay()
         self.request_paste.emit(content, target_hwnd)
 

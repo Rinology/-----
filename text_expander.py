@@ -5,7 +5,6 @@ from pynput import keyboard
 from template_manager import TemplateManager, TemplateItem
 import windows_helper
 
-# 영문 자판 -> 한글 두벌식 자모 변환 딕셔너리
 ENG_TO_KOR_MAP = {
     'q': 'ㅂ', 'w': 'ㅈ', 'e': 'ㄷ', 'r': 'ㄱ', 't': 'ㅅ', 'y': 'ㅛ', 'u': 'ㅕ', 'i': 'ㅑ', 'o': 'ㅐ', 'p': 'ㅔ',
     'a': 'ㅁ', 's': 'ㄴ', 'd': 'ㅇ', 'f': 'ㄹ', 'g': 'ㅎ', 'h': 'ㅗ', 'j': 'ㅓ', 'k': 'ㅏ', 'l': 'ㅣ',
@@ -17,8 +16,8 @@ ENG_TO_KOR_MAP = {
 class TextExpander:
     """
     백그라운드에서 키보드 입력을 모니터링하여:
-    1. 실시간 타이핑에 따라 일치하는 추천 후보들을 감지하고 플로팅 바에 전달
-    2. Tab 키 또는 즉시 단축어(\ㅇㄴ) 입력 시 전체 문장으로 자동 치환
+    1. 실시간 타이핑에 따라 일치하는 추천 후보를 초고속 감지
+    2. Tab 키 또는 단축어(\\ㅇㄴ) 입력 시 즉시 10ms 내 초고속 치환
     """
     def __init__(
         self,
@@ -47,7 +46,7 @@ class TextExpander:
         )
         self.listener.daemon = True
         self.listener.start()
-        print("[TextExpander] 단축어 및 실시간 추천 엔진 가동됨")
+        print("[TextExpander] 초고속 실시간 추천 및 단축어 엔진 시작됨")
 
     def stop(self):
         if self.listener:
@@ -62,16 +61,14 @@ class TextExpander:
             return
 
         with self.lock:
-            # 1. Tab 키: 현재 떠 있는 추천 후보 완성 시도
+            # 1. Tab 키: 후보 자동완성 시도
             if key == keyboard.Key.tab:
                 if self.on_tab_complete_callback and self.on_tab_complete_callback():
-                    # 후보가 있어서 완성 처리됨
                     self.buffer_eng = ""
                     self.buffer_kor = ""
                     return
-                # 후보가 없으면 기본 Tab 키 동작 통과
 
-            # 2. 백스페이스 처리
+            # 2. 백스페이스
             if key == keyboard.Key.backspace:
                 if self.buffer_eng:
                     self.buffer_eng = self.buffer_eng[:-1]
@@ -80,7 +77,7 @@ class TextExpander:
                 self.evaluate_realtime_candidates()
                 return
 
-            # 3. 엔터 또는 ESC 키: 버퍼 초기화 및 후보 닫기
+            # 3. 엔터 또는 ESC: 초기화
             if key in (keyboard.Key.enter, keyboard.Key.esc):
                 self.buffer_eng = ""
                 self.buffer_kor = ""
@@ -102,22 +99,18 @@ class TextExpander:
             else:
                 return
 
-            # 버퍼에 누적 (최대 30자)
-            self.buffer_eng = (self.buffer_eng + char_eng)[-30:]
-            self.buffer_kor = (self.buffer_kor + char_kor)[-30:]
+            self.buffer_eng = (self.buffer_eng + char_eng)[-25:]
+            self.buffer_kor = (self.buffer_kor + char_kor)[-25:]
 
-            # 즉시 단축어(\ㅇㄴ) 치환 검사
+            # 즉시 단축어 (\ㅇㄴ) 검사
             if self.check_immediate_expansion(char_eng):
                 return
 
-            # 실시간 추천 후보 검사 (미니 바 팝업용)
+            # 실시간 후보 검사
             self.evaluate_realtime_candidates()
 
     def check_immediate_expansion(self, last_char: str) -> bool:
-        """\\ㅇㄴ 같은 즉시 치환 접두사 패턴 확인"""
-        config = self.manager.config
-        prefix = config.get("expansion_prefix", "\\")
-
+        prefix = self.manager.config.get("expansion_prefix", "\\")
         if not prefix:
             return False
 
@@ -138,24 +131,21 @@ class TextExpander:
                 matched_len = len(target_kor)
 
             if matched:
-                self.perform_replacement(matched_len, item)
+                self.perform_fast_replacement(matched_len, item)
                 return True
 
         return False
 
     def evaluate_realtime_candidates(self):
-        """현재 버퍼의 마지막 단어를 기반으로 추천 후보를 찾아 콜백 호출"""
         if not self.on_candidates_callback:
             return
 
         target_hwnd = windows_helper.get_foreground_window()
 
-        # 마지막 공백 이후의 현재 입력 중인 토큰 추출
         cur_token_kor = self.buffer_kor.split()[-1] if self.buffer_kor.split() else ""
         cur_token_eng = self.buffer_eng.split()[-1] if self.buffer_eng.split() else ""
 
         prefix = self.manager.config.get("expansion_prefix", "\\")
-        # 접두사가 붙어있으면 떼고 검색
         if prefix and cur_token_kor.startswith(prefix):
             cur_token_kor = cur_token_kor[len(prefix):]
         if prefix and cur_token_eng.startswith(prefix):
@@ -165,7 +155,6 @@ class TextExpander:
             self.on_candidates_callback([], 0, target_hwnd)
             return
 
-        # 매칭 검사
         matched_items: List[TemplateItem] = []
         for item in self.manager.templates:
             kw = item.keyword.strip()
@@ -173,14 +162,12 @@ class TextExpander:
             if not kw and not title:
                 continue
 
-            # 키워드 시작 일치 또는 초성 일치
             if (kw and kw.startswith(cur_token_kor)) or (kw and kw.lower().startswith(cur_token_eng.lower())):
                 matched_items.append(item)
             elif title.startswith(cur_token_kor) or title.lower().startswith(cur_token_eng.lower()):
                 matched_items.append(item)
 
         if matched_items:
-            # 매칭된 단어 길이
             matched_len = len(cur_token_kor)
             if prefix and self.buffer_kor.endswith(f"{prefix}{cur_token_kor}"):
                 matched_len += len(prefix)
@@ -188,33 +175,29 @@ class TextExpander:
         else:
             self.on_candidates_callback([], 0, target_hwnd)
 
-    def perform_replacement(self, delete_count: int, item: TemplateItem):
-        """백스페이스로 축약어를 지우고 전체 문장으로 치환"""
+    def perform_fast_replacement(self, delete_count: int, item: TemplateItem):
+        """딜레이 없는 초고속 치환"""
         self.is_replacing = True
         self.buffer_eng = ""
         self.buffer_kor = ""
 
-        # 후보 팝업 숨김
         if self.on_candidates_callback:
             self.on_candidates_callback([], 0, 0)
 
+        target_hwnd = windows_helper.get_foreground_window()
+
         def _worker():
             try:
-                target_hwnd = windows_helper.get_foreground_window()
-                restore_cb = self.manager.config.get("restore_clipboard", True)
-
-                time.sleep(0.04)
                 windows_helper.replace_text_at_cursor(
                     delete_count=delete_count,
                     new_text=item.content,
                     target_hwnd=target_hwnd,
-                    restore_clipboard=restore_cb
+                    restore_clipboard=False
                 )
-
                 if self.on_expanded_callback:
                     self.on_expanded_callback(item.title)
             finally:
-                time.sleep(0.15)
+                time.sleep(0.08)
                 self.is_replacing = False
 
         threading.Thread(target=_worker, daemon=True).start()

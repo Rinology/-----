@@ -19,14 +19,12 @@ import windows_helper
 
 
 class HotkeyBridge(QObject):
-    """pynput 백그라운드 스레드에서 PyQt 메인 GUI 스레드로 안전하게 신호를 전달하는 브리지"""
     open_overlay_signal = pyqtSignal(int)
     show_tray_message_signal = pyqtSignal(str, str)
-    candidates_signal = pyqtSignal(list, int, int)  # candidates, matched_len, target_hwnd
+    candidates_signal = pyqtSignal(list, int, int)
 
 
 def create_tray_icon() -> QIcon:
-    """트레이 아이콘 동적 생성"""
     pixmap = QPixmap(32, 32)
     pixmap.fill(Qt.GlobalColor.transparent)
 
@@ -63,16 +61,16 @@ class ChatHelperApp:
         # 3. UI 윈도우들
         self.overlay = OverlayWindow(self.manager)
         self.overlay.request_paste.connect(self.handle_paste_request)
+        self.overlay.open_settings_signal.connect(self.open_settings)
+        self.overlay.mode_changed_signal.connect(self.on_mode_switched)
 
-        # 커서 추적 무포커스 플로팅 바 (옵션 1 & 2)
         self.floating_bar = FloatingBar()
         self.floating_bar.item_selected.connect(self.handle_floating_bar_selection)
 
-        # 설정 대화상자
         self.settings_dialog = SettingsDialog(self.manager)
         self.settings_dialog.settings_saved.connect(self.on_settings_saved)
 
-        # 4. 텍스트 익스팬더 (실시간 추천 & Tab 자동완성)
+        # 4. 초고속 텍스트 익스팬더
         self.expander = TextExpander(
             self.manager,
             on_candidates_callback=self.on_expander_candidates,
@@ -81,7 +79,7 @@ class ChatHelperApp:
         )
         self.expander.start()
 
-        # 5. 트레이 아이콘 설정
+        # 5. 트레이 아이콘
         self.tray_icon = QSystemTrayIcon(create_tray_icon(), self.app)
         self.setup_tray_menu()
         self.tray_icon.show()
@@ -91,35 +89,22 @@ class ChatHelperApp:
         self.start_hotkey_listener()
 
         # 시작 알림
-        mode_name = "인라인 툴팁 (Tab 완성)" if self.manager.config.get("floating_bar_mode") == "inline_pill" else "가로형 추천 바"
+        mode = self.manager.config.get("floating_bar_mode", "inline_pill")
+        mode_str = "옵션 1 (인라인 툴팁)" if mode == "inline_pill" else ("옵션 2 (가로 추천바)" if mode == "horizontal_bar" else "옵션 3 (수동)")
         self.tray_icon.showMessage(
-            "채팅 도우미 시작됨",
-            f"현재 모드: [{mode_name}]\n트레이 아이콘에서 [설정]을 눌러 모드를 변경해 비교해 보세요!",
+            "채팅 도우미 시작됨 (초고속 반응 적용)",
+            f"현재 모드: [{mode_str}]\nAlt+Q 창 상단에서 모드를 바로 바꿀 수 있습니다!",
             QSystemTrayIcon.MessageIcon.Information,
-            3500
+            3000
         )
 
     def setup_tray_menu(self):
         menu = QMenu()
         menu.setStyleSheet("""
-            QMenu {
-                background-color: #27272a;
-                color: #f4f4f5;
-                border: 1px solid #3f3f46;
-                padding: 4px;
-            }
-            QMenu::item {
-                padding: 6px 20px;
-                border-radius: 4px;
-            }
-            QMenu::item:selected {
-                background-color: #2563eb;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #3f3f46;
-                margin: 4px 8px;
-            }
+            QMenu { background-color: #27272a; color: #f4f4f5; border: 1px solid #3f3f46; padding: 4px; }
+            QMenu::item { padding: 6px 20px; border-radius: 4px; }
+            QMenu::item:selected { background-color: #2563eb; }
+            QMenu::separator { height: 1px; background: #3f3f46; margin: 4px 8px; }
         """)
 
         hotkey_str = self.manager.config.get("hotkey", "<alt>+q")
@@ -165,10 +150,16 @@ class ChatHelperApp:
 
     def on_settings_saved(self):
         self.floating_bar.hide()
+        self.overlay.update_mode_buttons()
         self.start_hotkey_listener()
         mode = self.manager.config.get("floating_bar_mode", "inline_pill")
         mode_label = "옵션 1: 인라인 툴팁" if mode == "inline_pill" else ("옵션 2: 가로형 추천 바" if mode == "horizontal_bar" else "옵션 3: 수동 모드")
-        self.tray_icon.showMessage("설정 변경 완료", f"현재 모드가 '{mode_label}'로 적용되었습니다.", QSystemTrayIcon.MessageIcon.Information, 2000)
+        self.tray_icon.showMessage("설정 적용 완료", f"모드가 '{mode_label}'로 변경되었습니다.", QSystemTrayIcon.MessageIcon.Information, 1500)
+
+    def on_mode_switched(self, new_mode: str):
+        self.floating_bar.hide()
+        mode_label = "옵션 1 (인라인 툴팁)" if new_mode == "inline_pill" else ("옵션 2 (가로형 추천바)" if new_mode == "horizontal_bar" else "옵션 3 (수동)")
+        self.tray_icon.showMessage("모드 전환", f"'{mode_label}' 적용됨", QSystemTrayIcon.MessageIcon.Information, 1000)
 
     def start_hotkey_listener(self):
         if self.hotkey_listener:
@@ -198,7 +189,6 @@ class ChatHelperApp:
         else:
             self.overlay.show_overlay_at_cursor(hwnd)
 
-    # 텍스트 익스팬더 콜백들
     def on_expander_candidates(self, candidates: List[TemplateItem], matched_len: int, target_hwnd: int):
         self.bridge.candidates_signal.emit(candidates, matched_len, target_hwnd)
 
@@ -210,21 +200,19 @@ class ChatHelperApp:
         self.floating_bar.show_candidates(mode, candidates, matched_len, target_hwnd)
 
     def on_expander_tab_pressed(self) -> bool:
-        """Tab 키가 눌렸을 때 플로팅 바가 켜져 있으면 자동완성 처리"""
         if self.floating_bar.isVisible():
             return self.floating_bar.select_first_candidate()
         return False
 
     def handle_floating_bar_selection(self, item: TemplateItem, delete_count: int):
         target_hwnd = self.floating_bar.target_hwnd or windows_helper.get_foreground_window()
-        restore_cb = self.manager.config.get("restore_clipboard", True)
 
         def _worker():
             windows_helper.replace_text_at_cursor(
                 delete_count=delete_count,
                 new_text=item.content,
                 target_hwnd=target_hwnd,
-                restore_clipboard=restore_cb
+                restore_clipboard=False
             )
 
         threading.Thread(target=_worker, daemon=True).start()
@@ -236,31 +224,19 @@ class ChatHelperApp:
         self.tray_icon.showMessage(title, msg, QSystemTrayIcon.MessageIcon.Information, 1000)
 
     def handle_paste_request(self, text: str, target_hwnd: int):
-        restore_cb = self.manager.config.get("restore_clipboard", True)
-        delay_ms = self.manager.config.get("paste_delay_ms", 60)
+        def _worker():
+            windows_helper.fast_paste_text(text, target_hwnd)
 
-        threading.Thread(
-            target=windows_helper.paste_text_to_window,
-            args=(text, target_hwnd, restore_cb, delay_ms),
-            daemon=True
-        ).start()
+        threading.Thread(target=_worker, daemon=True).start()
 
     def reload_csv(self):
         count = self.manager.load_templates()
-        self.tray_icon.showMessage(
-            "템플릿 갱신 완료",
-            f"총 {count}개의 템플릿을 불러왔습니다.",
-            QSystemTrayIcon.MessageIcon.Information,
-            2000
-        )
+        self.tray_icon.showMessage("템플릿 갱신", f"총 {count}개 템플릿 로드 완료", QSystemTrayIcon.MessageIcon.Information, 1500)
 
     def sync_remote(self):
         url = self.manager.config.get("remote_csv_url", "").strip()
         if not url:
-            QMessageBox.information(
-                None, "구글 시트 연동 안내",
-                "설정에서 구글 스프레드시트의 '웹에 게시' CSV 링크를 입력해 주세요."
-            )
+            QMessageBox.information(None, "안내", "설정에서 구글 시트 CSV 링크를 먼저 입력해 주세요.")
             return
 
         success, msg = self.manager.sync_from_remote_csv()
