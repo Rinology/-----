@@ -1,7 +1,11 @@
 {
   "hotkey": "<alt>+q",
+  "popup_at_cursor": true,
+  "enable_text_expansion": true,
+  "expansion_prefix": "\\",
+  "expansion_trigger": "prefix_or_space",
   "csv_file": "chat_templates.csv",
   "remote_csv_url": "",
   "restore_clipboard": true,
-  "paste_delay_ms": 70
+  "paste_delay_ms": 60
 }

@@ -2,14 +2,34 @@ import ctypes
 import time
 import pyperclip
 from ctypes import wintypes
+from typing import Tuple
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
+VK_BACK = 0x08
 VK_CONTROL = 0x11
 VK_V = 0x56
 VK_MENU = 0x12  # ALT
 KEYEVENTF_KEYUP = 0x0002
+
+
+class GUITHREADINFO(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', wintypes.DWORD),
+        ('flags', wintypes.DWORD),
+        ('hwndActive', wintypes.HWND),
+        ('hwndFocus', wintypes.HWND),
+        ('hwndCapture', wintypes.HWND),
+        ('hwndMenuOwner', wintypes.HWND),
+        ('hwndMoveSize', wintypes.HWND),
+        ('hwndCaret', wintypes.HWND),
+        ('rcCaret', wintypes.RECT)
+    ]
+
+
+class POINT(ctypes.Structure):
+    _fields_ = [('x', ctypes.c_long), ('y', ctypes.c_long)]
 
 
 def get_foreground_window() -> int:
@@ -42,6 +62,44 @@ def force_set_foreground_window(hwnd: int) -> bool:
     return True
 
 
+def get_caret_or_cursor_pos() -> Tuple[int, int]:
+    """
+    현재 입력 중인 텍스트 커서(Caret) 위치를 획득.
+    표준 Win32 Caret이 없을 경우(웹 브라우저, 카톡 등) 현재 마우스 커서 위치를 반환.
+    """
+    hwnd = user32.GetForegroundWindow()
+    if hwnd:
+        tid = user32.GetWindowThreadProcessId(hwnd, None)
+        gui = GUITHREADINFO()
+        gui.cbSize = ctypes.sizeof(GUITHREADINFO)
+
+        if user32.GetGUIThreadInfo(tid, ctypes.byref(gui)):
+            target_hwnd = gui.hwndCaret if gui.hwndCaret else gui.hwndFocus
+            if target_hwnd:
+                pt = POINT(gui.rcCaret.left, gui.rcCaret.bottom)
+                # (0, 0)이 아닌 유효한 캐럿 좌표가 존재할 때
+                if (gui.rcCaret.left != 0 or gui.rcCaret.top != 0 or
+                        gui.rcCaret.right != 0 or gui.rcCaret.bottom != 0):
+                    user32.ClientToScreen(target_hwnd, ctypes.byref(pt))
+                    if pt.x > 0 and pt.y > 0:
+                        return pt.x, pt.y
+
+    # Fallback: 마우스 커서 위치
+    m_pt = POINT()
+    user32.GetCursorPos(ctypes.byref(m_pt))
+    return m_pt.x, m_pt.y
+
+
+def send_backspaces(count: int, delay: float = 0.01):
+    """지정된 개수만큼 백스페이스 키 입력 전송"""
+    for _ in range(count):
+        user32.keybd_event(VK_BACK, 0, 0, 0)
+        time.sleep(0.005)
+        user32.keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0)
+        if delay > 0:
+            time.sleep(delay)
+
+
 def paste_text_to_window(text: str, target_hwnd: int, restore_clipboard: bool = True, delay_ms: int = 70):
     """지정된 창에 텍스트를 클립보드로 붙여넣기"""
     original_clipboard = None
@@ -72,3 +130,17 @@ def paste_text_to_window(text: str, target_hwnd: int, restore_clipboard: bool = 
             pyperclip.copy(original_clipboard)
         except Exception:
             pass
+
+
+def replace_text_at_cursor(delete_count: int, new_text: str, target_hwnd: int, restore_clipboard: bool = True):
+    """커서 위치에서 직전 입력된 글자들을 지우고 새 문장으로 치환"""
+    force_set_foreground_window(target_hwnd)
+    time.sleep(0.03)
+
+    # 직전 타이핑한 글자 수만큼 지우기
+    if delete_count > 0:
+        send_backspaces(delete_count)
+        time.sleep(0.03)
+
+    # 새 문장 붙여넣기
+    paste_text_to_window(new_text, target_hwnd, restore_clipboard=restore_clipboard, delay_ms=40)
