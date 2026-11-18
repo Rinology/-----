@@ -1,0 +1,13 @@
+﻿<Window x:Class="ChatHelper.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ChatHelper Manager" 
+        Height="100" Width="100"
+        Visibility="Hidden"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Grid>
+    </Grid>
+</Window>

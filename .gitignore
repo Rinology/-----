@@ -1,12 +1,14 @@
-# Virtual Environment
+# Virtual Environment & Python
 .venv/
 env/
 venv/
-
-# Python cache
 __pycache__/
 *.py[cod]
-*$py.class
+
+# .NET / C#
+ChatHelper/bin/
+ChatHelper/obj/
+publish/*.pdb
 
 # IDE & OS
 .vscode/
