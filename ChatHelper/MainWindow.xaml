@@ -1,8 +1,8 @@
 ﻿<Window x:Class="ChatHelper.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ChatHelper v2.1" 
-        Height="170" Width="490"
+        Title="ChatHelper v2.2" 
+        Height="175" Width="510"
         WindowStyle="None"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
@@ -10,19 +10,24 @@
         Background="{DynamicResource ThemeBg}"
         BorderBrush="{DynamicResource ThemeAccent}"
         BorderThickness="2"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled"
         Loaded="Window_Loaded">
     <Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="30"/>
+                <RowDefinition Height="32"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- 타이틀 바 -->
             <Grid Background="{DynamicResource ThemeTitleBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                    <TextBlock x:Name="TxtTitleBar" Text="🟢 ChatHelper v2.1 - 실행 중" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                    <TextBlock x:Name="TxtTitleBar" Text="🟢 ChatHelper v2.2 - 실행 중" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,4,0">
                     <Button Style="{DynamicResource ThemeMinimizeButtonStyle}" ToolTip="트레이로 숨기기 (_)" Margin="0,0,3,0" Click="BtnHideToTray_Click"/>
@@ -33,22 +38,22 @@
             <!-- 상태 전광판 -->
             <Border Grid.Row="1" Margin="10,8,10,6" CornerRadius="6"
                     BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}" 
-                    Background="{DynamicResource ThemeSurfaceBg}" Padding="12,8">
+                    Background="{DynamicResource ThemeSurfaceBg}" Padding="14,8">
                 <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <Ellipse x:Name="StatusDot" Width="12" Height="12" Fill="#00A000" VerticalAlignment="Center" Margin="0,0,8,0"/>
                         <TextBlock x:Name="LblRunningStatus" Text="자동완성 작동 중 (ON)" FontSize="14" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <TextBlock x:Name="LblSubStatus" Text="👤 계정: taerin   |   📋 템플릿: 50개   |   ⌨️ 완성키: \ + Tab" FontSize="12" Foreground="{DynamicResource ThemeSubText}"/>
+                    <TextBlock x:Name="LblSubStatus" Text="👤 계정: taerin   |   📋 템플릿: 65개   |   ⌨️ 완성키: \ + Tab" FontSize="12" Foreground="{DynamicResource ThemeSubText}"/>
                 </StackPanel>
             </Border>
 
-            <!-- 하단 액션 버튼 4개 -->
+            <!-- 하단 액션 버튼 4개 (넉넉한 크기) -->
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10,2,10,10">
-                <Button Content="💻 제어판 열기" Style="{DynamicResource ThemeButtonStyle}" Width="112" Height="34" FontSize="12" FontWeight="Bold" Margin="0,0,6,0" Click="BtnControlPanel_Click"/>
-                <Button Content="🔍 검색 (Alt+Q)" Style="{DynamicResource ThemeButtonStyle}" Width="112" Height="34" FontSize="12" Margin="0,0,6,0" Click="BtnQuickSearch_Click"/>
-                <Button x:Name="BtnTogglePause" Content="⏸️ 일시정지" Style="{DynamicResource ThemeButtonStyle}" Width="106" Height="34" FontSize="12" Margin="0,0,6,0" Click="BtnTogglePause_Click"/>
-                <Button Content="🔽 트레이 이동" Style="{DynamicResource ThemeButtonStyle}" Width="110" Height="34" FontSize="12" Click="BtnHideToTray_Click"/>
+                <Button Content="💻 제어판 열기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="116" Height="36" FontSize="12" FontWeight="Bold" Margin="0,0,6,0" Click="BtnControlPanel_Click"/>
+                <Button Content="🔍 검색 (Alt+Q)" Style="{DynamicResource ThemeButtonStyle}" MinWidth="116" Height="36" FontSize="12" Margin="0,0,6,0" Click="BtnQuickSearch_Click"/>
+                <Button x:Name="BtnTogglePause" Content="⏸️ 일시정지" Style="{DynamicResource ThemeButtonStyle}" MinWidth="110" Height="36" FontSize="12" Margin="0,0,6,0" Click="BtnTogglePause_Click"/>
+                <Button Content="🔽 트레이 이동" Style="{DynamicResource ThemeButtonStyle}" MinWidth="114" Height="36" FontSize="12" Click="BtnHideToTray_Click"/>
             </StackPanel>
         </Grid>
     </Border>

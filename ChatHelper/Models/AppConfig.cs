@@ -12,11 +12,16 @@ public class AppConfig
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
-    // UI 테마: "Win98" (기본: 윈도우 98 레트로), "ModernDark" (다크), "ModernLight" (라이트)
+    // UI 테마: "Win98" (윈도우 98 클래식), "WindowsVista" (윈도우 비스타 에어로 글래스), "Windows10" (윈도우 10 모던 플랫)
     public string Theme { get; set; } = "Win98";
 
     // 알약 크기 배율 (1: 1.0배 보통, 2: 2.0배 큼(기본 권장), 3: 3.0배 아주 큼)
     public int PillScale { get; set; } = 2;
+
+    // 알약 위치 및 간격 설정 (채팅 방해 방지)
+    public string PillPlacement { get; set; } = "CursorNearby"; // CursorNearby, ScreenBottomRight, ScreenTopCenter
+    public int PillOffsetY { get; set; } = 35; // 커서 기준 Y 오프셋 (기본 +35px)
+    public double WindowOpacity { get; set; } = 0.95; // 화면 흐리게/투명도 조절 (0.7 ~ 1.0)
 
     // 작업표시줄 및 화면 상태표시바 표시 설정 (true: 상태표시창&작업표시줄 표시, false: 트레이 아이콘으로만 숨김)
     public bool ShowStatusWindow { get; set; } = true;

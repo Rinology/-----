@@ -60,10 +60,10 @@ public partial class ControlPanelWindow : Window
             RadioSlashTab.IsChecked = true;
 
         // 3. 테마 및 표시 설정 로드
-        if (cfg.Theme == "ModernDark")
-            RadioThemeDark.IsChecked = true;
-        else if (cfg.Theme == "ModernLight")
-            RadioThemeLight.IsChecked = true;
+        if (cfg.Theme == "WindowsVista")
+            RadioThemeVista.IsChecked = true;
+        else if (cfg.Theme == "Windows10")
+            RadioThemeWin10.IsChecked = true;
         else
             RadioThemeWin98.IsChecked = true;
 
@@ -73,6 +73,26 @@ public partial class ControlPanelWindow : Window
             RadioPillScale3.IsChecked = true;
         else
             RadioPillScale2.IsChecked = true;
+
+        // 알약 위치 및 간격
+        if (cfg.PillPlacement == "ScreenBottomRight")
+            RadioPosFixed.IsChecked = true;
+        else if (cfg.PillOffsetY >= 55)
+            RadioPosFar.IsChecked = true;
+        else if (cfg.PillOffsetY <= 20)
+            RadioPosNearby1.IsChecked = true;
+        else
+            RadioPosNearby2.IsChecked = true;
+
+        // 창 투명도 (흐리게)
+        if (cfg.WindowOpacity <= 0.75)
+            RadioOpacity70.IsChecked = true;
+        else if (cfg.WindowOpacity <= 0.85)
+            RadioOpacity80.IsChecked = true;
+        else if (cfg.WindowOpacity <= 0.95)
+            RadioOpacity90.IsChecked = true;
+        else
+            RadioOpacity100.IsChecked = true;
 
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
@@ -214,10 +234,10 @@ public partial class ControlPanelWindow : Window
         if (_isInitializing || _configManager == null) return;
 
         string targetTheme = "Win98";
-        if (RadioThemeDark?.IsChecked == true)
-            targetTheme = "ModernDark";
-        else if (RadioThemeLight?.IsChecked == true)
-            targetTheme = "ModernLight";
+        if (RadioThemeVista?.IsChecked == true)
+            targetTheme = "WindowsVista";
+        else if (RadioThemeWin10?.IsChecked == true)
+            targetTheme = "Windows10";
 
         _configManager.Config.Theme = targetTheme;
         ThemeManager.ApplyTheme(targetTheme);
@@ -279,6 +299,25 @@ public partial class ControlPanelWindow : Window
             cfg.PillScale = 3;
         else
             cfg.PillScale = 2;
+
+        // 알약 위치 및 간격 저장
+        if (RadioPosFixed.IsChecked == true)
+        {
+            cfg.PillPlacement = "ScreenBottomRight";
+        }
+        else
+        {
+            cfg.PillPlacement = "CursorNearby";
+            if (RadioPosFar.IsChecked == true) cfg.PillOffsetY = 65;
+            else if (RadioPosNearby1.IsChecked == true) cfg.PillOffsetY = 15;
+            else cfg.PillOffsetY = 35;
+        }
+
+        // 창 투명도 (흐리게) 저장
+        if (RadioOpacity70.IsChecked == true) cfg.WindowOpacity = 0.70;
+        else if (RadioOpacity80.IsChecked == true) cfg.WindowOpacity = 0.80;
+        else if (RadioOpacity90.IsChecked == true) cfg.WindowOpacity = 0.90;
+        else cfg.WindowOpacity = 1.0;
 
         if (RadioModeHorizontal.IsChecked == true)
             cfg.DisplayMode = "HorizontalBar";

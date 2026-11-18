@@ -169,11 +169,33 @@ public partial class SuggestionBar : Window
 
         UpdateLayout();
         var screenWidth = SystemParameters.PrimaryScreenWidth;
-        double w = ActualWidth > 0 ? ActualWidth : 280;
-        double h = ActualHeight > 0 ? ActualHeight : 32;
+        var screenHeight = SystemParameters.PrimaryScreenHeight;
+        double w = ActualWidth > 0 ? ActualWidth : 320;
+        double h = ActualHeight > 0 ? ActualHeight : 42;
 
-        Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
-        Top = (caretY - h - 6 > 0) ? caretY - h - 6 : caretY + 22;
+        // 창 투명도 (흐리게 조절)
+        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, 0.5, 1.0);
+
+        if (_configManager.Config.PillPlacement == "ScreenBottomRight")
+        {
+            Left = screenWidth - w - 24;
+            Top = screenHeight - h - 64;
+        }
+        else
+        {
+            int offsetY = _configManager.Config.PillOffsetY;
+            if (offsetY <= 0) offsetY = 35;
+
+            Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
+            if (caretY + offsetY + h > screenHeight - 10)
+            {
+                Top = Math.Max(10, caretY - h - 10);
+            }
+            else
+            {
+                Top = caretY + offsetY;
+            }
+        }
 
         Show();
     }

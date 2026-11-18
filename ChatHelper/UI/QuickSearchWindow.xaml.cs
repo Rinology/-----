@@ -58,6 +58,8 @@ public partial class QuickSearchWindow : Window
         BuildCategoryChips();
         UpdateList();
 
+        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, 0.6, 1.0);
+
         Show();
         WindowState = WindowState.Normal;
 
@@ -121,11 +123,37 @@ public partial class QuickSearchWindow : Window
     {
         string query = TxtSearch.Text.Trim();
         var items = _templateManager.Search(query, _selectedCategory);
+
+        // [스마트 폴백] 선택된 특정 카테고리에 결과가 없는데, 전체에서 검색하면 결과가 있는 경우
+        if (items.Count == 0 && _selectedCategory != "전체" && !string.IsNullOrWhiteSpace(query))
+        {
+            var fallbackItems = _templateManager.Search(query, "전체");
+            if (fallbackItems.Count > 0)
+            {
+                TxtResultHint.Text = $"💡 '{_selectedCategory}' 카테고리에는 일치하는 항목이 없어 '전체' 검색 결과({fallbackItems.Count}건)를 표시합니다.";
+                TxtResultHint.Foreground = (Brush)new BrushConverter().ConvertFromString("#2563EB")!;
+                LstTemplates.ItemsSource = fallbackItems;
+                LstTemplates.SelectedIndex = 0;
+                return;
+            }
+        }
+
         LstTemplates.ItemsSource = items;
 
         if (items.Count > 0)
         {
+            TxtResultHint.Text = string.IsNullOrWhiteSpace(query)
+                ? $"'{_selectedCategory}' 카테고리 템플릿 총 {items.Count}개"
+                : $"'{_selectedCategory}' 검색 결과 {items.Count}건 일치";
+            TxtResultHint.Foreground = (Brush)FindResource("ThemeSubText");
             LstTemplates.SelectedIndex = 0;
+        }
+        else
+        {
+            TxtResultHint.Text = string.IsNullOrWhiteSpace(query)
+                ? $"'{_selectedCategory}' 카테고리에 등록된 템플릿이 없습니다."
+                : $"검색어 '{query}'에 일치하는 템플릿이 없습니다. [➕ 새 템플릿 등록]으로 바로 추가해 보세요!";
+            TxtResultHint.Foreground = (Brush)new BrushConverter().ConvertFromString("#DC2626")!;
         }
     }
 
@@ -136,9 +164,32 @@ public partial class QuickSearchWindow : Window
             Hide();
             e.Handled = true;
         }
+        else if (e.Key == Key.Tab)
+        {
+            // Tab 키로 검색창과 템플릿 목록 간 즉시 전환
+            if (TxtSearch.IsFocused)
+            {
+                LstTemplates.Focus();
+                if (LstTemplates.SelectedIndex < 0 && LstTemplates.Items.Count > 0)
+                {
+                    LstTemplates.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                TxtSearch.Focus();
+                TxtSearch.SelectAll();
+            }
+            e.Handled = true;
+        }
         else if (e.Key == Key.Down)
         {
-            if (LstTemplates.Items.Count > 0 && LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1)
+            if (TxtSearch.IsFocused && LstTemplates.Items.Count > 0)
+            {
+                LstTemplates.Focus();
+                if (LstTemplates.SelectedIndex < 0) LstTemplates.SelectedIndex = 0;
+            }
+            else if (LstTemplates.Items.Count > 0 && LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1)
             {
                 LstTemplates.SelectedIndex++;
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
@@ -151,6 +202,10 @@ public partial class QuickSearchWindow : Window
             {
                 LstTemplates.SelectedIndex--;
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
+            }
+            else if (LstTemplates.SelectedIndex == 0)
+            {
+                TxtSearch.Focus();
             }
             e.Handled = true;
         }

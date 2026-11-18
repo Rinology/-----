@@ -12,8 +12,8 @@ public static class ThemeManager
     {
         CurrentTheme = themeName switch
         {
-            "ModernDark" => "ModernDark",
-            "ModernLight" => "ModernLight",
+            "WindowsVista" or "ModernDark" => "WindowsVista",
+            "Windows10" or "ModernLight" => "Windows10",
             _ => "Win98"
         };
 
@@ -27,7 +27,7 @@ public static class ThemeManager
             appResources.MergedDictionaries.Add(resourceDict);
 
             ThemeChanged?.Invoke();
-            System.Diagnostics.Debug.WriteLine($"[ThemeManager] 테마 적용 완료: {CurrentTheme}");
+            System.Diagnostics.Debug.WriteLine($"[ThemeManager] OS 세대별 테마 적용 완료: {CurrentTheme}");
         }
         catch (Exception ex)
         {
