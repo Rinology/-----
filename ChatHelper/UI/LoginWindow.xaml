@@ -5,12 +5,18 @@
         Height="270" Width="460"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        AllowsTransparency="False"
-        Background="{DynamicResource ThemeBg}"
+        AllowsTransparency="True"
+        Background="Transparent"
         ResizeMode="NoResize"
-        BorderBrush="{DynamicResource ThemeAccent}"
-        BorderThickness="2">
-    <Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}">
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled">
+    <Border CornerRadius="{DynamicResource ThemeWindowCornerRadius}" 
+            BorderThickness="{DynamicResource ThemeWindowBorderThickness}" 
+            BorderBrush="{DynamicResource ThemeBorder}"
+            Background="{DynamicResource ThemeBg}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>

@@ -94,6 +94,16 @@ public partial class ControlPanelWindow : Window
         else
             RadioOpacity100.IsChecked = true;
 
+        // 상태창 투명도 (바탕화면 비침)
+        if (cfg.StatusWindowOpacity <= 0.50)
+            RadioStatusOpacity45.IsChecked = true;
+        else if (cfg.StatusWindowOpacity <= 0.70)
+            RadioStatusOpacity65.IsChecked = true;
+        else if (cfg.StatusWindowOpacity <= 0.90)
+            RadioStatusOpacity85.IsChecked = true;
+        else
+            RadioStatusOpacity100.IsChecked = true;
+
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
         else if (cfg.DisplayMode == "ManualOnly")
@@ -318,6 +328,12 @@ public partial class ControlPanelWindow : Window
         else if (RadioOpacity80.IsChecked == true) cfg.WindowOpacity = 0.80;
         else if (RadioOpacity90.IsChecked == true) cfg.WindowOpacity = 0.90;
         else cfg.WindowOpacity = 1.0;
+
+        // 상태창 투명도 저장
+        if (RadioStatusOpacity45.IsChecked == true) cfg.StatusWindowOpacity = 0.45;
+        else if (RadioStatusOpacity65.IsChecked == true) cfg.StatusWindowOpacity = 0.65;
+        else if (RadioStatusOpacity85.IsChecked == true) cfg.StatusWindowOpacity = 0.85;
+        else cfg.StatusWindowOpacity = 1.0;
 
         if (RadioModeHorizontal.IsChecked == true)
             cfg.DisplayMode = "HorizontalBar";

@@ -5,16 +5,18 @@
         Height="720" Width="920"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        Background="{DynamicResource ThemeBg}"
-        BorderBrush="{DynamicResource ThemeAccent}"
-        BorderThickness="2"
+        AllowsTransparency="True"
+        Background="Transparent"
         ResizeMode="NoResize"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         RenderOptions.ClearTypeHint="Enabled">
-    <Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}">
+    <Border CornerRadius="{DynamicResource ThemeWindowCornerRadius}" 
+            BorderThickness="{DynamicResource ThemeWindowBorderThickness}" 
+            BorderBrush="{DynamicResource ThemeBorder}"
+            Background="{DynamicResource ThemeBg}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="36"/>
@@ -227,10 +229,23 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- 활성 상태 프로그램창 투명도 (바탕화면 비침 조절) -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="5. 활성 상태 프로그램창 투명도 (바탕화면 비침 조절)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="화면 우측 하단 프로그램창이 바탕화면 위에서 은은하게 비치도록 투명도를 조절합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
+
+                                    <RadioButton x:Name="RadioStatusOpacity100" Content="100% 불투명 (선명하게)" Margin="8,5"/>
+                                    <RadioButton x:Name="RadioStatusOpacity85" Content="85% 은은한 투명도 (바탕화면이 자연스럽게 비침, 기본 권장)" Margin="8,5" IsChecked="True"/>
+                                    <RadioButton x:Name="RadioStatusOpacity65" Content="65% 반투명 (배경이 훤히 비침)" Margin="8,5"/>
+                                    <RadioButton x:Name="RadioStatusOpacity45" Content="45% 높은 투명도 (유리처럼 투명)" Margin="8,5"/>
+                                </StackPanel>
+                            </Border>
+
                             <!-- 추천 바 형태 및 상태창 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="5. 추천 바 형태 및 작업표시줄 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="6. 추천 바 형태 및 작업표시줄 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
                                     <RadioButton x:Name="RadioModeInline" Content="인라인 스마트 알약 툴팁 (1개 칩 형태)" Margin="8,4" IsChecked="True"/>
                                     <RadioButton x:Name="RadioModeHorizontal" Content="가로형 미니 추천 바 (최대 3개 칩 형태)" Margin="8,4"/>
                                     <RadioButton x:Name="RadioModeManual" Content="수동 검색 모드만 사용 (Alt+Q 전용)" Margin="8,4"/>

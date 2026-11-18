@@ -4,19 +4,21 @@
         Title="ChatHelper v2.2" 
         Height="175" Width="510"
         WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
         Topmost="False"
-        Background="{DynamicResource ThemeBg}"
-        BorderBrush="{DynamicResource ThemeAccent}"
-        BorderThickness="2"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         RenderOptions.ClearTypeHint="Enabled"
         Loaded="Window_Loaded">
-    <Border BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}">
+    <Border CornerRadius="{DynamicResource ThemeWindowCornerRadius}" 
+            BorderThickness="{DynamicResource ThemeWindowBorderThickness}" 
+            BorderBrush="{DynamicResource ThemeBorder}"
+            Background="{DynamicResource ThemeBg}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="32"/>
@@ -36,9 +38,12 @@
             </Grid>
 
             <!-- 상태 전광판 -->
-            <Border Grid.Row="1" Margin="10,8,10,6" CornerRadius="6"
-                    BorderThickness="1" BorderBrush="{DynamicResource ThemeBorder}" 
-                    Background="{DynamicResource ThemeSurfaceBg}" Padding="14,8">
+            <Border Grid.Row="1" Margin="10,8,10,6" 
+                    CornerRadius="{DynamicResource ThemePanelCornerRadius}"
+                    BorderThickness="1" 
+                    BorderBrush="{DynamicResource ThemePanelBorder}" 
+                    Background="{DynamicResource ThemePanelBg}" 
+                    Padding="14,8">
                 <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                         <Ellipse x:Name="StatusDot" Width="12" Height="12" Fill="#00A000" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -48,7 +53,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- 하단 액션 버튼 4개 (넉넉한 크기) -->
+            <!-- 하단 액션 버튼 4개 -->
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10,2,10,10">
                 <Button Content="💻 제어판 열기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="116" Height="36" FontSize="12" FontWeight="Bold" Margin="0,0,6,0" Click="BtnControlPanel_Click"/>
                 <Button Content="🔍 검색 (Alt+Q)" Style="{DynamicResource ThemeButtonStyle}" MinWidth="116" Height="36" FontSize="12" Margin="0,0,6,0" Click="BtnQuickSearch_Click"/>

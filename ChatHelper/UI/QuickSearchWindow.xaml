@@ -15,9 +15,9 @@
         PreviewKeyDown="Window_PreviewKeyDown">
     <Border x:Name="MainBorder" 
             Background="{DynamicResource ThemeBg}" 
-            BorderBrush="{DynamicResource ThemeAccent}" 
-            BorderThickness="2" 
-            CornerRadius="8" 
+            BorderBrush="{DynamicResource ThemeBorder}" 
+            BorderThickness="{DynamicResource ThemeWindowBorderThickness}" 
+            CornerRadius="{DynamicResource ThemeWindowCornerRadius}" 
             Padding="14"
             Margin="6">
         <Border.Effect>
@@ -81,7 +81,7 @@
             </Border>
 
             <!-- 3. 카테고리 필터 칩 바 -->
-            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,6">
+            <ScrollViewer x:Name="CategoryScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,6">
                 <StackPanel x:Name="CategoryPanel" Orientation="Horizontal">
                     <!-- 카테고리 칩들이 동적으로 여기에 추가됨 -->
                 </StackPanel>

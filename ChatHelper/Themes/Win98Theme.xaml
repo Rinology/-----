@@ -1,6 +1,14 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- 공통 테마 구조 속성 (Win98: 완전 직각 & 클래식 회색 패널) -->
+    <CornerRadius x:Key="ThemeWindowCornerRadius">0</CornerRadius>
+    <CornerRadius x:Key="ThemePanelCornerRadius">0</CornerRadius>
+    <CornerRadius x:Key="ThemeButtonCornerRadius">0</CornerRadius>
+    <Thickness x:Key="ThemeWindowBorderThickness">2</Thickness>
+    <SolidColorBrush x:Key="ThemePanelBg" Color="#D4D0C8"/>
+    <SolidColorBrush x:Key="ThemePanelBorder" Color="#808080"/>
+
     <!-- 공통 테마 컬러 팔레트 (Win98) -->
     <SolidColorBrush x:Key="ThemeBg" Color="#C0C0C0"/>
     <SolidColorBrush x:Key="ThemeSurfaceBg" Color="#FFFFFF"/>

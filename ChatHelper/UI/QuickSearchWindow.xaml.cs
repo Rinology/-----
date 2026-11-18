@@ -78,20 +78,21 @@ public partial class QuickSearchWindow : Window
 
         foreach (var cat in cats)
         {
-            bool isSelected = (cat == _selectedCategory);
+            bool isSelected = string.Equals(cat, _selectedCategory, StringComparison.OrdinalIgnoreCase);
             var btn = new Button
             {
-                Content = cat,
+                Content = isSelected ? $"✔ {cat}" : cat,
                 Margin = new Thickness(0, 0, 6, 0),
-                Padding = new Thickness(12, 4, 12, 4),
-                FontSize = 12,
+                Padding = new Thickness(14, 5, 14, 5),
+                FontSize = 12.5,
                 FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
                 Cursor = Cursors.Hand,
                 Background = isSelected 
                     ? (Brush)new BrushConverter().ConvertFromString("#2563EB")! 
                     : (Brush)new BrushConverter().ConvertFromString("#3F3F46")!,
                 Foreground = Brushes.White,
-                BorderThickness = new Thickness(0),
+                BorderBrush = (Brush)FindResource("ThemeBorder"),
+                BorderThickness = new Thickness(isSelected ? 2 : 1),
                 Focusable = false
             };
 
@@ -104,7 +105,36 @@ public partial class QuickSearchWindow : Window
             };
 
             CategoryPanel.Children.Add(btn);
+
+            if (isSelected)
+            {
+                btn.Loaded += (s, e) => btn.BringIntoView();
+                if (btn.IsLoaded) btn.BringIntoView();
+            }
         }
+    }
+
+    public void CycleCategory(bool forward)
+    {
+        var cats = _templateManager.GetCategories();
+        if (cats.Count == 0) return;
+
+        int idx = cats.FindIndex(c => string.Equals(c, _selectedCategory, StringComparison.OrdinalIgnoreCase));
+        if (idx < 0) idx = 0;
+
+        if (forward)
+        {
+            idx = (idx + 1) % cats.Count;
+        }
+        else
+        {
+            idx = (idx - 1 + cats.Count) % cats.Count;
+        }
+
+        _selectedCategory = cats[idx];
+        BuildCategoryChips();
+        UpdateList();
+        TxtSearch.Focus();
     }
 
     private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
@@ -166,46 +196,42 @@ public partial class QuickSearchWindow : Window
         }
         else if (e.Key == Key.Tab)
         {
-            // Tab 키로 검색창과 템플릿 목록 간 즉시 전환
-            if (TxtSearch.IsFocused)
-            {
-                LstTemplates.Focus();
-                if (LstTemplates.SelectedIndex < 0 && LstTemplates.Items.Count > 0)
-                {
-                    LstTemplates.SelectedIndex = 0;
-                }
-            }
-            else
-            {
-                TxtSearch.Focus();
-                TxtSearch.SelectAll();
-            }
+            // Tab 키: 다음 카테고리 칩으로 이동! / Shift+Tab: 이전 카테고리로 이동!
+            bool isShift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+            CycleCategory(!isShift);
             e.Handled = true;
         }
         else if (e.Key == Key.Down)
         {
-            if (TxtSearch.IsFocused && LstTemplates.Items.Count > 0)
+            // 아래 방향키: 템플릿 목록 다음 항목 선택 (순환)
+            if (LstTemplates.Items.Count > 0)
             {
-                LstTemplates.Focus();
-                if (LstTemplates.SelectedIndex < 0) LstTemplates.SelectedIndex = 0;
-            }
-            else if (LstTemplates.Items.Count > 0 && LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1)
-            {
-                LstTemplates.SelectedIndex++;
+                if (LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1)
+                {
+                    LstTemplates.SelectedIndex++;
+                }
+                else
+                {
+                    LstTemplates.SelectedIndex = 0;
+                }
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
             }
             e.Handled = true;
         }
         else if (e.Key == Key.Up)
         {
-            if (LstTemplates.SelectedIndex > 0)
+            // 위 방향키: 템플릿 목록 이전 항목 선택 (순환)
+            if (LstTemplates.Items.Count > 0)
             {
-                LstTemplates.SelectedIndex--;
+                if (LstTemplates.SelectedIndex > 0)
+                {
+                    LstTemplates.SelectedIndex--;
+                }
+                else
+                {
+                    LstTemplates.SelectedIndex = LstTemplates.Items.Count - 1;
+                }
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
-            }
-            else if (LstTemplates.SelectedIndex == 0)
-            {
-                TxtSearch.Focus();
             }
             e.Handled = true;
         }
