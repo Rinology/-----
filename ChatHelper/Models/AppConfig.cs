@@ -6,13 +6,17 @@ public class AppConfig
     public string Version { get; set; } = "v2.0.0 (Millennium Edition)";
     public string BuildDate { get; set; } = "2026-11-18";
 
-    // 로그인 정보
+    // 로그인 및 세션 관리
     public string CurrentUserId { get; set; } = "taerin";
+    public bool KeepLoggedIn { get; set; } = false; // 로그인 상태 유지 여부
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
     // UI 테마: "Win98" (기본: 윈도우 98 레트로), "ModernDark" (다크), "ModernLight" (라이트)
     public string Theme { get; set; } = "Win98";
+
+    // 알약 크기 배율 (1: 1.0배 보통, 2: 2.0배 큼(기본 권장), 3: 3.0배 아주 큼)
+    public int PillScale { get; set; } = 2;
 
     // 작업표시줄 및 화면 상태표시바 표시 설정 (true: 상태표시창&작업표시줄 표시, false: 트레이 아이콘으로만 숨김)
     public bool ShowStatusWindow { get; set; } = true;
@@ -26,8 +30,10 @@ public class AppConfig
     public bool EnableNumberSelection { get; set; } = true;
     public string GlobalHotkey { get; set; } = "Alt+Q";
 
-    // 템플릿 데이터 소스
+    // 템플릿 데이터 소스 및 스프레드시트 업로드
     public string DisplayMode { get; set; } = "InlinePill";
     public string CsvFilePath { get; set; } = "chat_templates.csv";
     public string RemoteCsvUrl { get; set; } = "";
+    public string SheetUploadUrl { get; set; } = ""; // 스프레드시트 새 행 등록(웹훅/Apps Script) URL
+    public bool EnableLocalAi { get; set; } = false; // 로컬 AI 자연어 추천 기능 사용 여부
 }

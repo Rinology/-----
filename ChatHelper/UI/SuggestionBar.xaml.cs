@@ -63,6 +63,17 @@ public partial class SuggestionBar : Window
         };
 
         var theme = _configManager.Config.Theme ?? "Win98";
+        int scale = _configManager.Config.PillScale;
+        if (scale < 1) scale = 2; // 기본 2배(크게)
+
+        // 3단계 크기 배율 계수
+        double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
+        double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
+        Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
+        Thickness mainPadding = scale switch { 1 => new Thickness(8, 4, 8, 4), 3 => new Thickness(18, 10, 18, 10), _ => new Thickness(14, 7, 14, 7) };
+        int maxPreviewLen = scale switch { 1 => 35, 3 => 85, _ => 65 };
+
+        MainBorder.Padding = mainPadding;
 
         if (mode == "InlinePill")
         {
@@ -74,14 +85,14 @@ public partial class SuggestionBar : Window
             }
             else if (theme == "ModernLight")
             {
-                MainBorder.CornerRadius = new CornerRadius(12);
+                MainBorder.CornerRadius = new CornerRadius(14);
                 MainBorder.Background = Brushes.White;
                 MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
             }
             else
             {
-                MainBorder.CornerRadius = new CornerRadius(12);
-                MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E1E24"));
+                MainBorder.CornerRadius = new CornerRadius(14);
+                MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#18181B"));
                 MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6"));
             }
 
@@ -91,21 +102,21 @@ public partial class SuggestionBar : Window
             {
                 Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#000080" : "#2563EB")),
                 CornerRadius = new CornerRadius(theme == "Win98" ? 0 : 6),
-                Padding = new Thickness(5, 1, 5, 1),
-                Margin = new Thickness(0, 0, 6, 0)
+                Padding = badgePadding,
+                Margin = new Thickness(0, 0, 8, 0)
             };
             var badgeText = new TextBlock
             {
                 Text = tabKeyHint,
                 Foreground = Brushes.White,
-                FontSize = 10,
+                FontSize = badgeFontSize,
                 FontWeight = FontWeights.Bold
             };
             badge.Child = badgeText;
             ItemsPanel.Children.Add(badge);
 
             var preview = topItem.Content.Trim().Replace("\n", " ");
-            if (preview.Length > 28) preview = preview[..28] + "...";
+            if (preview.Length > maxPreviewLen) preview = preview[..maxPreviewLen] + "...";
 
             var fgColor = (theme == "Win98" || theme == "ModernLight") ? Brushes.Black : (Brush)new BrushConverter().ConvertFromString("#F3F4F6")!;
 
@@ -116,8 +127,8 @@ public partial class SuggestionBar : Window
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
-                FontSize = 11,
-                FontWeight = FontWeights.Medium,
+                FontSize = contentFontSize,
+                FontWeight = FontWeights.SemiBold,
                 Focusable = false
             };
             btn.Click += (s, e) => SelectItem(topItem);
@@ -125,7 +136,7 @@ public partial class SuggestionBar : Window
         }
         else
         {
-            MainBorder.CornerRadius = new CornerRadius(theme == "Win98" ? 0 : 7);
+            MainBorder.CornerRadius = new CornerRadius(theme == "Win98" ? 0 : 8);
             MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#C0C0C0" : "#18181B"));
             MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#000000" : "#3F3F46"));
 
@@ -144,10 +155,10 @@ public partial class SuggestionBar : Window
                         : (Brush)new BrushConverter().ConvertFromString(theme == "Win98" ? "#D4D0C8" : "#27272A")!,
                     BorderBrush = (Brush)new BrushConverter().ConvertFromString(theme == "Win98" ? "#808080" : "#3B82F6")!,
                     BorderThickness = new Thickness(1),
-                    Margin = new Thickness(0, 0, 4, 0),
-                    Padding = new Thickness(6, 2, 6, 2),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    Padding = badgePadding,
                     Cursor = Cursors.Hand,
-                    FontSize = 10,
+                    FontSize = contentFontSize - 2,
                     FontWeight = (i == 0) ? FontWeights.Bold : FontWeights.Normal,
                     Focusable = false
                 };

@@ -156,12 +156,80 @@ public class TemplateManager
         }
     }
 
-    public List<TemplateItem> Search(string query)
+    public List<string> GetCategories()
     {
-        if (string.IsNullOrWhiteSpace(query))
-            return Templates;
+        var cats = Templates
+            .Select(t => string.IsNullOrWhiteSpace(t.Category) ? "일반" : t.Category.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c)
+            .ToList();
 
-        return Templates.Where(t => t.Matches(query)).ToList();
+        cats.Insert(0, "전체");
+        return cats;
+    }
+
+    public List<TemplateItem> Search(string query, string? category = null)
+    {
+        IEnumerable<TemplateItem> queryable = Templates;
+
+        if (!string.IsNullOrWhiteSpace(category) && category != "전체")
+        {
+            queryable = queryable.Where(t => string.Equals(t.Category?.Trim(), category.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return queryable.ToList();
+        }
+
+        var q = query.Trim().ToLower();
+        return queryable.Where(t =>
+            (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.ToLower().Contains(q)) ||
+            (!string.IsNullOrEmpty(t.Title) && t.Title.ToLower().Contains(q)) ||
+            (!string.IsNullOrEmpty(t.Content) && t.Content.ToLower().Contains(q)) ||
+            (!string.IsNullOrEmpty(t.Category) && t.Category.ToLower().Contains(q))
+        ).ToList();
+    }
+
+    public async Task<(bool Success, string Message)> UploadTemplateToRemoteSheetAsync(TemplateItem item, string? note = null)
+    {
+        var uploadUrl = _configManager.Config.SheetUploadUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(uploadUrl))
+        {
+            return (false, "설정(제어판 ➔ 시트 & 라이선스)에 스프레드시트 업로드 URL이 등록되어 있지 않습니다. 로컬 CSV에는 정상 저장되었습니다.");
+        }
+
+        try
+        {
+            var payload = new
+            {
+                action = "append",
+                keyword = item.Keyword,
+                title = item.Title,
+                content = item.Content,
+                category = item.Category,
+                userId = _configManager.Config.CurrentUserId,
+                note = note ?? "로컬 검색/AI 추천에서 등록됨",
+                createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(uploadUrl, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return (true, "구글 스프레드시트에 성공적으로 업로드 및 등록되었습니다!");
+            }
+            else
+            {
+                return (false, $"업로드 응답 오류 (HTTP {response.StatusCode})");
+            }
+        }
+        catch (Exception ex)
+        {
+            return (false, $"업로드 요청 실패: {ex.Message}");
+        }
     }
 
     public List<TemplateItem> FindMatchingCandidates(string rawToken, out int matchedLen)

@@ -19,6 +19,8 @@ public partial class LoginWindow : Window
         _configManager = configManager;
 
         TxtUserId.Text = _configManager.Config.CurrentUserId ?? "";
+        ChkKeepLoggedIn.IsChecked = _configManager.Config.KeepLoggedIn;
+
         TxtUserId.Focus();
         TxtUserId.SelectAll();
     }
@@ -39,6 +41,10 @@ public partial class LoginWindow : Window
         if (success)
         {
             IsAuthenticated = true;
+            _configManager.Config.CurrentUserId = userId;
+            _configManager.Config.KeepLoggedIn = ChkKeepLoggedIn.IsChecked == true;
+            _configManager.Save();
+
             MessageBox.Show(msg, "로그온 성공", MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
             Close();

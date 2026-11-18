@@ -4,14 +4,14 @@
   "CurrentUserId": "taerin",
   "UserCsvUrl": "",
   "LocalUserCsvPath": "users.csv",
-  "Theme": "Win98",
+  "Theme": "ModernLight",
   "ShowStatusWindow": true,
   "IsEnabled": true,
   "TriggerKey": "\\",
   "CompleteKeyMode": "SlashTab",
   "EnableNumberSelection": true,
   "GlobalHotkey": "Alt+Q",
-  "DisplayMode": "InlinePill",
+  "DisplayMode": "HorizontalBar",
   "CsvFilePath": "chat_templates.csv",
   "RemoteCsvUrl": ""
 }

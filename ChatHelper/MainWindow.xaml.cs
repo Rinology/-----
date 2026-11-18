@@ -27,12 +27,13 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _configManager = new ConfigManager();
+        ThemeManager.ApplyTheme(_configManager.Config.Theme);
         _templateManager = new TemplateManager(_configManager);
         _authService = new AuthService(_configManager);
         _hookService = new KeyboardHookService(_configManager, _templateManager);
 
         _suggestionBar = new SuggestionBar(_configManager);
-        _quickSearchWindow = new QuickSearchWindow(_templateManager);
+        _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
 
         if (!PerformInitialLogin())
         {
@@ -42,6 +43,11 @@ public partial class MainWindow : Window
 
         InitEvents();
         UpdateStatusUi();
+
+        ThemeManager.ThemeChanged += () =>
+        {
+            Dispatcher.Invoke(UpdateStatusUi);
+        };
     }
 
     private static void EnsureSingleInstance()
@@ -88,16 +94,21 @@ public partial class MainWindow : Window
 
     private bool PerformInitialLogin()
     {
-        string lastUser = _configManager.Config.CurrentUserId;
-        if (!string.IsNullOrWhiteSpace(lastUser))
+        // 로그인 상태 유지가 켜져 있고 유효한 계정이면 자동 로그인
+        if (_configManager.Config.KeepLoggedIn)
         {
-            var (success, _, _) = _authService.ValidateUser(lastUser);
-            if (success)
+            string lastUser = _configManager.Config.CurrentUserId;
+            if (!string.IsNullOrWhiteSpace(lastUser))
             {
-                return true;
+                var (success, _, _) = _authService.ValidateUser(lastUser);
+                if (success)
+                {
+                    return true;
+                }
             }
         }
 
+        // 그 외에는 항상 로그인 창을 먼저 띄워 로그인 정보를 확인
         var loginWin = new LoginWindow(_authService, _configManager);
         var result = loginWin.ShowDialog();
         return result == true && loginWin.IsAuthenticated;
@@ -227,6 +238,34 @@ public partial class MainWindow : Window
 
     private void BtnExit_Click(object sender, RoutedEventArgs e)
     {
+        PromptExitAndLogout();
+    }
+
+    private void PromptExitAndLogout()
+    {
+        var res = MessageBox.Show(
+            "ChatHelper 프로그램을 종료합니다.\n\n[예 (Yes)] 다음 실행 시 로그인 상태를 유지하고 종료\n[아니오 (No)] 로그아웃하고 세션을 초기화한 뒤 종료\n[취소 (Cancel)] 종료 취소",
+            "프로그램 종료 및 로그아웃 확인",
+            MessageBoxButton.YesNoCancel,
+            MessageBoxImage.Question);
+
+        if (res == MessageBoxResult.Cancel)
+        {
+            return;
+        }
+
+        if (res == MessageBoxResult.No)
+        {
+            _configManager.Config.KeepLoggedIn = false;
+            _configManager.Config.CurrentUserId = "";
+            _configManager.Save();
+        }
+        else if (res == MessageBoxResult.Yes)
+        {
+            _configManager.Config.KeepLoggedIn = true;
+            _configManager.Save();
+        }
+
         ExitApp();
     }
 

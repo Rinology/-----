@@ -67,6 +67,13 @@ public partial class ControlPanelWindow : Window
         else
             RadioThemeWin98.IsChecked = true;
 
+        if (cfg.PillScale == 1)
+            RadioPillScale1.IsChecked = true;
+        else if (cfg.PillScale == 3)
+            RadioPillScale3.IsChecked = true;
+        else
+            RadioPillScale2.IsChecked = true;
+
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
         else if (cfg.DisplayMode == "ManualOnly")
@@ -79,6 +86,7 @@ public partial class ControlPanelWindow : Window
         // 4. 시트 및 유저 정보
         TxtTemplateUrl.Text = cfg.RemoteCsvUrl ?? "";
         TxtUserUrl.Text = cfg.UserCsvUrl ?? "";
+        TxtUploadUrl.Text = cfg.SheetUploadUrl ?? "";
         UpdateUserInfoDisplay();
 
         // 5. 하단 상태표시줄
@@ -91,7 +99,6 @@ public partial class ControlPanelWindow : Window
         if (user != null)
         {
             LblCurrentUserInfo.Text = $"아이디: {user.UserId}  |  등급: {user.Plan}  |  만료일: {user.ExpireDate:yyyy-MM-dd} (D-{user.DaysRemaining}일 남음)";
-            LblLicensedTo.Text = $"사용자: {user.UserId} ({user.Plan} 회원)";
         }
         else
         {
@@ -206,13 +213,14 @@ public partial class ControlPanelWindow : Window
     {
         if (_isInitializing || _configManager == null) return;
 
-        var cfg = _configManager.Config;
+        string targetTheme = "Win98";
         if (RadioThemeDark?.IsChecked == true)
-            cfg.Theme = "ModernDark";
+            targetTheme = "ModernDark";
         else if (RadioThemeLight?.IsChecked == true)
-            cfg.Theme = "ModernLight";
-        else
-            cfg.Theme = "Win98";
+            targetTheme = "ModernLight";
+
+        _configManager.Config.Theme = targetTheme;
+        ThemeManager.ApplyTheme(targetTheme);
     }
 
     // --- 시트 동기화 & 다시 로그온 ---
@@ -221,6 +229,7 @@ public partial class ControlPanelWindow : Window
         LblStatusBar.Text = "구글 시트에서 전체 동기화 진행 중...";
         _configManager.Config.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
         _configManager.Config.UserCsvUrl = TxtUserUrl.Text.Trim();
+        _configManager.Config.SheetUploadUrl = TxtUploadUrl.Text.Trim();
         _configManager.Save();
 
         var tTask = _templateManager.SyncFromRemoteAsync();
@@ -264,6 +273,13 @@ public partial class ControlPanelWindow : Window
         else
             cfg.CompleteKeyMode = "SlashTab";
 
+        if (RadioPillScale1.IsChecked == true)
+            cfg.PillScale = 1;
+        else if (RadioPillScale3.IsChecked == true)
+            cfg.PillScale = 3;
+        else
+            cfg.PillScale = 2;
+
         if (RadioModeHorizontal.IsChecked == true)
             cfg.DisplayMode = "HorizontalBar";
         else if (RadioModeManual.IsChecked == true)
@@ -274,6 +290,7 @@ public partial class ControlPanelWindow : Window
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
         cfg.UserCsvUrl = TxtUserUrl.Text.Trim();
+        cfg.SheetUploadUrl = TxtUploadUrl.Text.Trim();
 
         _configManager.Save();
         SettingsChanged?.Invoke();
