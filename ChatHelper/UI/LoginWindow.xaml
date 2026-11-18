@@ -1,8 +1,8 @@
 <Window x:Class="ChatHelper.UI.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="사용자 인증 로그온" 
-        Height="270" Width="460"
+        Title="ChatHelper - 로그인" 
+        Height="310" Width="460"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -28,7 +28,7 @@
                         <Grid Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,0,0">
                                 <TextBlock Text="⌨" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI Emoji, Tahoma"/>
-                                <TextBlock Text="ChatHelper 사용자 로그온" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                                <TextBlock Text="ChatHelper v2.0 - 로그인" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
                             </StackPanel>
                             <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" Margin="0,0,3,0" Click="BtnClose_Click"/>
                         </Grid>
@@ -39,34 +39,66 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="등록된 사용자(상담사) 아이디를 입력하세요." 
-                                       Foreground="#000000" FontSize="12" Margin="0,0,0,12" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                            <!-- 헤더 문구 -->
+                            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                    <TextBlock Text="🔐" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ChatHelper v2.0 로그인" FontWeight="Bold" FontSize="14.5" Foreground="#000080" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                                </StackPanel>
+                                <TextBlock Text="부여받은 아이디와 비밀번호를 입력해 주세요." 
+                                           Foreground="#333333" FontSize="11.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                            </StackPanel>
 
-                            <!-- 입력 필드 -->
-                            <Grid Grid.Row="1" Margin="0,0,0,8">
+                            <!-- 1. 아이디 입력 필드 -->
+                            <Grid Grid.Row="1" Margin="0,0,0,7">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="65"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="사용자 ID:" VerticalAlignment="Center" FontWeight="Bold" FontSize="12.5" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                                <TextBlock Text="아이디:" VerticalAlignment="Center" FontWeight="Bold" FontSize="12" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI"/>
                                 <TextBox x:Name="TxtUserId" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="28" VerticalContentAlignment="Center" FontSize="13"/>
                             </Grid>
 
-                            <!-- 로그인 유지 체크박스 -->
-                            <CheckBox x:Name="ChkKeepLoggedIn" Grid.Row="2" Content="로그인 상태 유지 (다음 실행 시 자동 접속)" 
-                                      FontSize="11.5" Margin="80,2,0,8" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                            <!-- 2. 비밀번호 입력 필드 -->
+                            <Grid Grid.Row="2" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="52"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="비밀번호:" VerticalAlignment="Center" FontWeight="Bold" FontSize="12" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                                <Grid Grid.Column="1">
+                                    <PasswordBox x:Name="TxtPassword" Style="{DynamicResource ThemePasswordBoxStyle}" Height="28" VerticalContentAlignment="Center" FontSize="13"/>
+                                    <TextBox x:Name="TxtPasswordVisible" Style="{DynamicResource ThemeTextBoxStyle}" Height="28" VerticalContentAlignment="Center" FontSize="13" Visibility="Collapsed"/>
+                                </Grid>
+                                <Button x:Name="BtnTogglePw" Grid.Column="2" Content="보기" Style="{DynamicResource ThemeButtonStyle}" Height="28" Margin="4,0,0,0" Click="BtnTogglePw_Click"/>
+                            </Grid>
 
-                            <!-- 만료일 / 상태 표시 라벨 -->
-                            <TextBlock x:Name="LblStatus" Grid.Row="3" Text="" FontSize="11" Foreground="#DC2626" TextWrapping="Wrap" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                            <!-- 3. 아이디 저장 체크박스 -->
+                            <CheckBox x:Name="ChkKeepLoggedIn" Grid.Row="3" Content="아이디 및 로그인 상태 저장" 
+                                      FontSize="11.5" Margin="65,3,0,3" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI"/>
 
-                            <!-- 하단 버튼들 -->
-                            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                                <Button x:Name="BtnLogin" Content="확인" Style="{DynamicResource ThemeButtonStyle}" Width="80" Height="26" Margin="0,0,6,0" Click="BtnLogin_Click" IsDefault="True"/>
-                                <Button x:Name="BtnCancel" Content="취소" Style="{DynamicResource ThemeButtonStyle}" Width="75" Height="26" Click="BtnClose_Click"/>
+                            <!-- 4. 안내 텍스트 -->
+                            <TextBlock Grid.Row="4" Text="로그인 후 모든 기능을 이용할 수 있습니다." 
+                                       Foreground="#666666" FontSize="11" Margin="65,0,0,6" FontFamily="Tahoma, Gulim, Segoe UI"/>
+
+                            <!-- 5. 프로그레스바 (원격 시트 인증 진행 시) -->
+                            <ProgressBar x:Name="ProgressBarLoading" Grid.Row="5" Height="4" Margin="0,2,0,4" IsIndeterminate="True" Visibility="Collapsed"/>
+
+                            <!-- 6. 상태 및 오류 라벨 -->
+                            <TextBlock x:Name="LblStatus" Grid.Row="6" Text="" FontSize="11.5" Foreground="#D00000" TextWrapping="Wrap" MinHeight="16" FontFamily="Tahoma, Gulim, Segoe UI"/>
+
+                            <!-- 7. 하단 버튼들 -->
+                            <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                <Button x:Name="BtnLogin" Content="로그인" Style="{DynamicResource ThemeButtonStyle}" Width="90" Height="28" Margin="0,0,6,0" Click="BtnLogin_Click" IsDefault="True"/>
+                                <Button x:Name="BtnCancel" Content="종료" Style="{DynamicResource ThemeButtonStyle}" Width="75" Height="28" Click="BtnClose_Click" IsCancel="True"/>
                             </StackPanel>
                         </Grid>
                     </Grid>

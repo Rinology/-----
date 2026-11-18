@@ -3,6 +3,7 @@ namespace ChatHelper.Models;
 public class UserInfo
 {
     public string UserId { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
     public DateTime ExpireDate { get; set; }
     public string Status { get; set; } = "active";
     public string Plan { get; set; } = "Basic";

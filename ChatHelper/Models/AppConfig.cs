@@ -8,6 +8,7 @@ public class AppConfig
 
     // 로그인 및 세션 관리
     public string CurrentUserId { get; set; } = "taerin";
+    public string SavedPassword { get; set; } = ""; // 로그인 상태 유지 시 암호 보관
     public bool KeepLoggedIn { get; set; } = false; // 로그인 상태 유지 여부
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";

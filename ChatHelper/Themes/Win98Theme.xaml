@@ -101,6 +101,30 @@
         </Setter>
     </Style>
 
+    <!-- 윈도우 98 안으로 파인(Sunken) 패스워드 입력창 스타일 -->
+    <Style x:Key="Win98PasswordBoxStyle" TargetType="PasswordBox">
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="Foreground" Value="#000000"/>
+        <Setter Property="FontFamily" Value="Tahoma, Gulim, Segoe UI"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border BorderThickness="1,1,0,0" BorderBrush="#808080">
+                        <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">
+                            <Border BorderThickness="1,1,0,0" BorderBrush="#000000">
+                                <Border BorderThickness="0,0,1,1" BorderBrush="#DFDFDF" Background="{TemplateBinding Background}">
+                                    <ScrollViewer x:Name="PART_ContentHost" Margin="2"/>
+                                </Border>
+                            </Border>
+                        </Border>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- 윈도우 98 타이틀 바 최소화 버튼 [ — ] -->
     <Style x:Key="Win98MinimizeButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="#C0C0C0"/>
@@ -164,6 +188,7 @@
     <!-- 테마 공통 별칭 매핑 -->
     <StaticResource x:Key="ThemeButtonStyle" ResourceKey="Win98ButtonStyle"/>
     <StaticResource x:Key="ThemeTextBoxStyle" ResourceKey="Win98TextBoxStyle"/>
+    <StaticResource x:Key="ThemePasswordBoxStyle" ResourceKey="Win98PasswordBoxStyle"/>
     <StaticResource x:Key="ThemeMinimizeButtonStyle" ResourceKey="Win98MinimizeButtonStyle"/>
     <StaticResource x:Key="ThemeCloseButtonStyle" ResourceKey="Win98CloseButtonStyle"/>
 </ResourceDictionary>

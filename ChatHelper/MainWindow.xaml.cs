@@ -109,9 +109,10 @@ public partial class MainWindow : Window
         if (_configManager.Config.KeepLoggedIn)
         {
             string lastUser = _configManager.Config.CurrentUserId;
+            string lastPw = _configManager.Config.SavedPassword;
             if (!string.IsNullOrWhiteSpace(lastUser))
             {
-                var (success, _, _) = _authService.ValidateUser(lastUser);
+                var (success, _, _) = _authService.ValidateUser(lastUser, lastPw);
                 if (success)
                 {
                     return true;
