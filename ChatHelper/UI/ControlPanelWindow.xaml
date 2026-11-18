@@ -123,7 +123,7 @@
                                         <TextBox x:Name="TxtGlobalHotkey" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" FontSize="14" TextChanged="TxtGlobalHotkey_TextChanged"/>
                                         <TextBlock x:Name="LblHotkeyWarning" Grid.Column="2" Text="" FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
                                     </Grid>
-                                    <TextBlock Text="• 언제 어디서든 이 키를 누르면 CS 템플릿 검색창이 즉시 열리며 키보드 방향키와 Enter로 바로 입력됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
+                                    <TextBlock Text="• 언제 어디서든 이 키를 누르면 템플릿 검색창이 즉시 열리며 키보드 방향키와 Enter로 바로 입력됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                                 </StackPanel>
                             </Border>
 

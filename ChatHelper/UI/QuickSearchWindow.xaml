@@ -36,7 +36,7 @@
             <!-- 1. 타이틀 바 (마우스 드래그 이동 지원) -->
             <Grid Grid.Row="0" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🔍 CS 템플릿 빠른 검색 및 추천" 
+                    <TextBlock Text="🔍 템플릿 빠른 검색 및 추천" 
                                Foreground="{DynamicResource ThemeText}" 
                                FontWeight="Bold" FontSize="15"/>
                     <TextBlock Text="(단축키: Alt+Q  |  Tab: 목록/카테고리 이동)" 
@@ -102,37 +102,77 @@
                          Padding="4"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          MouseDoubleClick="LstTemplates_MouseDoubleClick">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="2,3"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <!-- 기본 흰색 배경 + 연한 테두리 -->
+                                        <Border x:Name="ItemBorder" 
+                                                Background="#FFFFFF" 
+                                                BorderBrush="#D1D5DB" 
+                                                BorderThickness="1" 
+                                                CornerRadius="6" 
+                                                Padding="12,9">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <!-- 마우스 오버 시 연한 회색 -->
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#F3F4F6"/>
+                                            </Trigger>
+                                            <!-- 선택된 항목만 그레이톤 배경 및 진한 테두리로 강조 -->
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#D8DCE3"/>
+                                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#4B5563"/>
+                                                <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1.5"/>
+                                            </Trigger>
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsSelected" Value="True"/>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                </MultiTrigger.Conditions>
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#CFD5DE"/>
+                                            </MultiTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border x:Name="ItemBorder" Background="{DynamicResource ThemeBg}" CornerRadius="6" Padding="12,9" Margin="2,3" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                                    <!-- 단축키 배지 -->
-                                    <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
-                                        <TextBlock Text="{Binding Keyword}" Foreground="White" FontWeight="Bold" FontSize="12"/>
-                                    </Border>
+                                <!-- 단축키 배지 -->
+                                <Border Background="#1E3A8A" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Keyword}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                </Border>
 
-                                    <!-- 카테고리 태그 -->
-                                    <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
-                                        <TextBlock Text="{Binding Category}" Foreground="#3730A3" FontWeight="SemiBold" FontSize="11"/>
-                                    </Border>
+                                <!-- 카테고리 태그 -->
+                                <Border Grid.Column="1" Background="#E0E7FF" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Category}" Foreground="#3730A3" FontWeight="SemiBold" FontSize="11"/>
+                                </Border>
 
-                                    <!-- 제목 -->
-                                    <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource ThemeText}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                                <!-- 제목 (검정색 기본 텍스트) -->
+                                <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="#000000" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
 
-                                    <!-- 내용 미리보기 -->
-                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12.5" TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" Margin="0,6,0,0"/>
-                                </Grid>
-                            </Border>
+                                <!-- 내용 미리보기 (짙은 검정/회색 텍스트) -->
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="#374151" FontSize="12.5" TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" Margin="0,6,0,0"/>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
