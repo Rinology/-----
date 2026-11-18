@@ -34,7 +34,14 @@ public partial class SuggestionBar : Window
     public void ShowCandidates(List<TemplateItem> candidates, int matchedLen, IntPtr targetHwnd)
     {
         var mode = _configManager.Config.DisplayMode;
-        if (candidates == null || candidates.Count == 0 || mode == "ManualOnly")
+        if (candidates == null || candidates.Count == 0 || mode == "ManualOnly" || !_configManager.Config.IsEnabled)
+        {
+            Hide();
+            return;
+        }
+
+        // 유효한 텍스트 입력 창인지 확인 (바탕화면, 자기 자신 창 등 제외)
+        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
         {
             Hide();
             return;
@@ -47,19 +54,43 @@ public partial class SuggestionBar : Window
         ItemsPanel.Children.Clear();
 
         var trigger = _configManager.Config.TriggerKey ?? "\\";
-        var tabKeyHint = $"{trigger}+Tab";
+        var completeMode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
+        string tabKeyHint = completeMode switch
+        {
+            "SlashOnly" => trigger,
+            "ShiftSpace" => "Shift+Space",
+            _ => $"{trigger}+Tab"
+        };
+
+        var theme = _configManager.Config.Theme ?? "Win98";
 
         if (mode == "InlinePill")
         {
-            MainBorder.CornerRadius = new CornerRadius(12);
-            MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6"));
+            if (theme == "Win98")
+            {
+                MainBorder.CornerRadius = new CornerRadius(0);
+                MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFE1")); // Win98 툴팁 옐로우/크림
+                MainBorder.BorderBrush = Brushes.Black;
+            }
+            else if (theme == "ModernLight")
+            {
+                MainBorder.CornerRadius = new CornerRadius(12);
+                MainBorder.Background = Brushes.White;
+                MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+            }
+            else
+            {
+                MainBorder.CornerRadius = new CornerRadius(12);
+                MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E1E24"));
+                MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3B82F6"));
+            }
 
             var topItem = candidates[0];
 
             var badge = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
-                CornerRadius = new CornerRadius(6),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#000080" : "#2563EB")),
+                CornerRadius = new CornerRadius(theme == "Win98" ? 0 : 6),
                 Padding = new Thickness(5, 1, 5, 1),
                 Margin = new Thickness(0, 0, 6, 0)
             };
@@ -76,10 +107,12 @@ public partial class SuggestionBar : Window
             var preview = topItem.Content.Trim().Replace("\n", " ");
             if (preview.Length > 28) preview = preview[..28] + "...";
 
+            var fgColor = (theme == "Win98" || theme == "ModernLight") ? Brushes.Black : (Brush)new BrushConverter().ConvertFromString("#F3F4F6")!;
+
             var btn = new Button
             {
                 Content = $"{topItem.Title}: \"{preview}\"",
-                Foreground = (Brush)new BrushConverter().ConvertFromString("#F3F4F6")!,
+                Foreground = fgColor,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
@@ -92,8 +125,9 @@ public partial class SuggestionBar : Window
         }
         else
         {
-            MainBorder.CornerRadius = new CornerRadius(7);
-            MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3F3F46"));
+            MainBorder.CornerRadius = new CornerRadius(theme == "Win98" ? 0 : 7);
+            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#C0C0C0" : "#18181B"));
+            MainBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme == "Win98" ? "#000000" : "#3F3F46"));
 
             int maxCount = Math.Min(3, candidates.Count);
             for (int i = 0; i < maxCount; i++)
@@ -104,9 +138,11 @@ public partial class SuggestionBar : Window
                 var chip = new Button
                 {
                     Content = $"[{keyHint}] {item.Title}",
-                    Foreground = Brushes.White,
-                    Background = (i == 0) ? (Brush)new BrushConverter().ConvertFromString("#1E3A8A")! : (Brush)new BrushConverter().ConvertFromString("#27272A")!,
-                    BorderBrush = (i == 0) ? (Brush)new BrushConverter().ConvertFromString("#3B82F6")! : (Brush)new BrushConverter().ConvertFromString("#3F3F46")!,
+                    Foreground = (theme == "Win98" && i > 0) ? Brushes.Black : Brushes.White,
+                    Background = (i == 0)
+                        ? (Brush)new BrushConverter().ConvertFromString(theme == "Win98" ? "#000080" : "#1E3A8A")!
+                        : (Brush)new BrushConverter().ConvertFromString(theme == "Win98" ? "#D4D0C8" : "#27272A")!,
+                    BorderBrush = (Brush)new BrushConverter().ConvertFromString(theme == "Win98" ? "#808080" : "#3B82F6")!,
                     BorderThickness = new Thickness(1),
                     Margin = new Thickness(0, 0, 4, 0),
                     Padding = new Thickness(6, 2, 6, 2),
@@ -120,45 +156,15 @@ public partial class SuggestionBar : Window
             }
         }
 
-        UpdatePositionNearCaret();
-        Show();
-    }
-
-    private void UpdatePositionNearCaret()
-    {
-        double x = 0, y = 0;
-
-        IntPtr hwndFg = Win32Api.GetForegroundWindow();
-        uint tid = Win32Api.GetWindowThreadProcessId(hwndFg, IntPtr.Zero);
-        var gui = new Win32Api.GUITHREADINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(Win32Api.GUITHREADINFO)) };
-
-        bool gotCaret = false;
-        if (Win32Api.GetGUIThreadInfo(tid, ref gui))
-        {
-            IntPtr target = gui.hwndCaret != IntPtr.Zero ? gui.hwndCaret : gui.hwndFocus;
-            if (target != IntPtr.Zero)
-            {
-                var pt = new Win32Api.POINT { X = gui.rcCaret.Left, Y = gui.rcCaret.Bottom };
-                if (Win32Api.ClientToScreen(target, ref pt) && pt.X > 0 && pt.Y > 0)
-                {
-                    x = pt.X;
-                    y = pt.Y;
-                    gotCaret = true;
-                }
-            }
-        }
-
-        if (!gotCaret)
-        {
-            Win32Api.GetCursorPos(out var mPt);
-            x = mPt.X;
-            y = mPt.Y;
-        }
-
+        UpdateLayout();
         var screenWidth = SystemParameters.PrimaryScreenWidth;
+        double w = ActualWidth > 0 ? ActualWidth : 280;
+        double h = ActualHeight > 0 ? ActualHeight : 32;
 
-        Left = Math.Min(x, screenWidth - ActualWidth - 10);
-        Top = (y - ActualHeight - 4 > 0) ? y - ActualHeight - 4 : y + 22;
+        Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
+        Top = (caretY - h - 6 > 0) ? caretY - h - 6 : caretY + 22;
+
+        Show();
     }
 
     private void SelectItem(TemplateItem item)

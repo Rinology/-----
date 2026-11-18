@@ -1,8 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Interop;
-using System.Windows.Media;
 
 namespace ChatHelper.Services;
 
@@ -20,6 +18,7 @@ public class TrayIconService : IDisposable
     private const int WM_USER = 0x0400;
     public const int WM_TRAYICON = WM_USER + 101;
 
+    private const int WM_LBUTTONUP = 0x0202;
     private const int WM_LBUTTONDBLCLK = 0x0203;
     private const int WM_RBUTTONUP = 0x0205;
 
@@ -53,17 +52,21 @@ public class TrayIconService : IDisposable
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
 
     private readonly Window _parentWindow;
-    private readonly ContextMenu _contextMenu;
     private IntPtr _hwnd;
     private HwndSource? _hwndSource;
     private bool _isCreated = false;
 
-    public event Action? DoubleClicked;
+    public event Action? OpenStatusWindowRequested;
+    public event Action? OpenControlPanelRequested;
+    public event Action? OpenQuickSearchRequested;
+    public event Action? ReloadTemplatesRequested;
+    public event Action? SyncRemoteRequested;
+    public event Action? ReloginRequested;
+    public event Action? ExitRequested;
 
-    public TrayIconService(Window parentWindow, ContextMenu contextMenu)
+    public TrayIconService(Window parentWindow)
     {
         _parentWindow = parentWindow;
-        _contextMenu = contextMenu;
     }
 
     public void Initialize()
@@ -80,7 +83,7 @@ public class TrayIconService : IDisposable
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
             uCallbackMessage = WM_TRAYICON,
             hIcon = LoadIcon(IntPtr.Zero, (IntPtr)32512), // IDI_APPLICATION
-            szTip = "채팅 도우미 (C# .NET 8)"
+            szTip = "ChatHelper v2.0 (실행 중 - 클릭하여 열기)"
         };
 
         _isCreated = Shell_NotifyIcon(NIM_ADD, ref data);
@@ -98,7 +101,7 @@ public class TrayIconService : IDisposable
             uFlags = NIF_INFO,
             szInfo = message,
             szInfoTitle = title,
-            dwInfoFlags = 0x00000001 // NIIF_INFO
+            dwInfoFlags = 0x00000001
         };
 
         Shell_NotifyIcon(NIM_MODIFY, ref data);
@@ -108,20 +111,74 @@ public class TrayIconService : IDisposable
     {
         if (msg == WM_TRAYICON)
         {
-            int mouseMsg = lParam.ToInt32();
+            int mouseMsg = (int)(lParam.ToInt64() & 0xFFFF);
+
             if (mouseMsg == WM_LBUTTONDBLCLK)
             {
-                DoubleClicked?.Invoke();
                 handled = true;
+                _parentWindow.Dispatcher.BeginInvoke(() => OpenControlPanelRequested?.Invoke());
+            }
+            else if (mouseMsg == WM_LBUTTONUP)
+            {
+                handled = true;
+                _parentWindow.Dispatcher.BeginInvoke(() => OpenStatusWindowRequested?.Invoke());
             }
             else if (mouseMsg == WM_RBUTTONUP)
             {
-                _contextMenu.IsOpen = true;
                 handled = true;
+                ShowNativeContextMenu();
             }
         }
 
         return IntPtr.Zero;
+    }
+
+    private void ShowNativeContextMenu()
+    {
+        IntPtr hMenu = Win32Api.CreatePopupMenu();
+        if (hMenu == IntPtr.Zero) return;
+
+        try
+        {
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 1, "💻 ChatHelper 제어판 열기 (설정/커맨드)");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 2, "🖥️ 상태표시창 보이기");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 3, "🔍 빠른 검색 열기 (Alt+Q)");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_SEPARATOR, 0, "");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 4, "🔄 CSV 템플릿 다시 불러오기");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 5, "☁️ 구글 시트에서 최신 동기화");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 6, "🔑 다른 사용자로 로그온...");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_SEPARATOR, 0, "");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 99, "❌ 프로그램 종료");
+
+            Win32Api.GetCursorPos(out var pt);
+            Win32Api.SetForegroundWindow(_hwnd);
+
+            int cmd = Win32Api.TrackPopupMenu(
+                hMenu,
+                Win32Api.TPM_RETURNCMD | Win32Api.TPM_NONOTIFY | Win32Api.TPM_RIGHTBUTTON,
+                pt.X, pt.Y, 0, _hwnd, IntPtr.Zero);
+
+            if (cmd > 0)
+            {
+                _parentWindow.Dispatcher.BeginInvoke(() =>
+                {
+                    switch (cmd)
+                    {
+                        case 1: OpenControlPanelRequested?.Invoke(); break;
+                        case 2: OpenStatusWindowRequested?.Invoke(); break;
+                        case 3: OpenQuickSearchRequested?.Invoke(); break;
+                        case 4: ReloadTemplatesRequested?.Invoke(); break;
+                        case 5: SyncRemoteRequested?.Invoke(); break;
+                        case 6: ReloginRequested?.Invoke(); break;
+                        case 99: ExitRequested?.Invoke(); break;
+                    }
+                });
+            }
+        }
+        finally
+        {
+            Win32Api.DestroyMenu(hMenu);
+        }
     }
 
     public void Dispose()

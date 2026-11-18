@@ -1,5 +1,7 @@
-﻿using System.Windows;
-using System.Windows.Controls;
+﻿using System.Diagnostics;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using ChatHelper.Models;
 using ChatHelper.Services;
 using ChatHelper.UI;
@@ -20,6 +22,8 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        EnsureSingleInstance();
+
         InitializeComponent();
 
         _configManager = new ConfigManager();
@@ -30,24 +34,56 @@ public partial class MainWindow : Window
         _suggestionBar = new SuggestionBar(_configManager);
         _quickSearchWindow = new QuickSearchWindow(_templateManager);
 
-        // 1. 로그인/라이선스 검증
         if (!PerformInitialLogin())
         {
             Application.Current.Shutdown();
             return;
         }
 
-        // 2. 트레이 및 이벤트 초기화
-        InitTrayMenu();
         InitEvents();
+        UpdateStatusUi();
+    }
 
-        // 3. 백그라운드 훅 시작
+    private static void EnsureSingleInstance()
+    {
+        try
+        {
+            var current = Process.GetCurrentProcess();
+            var others = Process.GetProcessesByName(current.ProcessName)
+                .Where(p => p.Id != current.Id);
+
+            foreach (var p in others)
+            {
+                try
+                {
+                    p.CloseMainWindow();
+                    p.Kill();
+                }
+                catch { }
+            }
+        }
+        catch { }
+    }
+
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Right - Width - 16;
+        Top = workArea.Bottom - Height - 16;
+
+        InitTrayService();
         _hookService.Start();
 
-        var user = _authService.CurrentUser;
-        var trigger = _configManager.Config.TriggerKey ?? "\\";
-        _trayIconService?.ShowBalloon($"로그온 완료: {user?.UserId} (v2.0.0 ME)",
-            $"• 만료일: {user?.ExpireDate:yyyy-MM-dd} (D-{user?.DaysRemaining}일 남음)\n• 추천 바: 일반 타이핑 ➔ [{trigger}+Tab] 완성\n• 트레이 우클릭 ➔ 제어판에서 커맨드 추가/수정 가능");
+        if (!_configManager.Config.ShowStatusWindow)
+        {
+            HideToTray(showNotification: true);
+        }
+        else
+        {
+            var user = _authService.CurrentUser;
+            _trayIconService?.ShowBalloon($"ChatHelper v2.0 실행 중 ({user?.UserId})",
+                "화면 우측 하단 상태표시창 또는 트레이 아이콘에서 [💻 제어판]을 열 수 있습니다.");
+        }
     }
 
     private bool PerformInitialLogin()
@@ -58,50 +94,27 @@ public partial class MainWindow : Window
             var (success, _, _) = _authService.ValidateUser(lastUser);
             if (success)
             {
-                return true; // 자동 로그인 성공
+                return true;
             }
         }
 
-        // 로그인 팝업
         var loginWin = new LoginWindow(_authService, _configManager);
         var result = loginWin.ShowDialog();
         return result == true && loginWin.IsAuthenticated;
     }
 
-    private void InitTrayMenu()
+    private void InitTrayService()
     {
-        var menu = new ContextMenu();
-
-        var itemOpen = new MenuItem { Header = "자주 쓰는 말 열기 (Alt+Q)" };
-        itemOpen.Click += (s, e) => OpenQuickSearch();
-
-        var itemControlPanel = new MenuItem { Header = "💻 ChatHelper 제어판 (커맨드/단축키/설정)..." };
-        itemControlPanel.Click += (s, e) => OpenControlPanel();
-
-        var itemReload = new MenuItem { Header = "CSV 템플릿 다시 불러오기" };
-        itemReload.Click += (s, e) => ReloadTemplates();
-
-        var itemSync = new MenuItem { Header = "구글 시트에서 최신 동기화" };
-        itemSync.Click += async (s, e) => await SyncRemoteAsync();
-
-        var itemRelogin = new MenuItem { Header = "🔑 다른 사용자로 다시 로그온..." };
-        itemRelogin.Click += (s, e) => Relogin();
-
-        var itemExit = new MenuItem { Header = "종료" };
-        itemExit.Click += (s, e) => ExitApp();
-
-        menu.Items.Add(itemOpen);
-        menu.Items.Add(itemControlPanel);
-        menu.Items.Add(new Separator());
-        menu.Items.Add(itemReload);
-        menu.Items.Add(itemSync);
-        menu.Items.Add(itemRelogin);
-        menu.Items.Add(new Separator());
-        menu.Items.Add(itemExit);
-
-        _trayIconService = new TrayIconService(this, menu);
+        _trayIconService = new TrayIconService(this);
         _trayIconService.Initialize();
-        _trayIconService.DoubleClicked += OpenControlPanel;
+
+        _trayIconService.OpenStatusWindowRequested += ShowStatusWindow;
+        _trayIconService.OpenControlPanelRequested += OpenControlPanel;
+        _trayIconService.OpenQuickSearchRequested += OpenQuickSearch;
+        _trayIconService.ReloadTemplatesRequested += ReloadTemplates;
+        _trayIconService.SyncRemoteRequested += async () => await SyncRemoteAsync();
+        _trayIconService.ReloginRequested += Relogin;
+        _trayIconService.ExitRequested += ExitApp;
     }
 
     private void InitEvents()
@@ -144,31 +157,123 @@ public partial class MainWindow : Window
         };
     }
 
+    private void UpdateStatusUi()
+    {
+        var user = _authService.CurrentUser;
+        string userId = user?.UserId ?? _configManager.Config.CurrentUserId;
+        bool isEnabled = _configManager.Config.IsEnabled;
+
+        if (isEnabled)
+        {
+            TxtTitleBar.Text = "🟢 ChatHelper v2.0 ME - 실행 중";
+            StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00B000"));
+            LblRunningStatus.Text = $"자동완성 작동 중 (ON)  |  계정: {userId}  |  템플릿: {_templateManager.Templates.Count}개";
+            LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080"));
+            BtnTogglePause.Content = "⏸️ 일시정지";
+        }
+        else
+        {
+            TxtTitleBar.Text = "🟡 ChatHelper v2.0 ME - 일시정지됨";
+            StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D08000"));
+            LblRunningStatus.Text = $"자동완성 일시정지 (OFF)  |  계정: {userId}";
+            LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#800000"));
+            BtnTogglePause.Content = "▶️ 다시켜기";
+            _suggestionBar.Hide();
+        }
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void BtnControlPanel_Click(object sender, RoutedEventArgs e)
+    {
+        OpenControlPanel();
+    }
+
+    private void BtnQuickSearch_Click(object sender, RoutedEventArgs e)
+    {
+        OpenQuickSearch();
+    }
+
+    private void BtnTogglePause_Click(object sender, RoutedEventArgs e)
+    {
+        _configManager.Config.IsEnabled = !_configManager.Config.IsEnabled;
+        _configManager.Save();
+        _hookService.ClearAll();
+        UpdateStatusUi();
+    }
+
+    private void BtnHideToTray_Click(object sender, RoutedEventArgs e)
+    {
+        HideToTray(showNotification: true);
+    }
+
+    private void BtnExit_Click(object sender, RoutedEventArgs e)
+    {
+        ExitApp();
+    }
+
+    private void ShowStatusWindow()
+    {
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+        UpdateStatusUi();
+    }
+
+    private void HideToTray(bool showNotification)
+    {
+        _suggestionBar.Hide();
+        ShowInTaskbar = false;
+        Hide();
+        if (showNotification)
+        {
+            _trayIconService?.ShowBalloon("트레이로 이동됨", "작업표시줄 우측 하단 트레이 아이콘을 클릭하면 언제든 다시 열립니다.");
+        }
+    }
+
     private void OpenQuickSearch()
     {
+        _suggestionBar.Hide();
         IntPtr hwnd = Win32Api.GetForegroundWindow();
         _quickSearchWindow.ShowAtCursor(hwnd);
     }
 
     private void OpenControlPanel()
     {
+        _suggestionBar.Hide();
         if (_controlPanelWindow == null || !_controlPanelWindow.IsLoaded)
         {
             _controlPanelWindow = new ControlPanelWindow(_configManager, _templateManager, _authService);
             _controlPanelWindow.SettingsChanged += () =>
             {
-                _trayIconService?.ShowBalloon("제어판 설정 적용", "커맨드 및 단축키 설정이 실시간 적용되었습니다.");
+                UpdateStatusUi();
+                if (_configManager.Config.ShowStatusWindow)
+                    ShowStatusWindow();
+                else
+                    HideToTray(showNotification: false);
+
+                _trayIconService?.ShowBalloon("제어판 설정 적용", "커맨드 및 표시 설정이 즉시 반영되었습니다.");
             };
         }
         _controlPanelWindow.Show();
+        _controlPanelWindow.WindowState = WindowState.Normal;
         _controlPanelWindow.Activate();
     }
 
     private void Relogin()
     {
+        _suggestionBar.Hide();
         var loginWin = new LoginWindow(_authService, _configManager);
         if (loginWin.ShowDialog() == true)
         {
+            UpdateStatusUi();
             var user = _authService.CurrentUser;
             _trayIconService?.ShowBalloon("로그온 변경", $"'{user?.UserId}' 계정으로 전환되었습니다. (만료일: {user?.ExpireDate:yyyy-MM-dd})");
         }
@@ -177,12 +282,14 @@ public partial class MainWindow : Window
     private void ReloadTemplates()
     {
         int count = _templateManager.LoadTemplates();
+        UpdateStatusUi();
         _trayIconService?.ShowBalloon("템플릿 갱신", $"{count}개 템플릿 로드 완료");
     }
 
     private async Task SyncRemoteAsync()
     {
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
+        UpdateStatusUi();
         _trayIconService?.ShowBalloon("구글 시트 동기화", msg);
     }
 

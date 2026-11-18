@@ -7,12 +7,18 @@ public class AppConfig
     public string BuildDate { get; set; } = "2026-11-18";
 
     // 로그인 정보
-    public string CurrentUserId { get; set; } = "";
-    public string UserCsvUrl { get; set; } = ""; // 구글 시트의 유저/라이선스 CSV URL
+    public string CurrentUserId { get; set; } = "taerin";
+    public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
     // UI 테마: "Win98" (기본: 윈도우 98 레트로), "ModernDark" (다크), "ModernLight" (라이트)
     public string Theme { get; set; } = "Win98";
+
+    // 작업표시줄 및 화면 상태표시바 표시 설정 (true: 상태표시창&작업표시줄 표시, false: 트레이 아이콘으로만 숨김)
+    public bool ShowStatusWindow { get; set; } = true;
+
+    // 자동완성 활성화 여부
+    public bool IsEnabled { get; set; } = true;
 
     // 단축키 설정
     public string TriggerKey { get; set; } = "\\";

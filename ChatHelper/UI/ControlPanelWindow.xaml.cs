@@ -55,13 +55,22 @@ public partial class ControlPanelWindow : Window
         else
             RadioSlashTab.IsChecked = true;
 
-        // 3. 테마 로드
+        // 3. 테마 및 표시 설정 로드
         if (cfg.Theme == "ModernDark")
             RadioThemeDark.IsChecked = true;
         else if (cfg.Theme == "ModernLight")
             RadioThemeLight.IsChecked = true;
         else
             RadioThemeWin98.IsChecked = true;
+
+        if (cfg.DisplayMode == "HorizontalBar")
+            RadioModeHorizontal.IsChecked = true;
+        else if (cfg.DisplayMode == "ManualOnly")
+            RadioModeManual.IsChecked = true;
+        else
+            RadioModeInline.IsChecked = true;
+
+        ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
 
         // 4. 시트 및 유저 정보
         TxtTemplateUrl.Text = cfg.RemoteCsvUrl ?? "";
@@ -247,6 +256,14 @@ public partial class ControlPanelWindow : Window
         else
             cfg.CompleteKeyMode = "SlashTab";
 
+        if (RadioModeHorizontal.IsChecked == true)
+            cfg.DisplayMode = "HorizontalBar";
+        else if (RadioModeManual.IsChecked == true)
+            cfg.DisplayMode = "ManualOnly";
+        else
+            cfg.DisplayMode = "InlinePill";
+
+        cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
         cfg.UserCsvUrl = TxtUserUrl.Text.Trim();
 

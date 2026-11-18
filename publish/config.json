@@ -1,10 +1,17 @@
 {
+  "Version": "v2.0.0 (Millennium Edition)",
+  "BuildDate": "2026-11-18",
+  "CurrentUserId": "taerin",
+  "UserCsvUrl": "",
+  "LocalUserCsvPath": "users.csv",
+  "Theme": "Win98",
+  "ShowStatusWindow": true,
+  "IsEnabled": true,
   "TriggerKey": "\\",
-  "RequireTriggerForTab": true,
+  "CompleteKeyMode": "SlashTab",
   "EnableNumberSelection": true,
-  "DisplayMode": "InlinePill",
   "GlobalHotkey": "Alt+Q",
+  "DisplayMode": "InlinePill",
   "CsvFilePath": "chat_templates.csv",
-  "RemoteCsvUrl": "",
-  "EnableChatLogging": false
+  "RemoteCsvUrl": ""
 }

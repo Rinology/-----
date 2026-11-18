@@ -178,7 +178,7 @@ public class TemplateManager
             token = token[trigger.Length..];
         }
 
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrEmpty(token) || token.Length < 2)
             return new List<TemplateItem>();
 
         var list = Templates.Where(t =>

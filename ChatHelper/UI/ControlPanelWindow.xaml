@@ -134,18 +134,25 @@
                     </TabItem>
 
                     <!-- 탭 3: 디자인 테마 커스텀 -->
-                    <TabItem Header="디자인 테마" FontFamily="Tahoma, Gulim">
+                    <TabItem Header="디자인 &amp; 표시" FontFamily="Tahoma, Gulim">
                         <StackPanel Margin="10">
                             <GroupBox Header="UI 비주얼 스타일 커스텀" BorderBrush="#808080">
-                                <StackPanel Margin="8">
-                                    <RadioButton x:Name="RadioThemeWin98" Content="🖥️ Windows 98 Millennium Edition (레트로 3D 베벨 &amp; 클래식)" Margin="0,4" IsChecked="True" Checked="ThemeRadio_Checked"/>
-                                    <TextBlock Text="  • 90년대 밀레니엄 윈도우 감성의 회색 입체 버튼과 네이비 그라데이션 타이틀" Foreground="#505050" FontSize="11" Margin="20,0,0,8"/>
+                                <StackPanel Margin="6">
+                                    <RadioButton x:Name="RadioThemeWin98" Content="🖥️ Windows 98 Millennium Edition (레트로 3D 베벨 &amp; 클래식)" Margin="0,2" IsChecked="True" Checked="ThemeRadio_Checked"/>
+                                    <RadioButton x:Name="RadioThemeDark" Content="🌙 Modern Dark (현대적 다크 모드)" Margin="0,2" Checked="ThemeRadio_Checked"/>
+                                    <RadioButton x:Name="RadioThemeLight" Content="☀️ Modern Light (깔끔한 모던 라이트)" Margin="0,2" Checked="ThemeRadio_Checked"/>
+                                </StackPanel>
+                            </GroupBox>
 
-                                    <RadioButton x:Name="RadioThemeDark" Content="🌙 Modern Dark (현대적 다크 모드)" Margin="0,4" Checked="ThemeRadio_Checked"/>
-                                    <TextBlock Text="  • 눈이 편안한 딥 차콜과 블루 포인트 컬러의 모던 디자인" Foreground="#505050" FontSize="11" Margin="20,0,0,8"/>
+                            <GroupBox Header="추천 바 형태 및 상태표시줄 설정" BorderBrush="#808080" Margin="0,6,0,0">
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="자동완성 팝업 형태:" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
+                                    <RadioButton x:Name="RadioModeInline" Content="옵션 1: 스마트폰 인라인 알약 툴팁 (1개 칩)" Margin="8,2" IsChecked="True"/>
+                                    <RadioButton x:Name="RadioModeHorizontal" Content="옵션 2: 가로형 미니 추천 바 (최대 3개 칩)" Margin="8,2"/>
+                                    <RadioButton x:Name="RadioModeManual" Content="옵션 3: 수동 검색 모드만 사용 (Alt+Q)" Margin="8,2"/>
 
-                                    <RadioButton x:Name="RadioThemeLight" Content="☀️ Modern Light (깔끔한 모던 라이트)" Margin="0,4" Checked="ThemeRadio_Checked"/>
-                                    <TextBlock Text="  • 심플하고 화사한 플랫 미니멀 디자인" Foreground="#505050" FontSize="11" Margin="20,0,0,0"/>
+                                    <CheckBox x:Name="ChkShowStatusWindow" Content="화면 우측 하단 및 작업표시줄에 실행 상태표시창 항상 보이기" Margin="0,8,0,2" IsChecked="True"/>
+                                    <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨고 우측 하단 트레이 아이콘으로만 동작합니다.)" Foreground="#505050" FontSize="10"/>
                                 </StackPanel>
                             </GroupBox>
                         </StackPanel>
