@@ -87,6 +87,50 @@ public class TemplateManager
         return Templates.Count;
     }
 
+    public void AddTemplate(TemplateItem item)
+    {
+        Templates.Add(item);
+        SaveTemplatesToCsv();
+    }
+
+    public void UpdateTemplate(int index, TemplateItem item)
+    {
+        if (index >= 0 && index < Templates.Count)
+        {
+            Templates[index] = item;
+            SaveTemplatesToCsv();
+        }
+    }
+
+    public void DeleteTemplate(int index)
+    {
+        if (index >= 0 && index < Templates.Count)
+        {
+            Templates.RemoveAt(index);
+            SaveTemplatesToCsv();
+        }
+    }
+
+    public void SaveTemplatesToCsv()
+    {
+        var csvPath = _configManager.Config.CsvFilePath;
+        if (!Path.IsPathRooted(csvPath))
+        {
+            csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("keyword,title,content,category");
+
+        foreach (var it in Templates)
+        {
+            string escContent = it.Content.Replace("\"", "\"\"");
+            sb.AppendLine($"{it.Keyword},{it.Title},\"{escContent}\",{it.Category}");
+        }
+
+        File.WriteAllText(csvPath, sb.ToString(), Encoding.UTF8);
+    }
+
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync()
     {
         var url = _configManager.Config.RemoteCsvUrl?.Trim();
@@ -128,7 +172,6 @@ public class TemplateManager
 
         var token = rawToken.Trim().ToLower();
 
-        // 접두사 '\'가 붙어있으면 떼어냄
         var trigger = _configManager.Config.TriggerKey ?? "\\";
         if (!string.IsNullOrEmpty(trigger) && token.StartsWith(trigger))
         {
@@ -138,7 +181,6 @@ public class TemplateManager
         if (string.IsNullOrEmpty(token))
             return new List<TemplateItem>();
 
-        // 키워드 직접 일치 및 부분 일치 검색 (예: 'ds', 'qt')
         var list = Templates.Where(t =>
             (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.StartsWith(token, StringComparison.OrdinalIgnoreCase)) ||
             t.Title.StartsWith(token, StringComparison.OrdinalIgnoreCase)

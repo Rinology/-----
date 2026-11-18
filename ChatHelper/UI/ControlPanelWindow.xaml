@@ -1,0 +1,231 @@
+<Window x:Class="ChatHelper.UI.ControlPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ChatHelper 등록 정보 (Windows 98 Millennium Edition)" 
+        Height="540" Width="620"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        Background="#C0C0C0"
+        BorderBrush="#FFFFFF"
+        BorderThickness="2"
+        ResizeMode="NoResize">
+    <Border BorderThickness="1" BorderBrush="#000000">
+        <Border BorderThickness="1" BorderBrush="#808080">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="22"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="32"/>
+                </Grid.RowDefinitions>
+
+                <!-- 윈도우 98 타이틀 바 -->
+                <Grid Background="{StaticResource Win98TitleGradient}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <TextBlock Text="💻 ChatHelper 제어판 (Windows 98 ME)" Foreground="White" FontWeight="Bold" FontSize="11" FontFamily="Tahoma, Gulim"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource Win98CloseButtonStyle}" HorizontalAlignment="Right" Margin="0,0,2,0" Click="BtnClose_Click"/>
+                </Grid>
+
+                <!-- 탭 컨트롤 -->
+                <TabControl Grid.Row="1" Margin="8,8,8,4" Background="#C0C0C0" BorderBrush="#FFFFFF">
+                    
+                    <!-- 탭 1: 커맨드(템플릿) 입력 및 관리 -->
+                    <TabItem Header="커맨드 관리" FontFamily="Tahoma, Gulim">
+                        <Grid Margin="6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid x:Name="DgTemplates" 
+                                      AutoGenerateColumns="False" 
+                                      IsReadOnly="True" 
+                                      SelectionMode="Single"
+                                      Background="#FFFFFF"
+                                      BorderBrush="#808080"
+                                      SelectionChanged="DgTemplates_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="키워드(단축어)" Binding="{Binding Keyword}" Width="110"/>
+                                    <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="150"/>
+                                    <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="80"/>
+                                    <DataGridTextColumn Header="내용 미리보기" Binding="{Binding Content}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 입력 폼 -->
+                            <Border Grid.Row="1" BorderBrush="#808080" BorderThickness="1" Background="#D4D0C8" Padding="6" Margin="0,6,0,6">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="단축어:" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="11"/>
+                                    <TextBox x:Name="TxtKw" Grid.Column="1" Style="{StaticResource Win98TextBoxStyle}" Height="20"/>
+
+                                    <TextBlock Text="제목:" Grid.Column="2" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="11"/>
+                                    <TextBox x:Name="TxtTitle" Grid.Column="3" Style="{StaticResource Win98TextBoxStyle}" Height="20"/>
+
+                                    <TextBlock Text="카테고리:" Grid.Column="4" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="11"/>
+                                    <TextBox x:Name="TxtCat" Grid.Column="5" Style="{StaticResource Win98TextBoxStyle}" Height="20"/>
+
+                                    <TextBlock Text="내용:" Grid.Row="1" VerticalAlignment="Top" Margin="0,6,4,0" FontSize="11"/>
+                                    <TextBox x:Name="TxtContent" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" 
+                                             Style="{StaticResource Win98TextBoxStyle}" Height="45" TextWrapping="Wrap" 
+                                             AcceptsReturn="True" Margin="0,4,0,0"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- 액션 버튼 -->
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Content="신규 추가" Style="{StaticResource Win98ButtonStyle}" Width="75" Margin="0,0,6,0" Click="BtnAdd_Click"/>
+                                <Button Content="수정 적용" Style="{StaticResource Win98ButtonStyle}" Width="75" Margin="0,0,6,0" Click="BtnUpdate_Click"/>
+                                <Button Content="선택 삭제" Style="{StaticResource Win98ButtonStyle}" Width="75" Margin="0,0,6,0" Click="BtnDelete_Click"/>
+                                <Button Content="입력란 비우기" Style="{StaticResource Win98ButtonStyle}" Width="85" Click="BtnClearForm_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- 탭 2: 단축키 & 충돌 경고 -->
+                    <TabItem Header="단축키 설정" FontFamily="Tahoma, Gulim">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="단축키 및 충돌 검사" BorderBrush="#808080">
+                                <StackPanel Margin="6">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="수동 팝업 단축키:" VerticalAlignment="Center" FontSize="11"/>
+                                        <TextBox x:Name="TxtGlobalHotkey" Grid.Column="1" Style="{StaticResource Win98TextBoxStyle}" Height="22" TextChanged="TxtGlobalHotkey_TextChanged"/>
+                                        <TextBlock x:Name="LblHotkeyWarning" Grid.Column="2" Text="" FontSize="11" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="120"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="트리거 접두사 키:" VerticalAlignment="Center" FontSize="11"/>
+                                        <TextBox x:Name="TxtTriggerKey" Grid.Column="1" Style="{StaticResource Win98TextBoxStyle}" Height="22" Text="\"/>
+                                        <TextBlock Text="(기본값: \, 한글 키보드 원화 기호 ₩ 포함)" Foreground="#505050" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                    </Grid>
+
+                                    <TextBlock Text="완성 트리거 조합 모드:" FontWeight="Bold" Margin="0,6,0,4" FontSize="11"/>
+                                    <RadioButton x:Name="RadioSlashTab" Content="[ \ + Tab ] 또는 [ \ 누른 직후 Tab ] (기본 권장, 오작동 방지)" Margin="8,2" IsChecked="True"/>
+                                    <RadioButton x:Name="RadioSlashOnly" Content="[ \ ] 단독 누름 시 즉시 완성 모드 진입" Margin="8,2"/>
+                                    <RadioButton x:Name="RadioShiftSpace" Content="[ Shift + Space ] 로 완성" Margin="8,2"/>
+
+                                    <CheckBox x:Name="ChkNumbers" Content="트리거 활성 상태에서 1~9 숫자 키로 즉시 선택 허용" Margin="8,6,0,0" IsChecked="True"/>
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- 탭 3: 디자인 테마 커스텀 -->
+                    <TabItem Header="디자인 테마" FontFamily="Tahoma, Gulim">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="UI 비주얼 스타일 커스텀" BorderBrush="#808080">
+                                <StackPanel Margin="8">
+                                    <RadioButton x:Name="RadioThemeWin98" Content="🖥️ Windows 98 Millennium Edition (레트로 3D 베벨 &amp; 클래식)" Margin="0,4" IsChecked="True" Checked="ThemeRadio_Checked"/>
+                                    <TextBlock Text="  • 90년대 밀레니엄 윈도우 감성의 회색 입체 버튼과 네이비 그라데이션 타이틀" Foreground="#505050" FontSize="11" Margin="20,0,0,8"/>
+
+                                    <RadioButton x:Name="RadioThemeDark" Content="🌙 Modern Dark (현대적 다크 모드)" Margin="0,4" Checked="ThemeRadio_Checked"/>
+                                    <TextBlock Text="  • 눈이 편안한 딥 차콜과 블루 포인트 컬러의 모던 디자인" Foreground="#505050" FontSize="11" Margin="20,0,0,8"/>
+
+                                    <RadioButton x:Name="RadioThemeLight" Content="☀️ Modern Light (깔끔한 모던 라이트)" Margin="0,4" Checked="ThemeRadio_Checked"/>
+                                    <TextBlock Text="  • 심플하고 화사한 플랫 미니멀 디자인" Foreground="#505050" FontSize="11" Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- 탭 4: 시트 연동 및 라이선스 -->
+                    <TabItem Header="시트 &amp; 라이선스" FontFamily="Tahoma, Gulim">
+                        <StackPanel Margin="10">
+                            <GroupBox Header="현재 로그인된 사용자 라이선스" BorderBrush="#808080">
+                                <StackPanel Margin="6">
+                                    <TextBlock x:Name="LblCurrentUserInfo" Text="로그인 정보 로드 중..." FontSize="12" FontWeight="Bold" Foreground="#000080" Margin="0,0,0,6"/>
+                                    <Button Content="다른 사용자로 다시 로그온..." Style="{StaticResource Win98ButtonStyle}" Width="170" HorizontalAlignment="Left" Click="BtnRelogin_Click"/>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <GroupBox Header="구글 스프레드시트 배포 URL" BorderBrush="#808080" Margin="0,8,0,0">
+                                <StackPanel Margin="6">
+                                    <TextBlock Text="템플릿 CSV 웹게시 링크:" FontSize="11" Margin="0,0,0,2"/>
+                                    <TextBox x:Name="TxtTemplateUrl" Style="{StaticResource Win98TextBoxStyle}" Height="22" Margin="0,0,0,6"/>
+
+                                    <TextBlock Text="유저 라이선스 CSV 웹게시 링크:" FontSize="11" Margin="0,0,0,2"/>
+                                    <TextBox x:Name="TxtUserUrl" Style="{StaticResource Win98TextBoxStyle}" Height="22" Margin="0,0,0,8"/>
+
+                                    <Button Content="🔄 구글 시트에서 전체 최신 동기화 실행" Style="{StaticResource Win98ButtonStyle}" Width="240" HorizontalAlignment="Left" Click="BtnSyncAll_Click"/>
+                                </StackPanel>
+                            </GroupBox>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- 탭 5: 버전 정보 (About) -->
+                    <TabItem Header="버전 정보" FontFamily="Tahoma, Gulim">
+                        <Grid Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 윈도우 98 클래식 PC 아이콘 느낌 -->
+                            <Border Width="50" Height="50" Background="#000080" BorderBrush="#FFFFFF" BorderThickness="2" VerticalAlignment="Top">
+                                <TextBlock Text="98" Foreground="#FFFFFF" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="ChatHelper Millennium Edition" FontSize="14" FontWeight="Bold" Foreground="#000080"/>
+                                <TextBlock Text="Version 2.0.0 (Build 2026.11.18)" FontSize="11" Foreground="#404040" Margin="0,2,0,10"/>
+
+                                <TextBlock Text="시스템 정보:" FontWeight="Bold" FontSize="11" Margin="0,4,0,2"/>
+                                <TextBlock Text="• Microsoft .NET 8.0 Windows x64 Native Runtime" FontSize="11"/>
+                                <TextBlock Text="• 고성능 Zero-Lag 저수준 Win32 키보드 후킹 엔진 탑재" FontSize="11"/>
+                                <TextBlock Text="• 스마트폰형 커서 실시간 추적 무포커스 윈도우" FontSize="11"/>
+
+                                <TextBlock Text="사용권 계약 대상:" FontWeight="Bold" FontSize="11" Margin="0,10,0,2"/>
+                                <TextBlock x:Name="LblLicensedTo" Text="사용자: taerin" FontSize="11"/>
+                                <TextBlock Text="Copyright (c) 1998-2026 All rights reserved." FontSize="10" Foreground="#606060" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                </TabControl>
+
+                <!-- 하단 상태 바 & 확인 버튼 -->
+                <Grid Grid.Row="2" Background="#C0C0C0" Margin="8,0,8,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border BorderThickness="1,1,0,0" BorderBrush="#808080" VerticalAlignment="Center" Height="22" Padding="4,2">
+                        <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">
+                            <TextBlock x:Name="LblStatusBar" Text="준비 완료" FontSize="11" VerticalAlignment="Center"/>
+                        </Border>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0">
+                        <Button Content="확인" Style="{StaticResource Win98ButtonStyle}" Width="75" Margin="0,0,6,0" Click="BtnSaveAndClose_Click"/>
+                        <Button Content="닫기" Style="{StaticResource Win98ButtonStyle}" Width="75" Click="BtnClose_Click"/>
+                    </StackPanel>
+                </Grid>
+
+            </Grid>
+        </Border>
+    </Border>
+</Window>

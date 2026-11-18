@@ -10,11 +10,12 @@ public partial class MainWindow : Window
 {
     private readonly ConfigManager _configManager;
     private readonly TemplateManager _templateManager;
+    private readonly AuthService _authService;
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
     private readonly QuickSearchWindow _quickSearchWindow;
-    private SettingsWindow? _settingsWindow;
+    private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
 
     public MainWindow()
@@ -23,19 +24,48 @@ public partial class MainWindow : Window
 
         _configManager = new ConfigManager();
         _templateManager = new TemplateManager(_configManager);
+        _authService = new AuthService(_configManager);
         _hookService = new KeyboardHookService(_configManager, _templateManager);
 
         _suggestionBar = new SuggestionBar(_configManager);
         _quickSearchWindow = new QuickSearchWindow(_templateManager);
 
+        // 1. 로그인/라이선스 검증
+        if (!PerformInitialLogin())
+        {
+            Application.Current.Shutdown();
+            return;
+        }
+
+        // 2. 트레이 및 이벤트 초기화
         InitTrayMenu();
         InitEvents();
 
+        // 3. 백그라운드 훅 시작
         _hookService.Start();
 
+        var user = _authService.CurrentUser;
         var trigger = _configManager.Config.TriggerKey ?? "\\";
-        _trayIconService?.ShowBalloon("채팅 도우미 시작됨 (C# .NET 8)",
-            $"• 스마트폰 커서 추적: 타이핑 시 커서 옆 표시\n• 방해 방지 완성: [{trigger}+Tab] 또는 [{trigger}+1~3]\n• 트레이 메뉴 ➔ 설정에서 모드 변경 가능");
+        _trayIconService?.ShowBalloon($"로그온 완료: {user?.UserId} (v2.0.0 ME)",
+            $"• 만료일: {user?.ExpireDate:yyyy-MM-dd} (D-{user?.DaysRemaining}일 남음)\n• 추천 바: 일반 타이핑 ➔ [{trigger}+Tab] 완성\n• 트레이 우클릭 ➔ 제어판에서 커맨드 추가/수정 가능");
+    }
+
+    private bool PerformInitialLogin()
+    {
+        string lastUser = _configManager.Config.CurrentUserId;
+        if (!string.IsNullOrWhiteSpace(lastUser))
+        {
+            var (success, _, _) = _authService.ValidateUser(lastUser);
+            if (success)
+            {
+                return true; // 자동 로그인 성공
+            }
+        }
+
+        // 로그인 팝업
+        var loginWin = new LoginWindow(_authService, _configManager);
+        var result = loginWin.ShowDialog();
+        return result == true && loginWin.IsAuthenticated;
     }
 
     private void InitTrayMenu()
@@ -45,8 +75,8 @@ public partial class MainWindow : Window
         var itemOpen = new MenuItem { Header = "자주 쓰는 말 열기 (Alt+Q)" };
         itemOpen.Click += (s, e) => OpenQuickSearch();
 
-        var itemSettings = new MenuItem { Header = "⚙️ 자동완성 모드 설정..." };
-        itemSettings.Click += (s, e) => OpenSettings();
+        var itemControlPanel = new MenuItem { Header = "💻 ChatHelper 제어판 (커맨드/단축키/설정)..." };
+        itemControlPanel.Click += (s, e) => OpenControlPanel();
 
         var itemReload = new MenuItem { Header = "CSV 템플릿 다시 불러오기" };
         itemReload.Click += (s, e) => ReloadTemplates();
@@ -54,20 +84,24 @@ public partial class MainWindow : Window
         var itemSync = new MenuItem { Header = "구글 시트에서 최신 동기화" };
         itemSync.Click += async (s, e) => await SyncRemoteAsync();
 
+        var itemRelogin = new MenuItem { Header = "🔑 다른 사용자로 다시 로그온..." };
+        itemRelogin.Click += (s, e) => Relogin();
+
         var itemExit = new MenuItem { Header = "종료" };
         itemExit.Click += (s, e) => ExitApp();
 
         menu.Items.Add(itemOpen);
-        menu.Items.Add(itemSettings);
+        menu.Items.Add(itemControlPanel);
         menu.Items.Add(new Separator());
         menu.Items.Add(itemReload);
         menu.Items.Add(itemSync);
+        menu.Items.Add(itemRelogin);
         menu.Items.Add(new Separator());
         menu.Items.Add(itemExit);
 
         _trayIconService = new TrayIconService(this, menu);
         _trayIconService.Initialize();
-        _trayIconService.DoubleClicked += OpenQuickSearch;
+        _trayIconService.DoubleClicked += OpenControlPanel;
     }
 
     private void InitEvents()
@@ -116,18 +150,28 @@ public partial class MainWindow : Window
         _quickSearchWindow.ShowAtCursor(hwnd);
     }
 
-    private void OpenSettings()
+    private void OpenControlPanel()
     {
-        if (_settingsWindow == null || !_settingsWindow.IsLoaded)
+        if (_controlPanelWindow == null || !_controlPanelWindow.IsLoaded)
         {
-            _settingsWindow = new SettingsWindow(_configManager, _templateManager);
-            _settingsWindow.SettingsSaved += () =>
+            _controlPanelWindow = new ControlPanelWindow(_configManager, _templateManager, _authService);
+            _controlPanelWindow.SettingsChanged += () =>
             {
-                _trayIconService?.ShowBalloon("설정 적용 완료", "새로운 설정이 즉시 반영되었습니다.");
+                _trayIconService?.ShowBalloon("제어판 설정 적용", "커맨드 및 단축키 설정이 실시간 적용되었습니다.");
             };
         }
-        _settingsWindow.Show();
-        _settingsWindow.Activate();
+        _controlPanelWindow.Show();
+        _controlPanelWindow.Activate();
+    }
+
+    private void Relogin()
+    {
+        var loginWin = new LoginWindow(_authService, _configManager);
+        if (loginWin.ShowDialog() == true)
+        {
+            var user = _authService.CurrentUser;
+            _trayIconService?.ShowBalloon("로그온 변경", $"'{user?.UserId}' 계정으로 전환되었습니다. (만료일: {user?.ExpireDate:yyyy-MM-dd})");
+        }
     }
 
     private void ReloadTemplates()
@@ -148,7 +192,7 @@ public partial class MainWindow : Window
         _trayIconService?.Dispose();
         _suggestionBar.Close();
         _quickSearchWindow.Close();
-        _settingsWindow?.Close();
+        _controlPanelWindow?.Close();
         Application.Current.Shutdown();
     }
 

@@ -1,0 +1,262 @@
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using ChatHelper.Models;
+using ChatHelper.Services;
+
+namespace ChatHelper.UI;
+
+public partial class ControlPanelWindow : Window
+{
+    private readonly ConfigManager _configManager;
+    private readonly TemplateManager _templateManager;
+    private readonly AuthService _authService;
+
+    private ObservableCollection<TemplateItem> _templatesObs = new();
+
+    public event Action? SettingsChanged;
+
+    public ControlPanelWindow(ConfigManager configManager, TemplateManager templateManager, AuthService authService)
+    {
+        InitializeComponent();
+        _configManager = configManager;
+        _templateManager = templateManager;
+        _authService = authService;
+
+        LoadData();
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void LoadData()
+    {
+        // 1. 템플릿 목록 로드
+        _templatesObs = new ObservableCollection<TemplateItem>(_templateManager.Templates);
+        DgTemplates.ItemsSource = _templatesObs;
+
+        // 2. 단축키 설정 로드
+        var cfg = _configManager.Config;
+        TxtGlobalHotkey.Text = cfg.GlobalHotkey ?? "Alt+Q";
+        TxtTriggerKey.Text = cfg.TriggerKey ?? "\\";
+        ChkNumbers.IsChecked = cfg.EnableNumberSelection;
+
+        if (cfg.CompleteKeyMode == "SlashOnly")
+            RadioSlashOnly.IsChecked = true;
+        else if (cfg.CompleteKeyMode == "ShiftSpace")
+            RadioShiftSpace.IsChecked = true;
+        else
+            RadioSlashTab.IsChecked = true;
+
+        // 3. 테마 로드
+        if (cfg.Theme == "ModernDark")
+            RadioThemeDark.IsChecked = true;
+        else if (cfg.Theme == "ModernLight")
+            RadioThemeLight.IsChecked = true;
+        else
+            RadioThemeWin98.IsChecked = true;
+
+        // 4. 시트 및 유저 정보
+        TxtTemplateUrl.Text = cfg.RemoteCsvUrl ?? "";
+        TxtUserUrl.Text = cfg.UserCsvUrl ?? "";
+        UpdateUserInfoDisplay();
+
+        // 5. 하단 상태표시줄
+        LblStatusBar.Text = $"템플릿: {_templatesObs.Count}개 로드됨 | 로그인: {cfg.CurrentUserId}";
+    }
+
+    private void UpdateUserInfoDisplay()
+    {
+        var user = _authService.CurrentUser;
+        if (user != null)
+        {
+            LblCurrentUserInfo.Text = $"아이디: {user.UserId}  |  등급: {user.Plan}  |  만료일: {user.ExpireDate:yyyy-MM-dd} (D-{user.DaysRemaining}일 남음)";
+            LblLicensedTo.Text = $"사용자: {user.UserId} ({user.Plan} 회원)";
+        }
+        else
+        {
+            LblCurrentUserInfo.Text = "로그온된 사용자가 없습니다.";
+        }
+    }
+
+    // --- 템플릿 CRUD ---
+    private void DgTemplates_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DgTemplates.SelectedItem is TemplateItem item)
+        {
+            TxtKw.Text = item.Keyword;
+            TxtTitle.Text = item.Title;
+            TxtCat.Text = item.Category;
+            TxtContent.Text = item.Content;
+        }
+    }
+
+    private void BtnAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(TxtKw.Text) && string.IsNullOrWhiteSpace(TxtTitle.Text))
+        {
+            MessageBox.Show("단축어나 제목을 입력해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var item = new TemplateItem
+        {
+            Keyword = TxtKw.Text.Trim(),
+            Title = TxtTitle.Text.Trim(),
+            Category = string.IsNullOrWhiteSpace(TxtCat.Text) ? "일반" : TxtCat.Text.Trim(),
+            Content = TxtContent.Text
+        };
+
+        _templateManager.AddTemplate(item);
+        _templatesObs.Add(item);
+        BtnClearForm_Click(sender, e);
+        LblStatusBar.Text = $"신규 커맨드 '{item.Title}' 추가 완료!";
+    }
+
+    private void BtnUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        int idx = DgTemplates.SelectedIndex;
+        if (idx < 0 || idx >= _templatesObs.Count)
+        {
+            MessageBox.Show("수정할 항목을 목록에서 먼저 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var item = _templatesObs[idx];
+        item.Keyword = TxtKw.Text.Trim();
+        item.Title = TxtTitle.Text.Trim();
+        item.Category = string.IsNullOrWhiteSpace(TxtCat.Text) ? "일반" : TxtCat.Text.Trim();
+        item.Content = TxtContent.Text;
+
+        _templateManager.UpdateTemplate(idx, item);
+        DgTemplates.Items.Refresh();
+        LblStatusBar.Text = $"'{item.Title}' 수정 적용 완료!";
+    }
+
+    private void BtnDelete_Click(object sender, RoutedEventArgs e)
+    {
+        int idx = DgTemplates.SelectedIndex;
+        if (idx < 0 || idx >= _templatesObs.Count)
+        {
+            MessageBox.Show("삭제할 항목을 먼저 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var item = _templatesObs[idx];
+        if (MessageBox.Show($"'{item.Title}' 항목을 정말 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            _templateManager.DeleteTemplate(idx);
+            _templatesObs.RemoveAt(idx);
+            BtnClearForm_Click(sender, e);
+            LblStatusBar.Text = $"'{item.Title}' 삭제 완료.";
+        }
+    }
+
+    private void BtnClearForm_Click(object sender, RoutedEventArgs e)
+    {
+        TxtKw.Clear();
+        TxtTitle.Clear();
+        TxtCat.Clear();
+        TxtContent.Clear();
+        DgTemplates.SelectedItem = null;
+    }
+
+    // --- 단축키 충돌 검사 ---
+    private void TxtGlobalHotkey_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        string hk = TxtGlobalHotkey.Text.Trim();
+        var (isConflict, msg) = HotkeyValidator.ValidateHotkey(hk);
+
+        if (isConflict)
+        {
+            LblHotkeyWarning.Text = msg;
+            LblHotkeyWarning.Foreground = Brushes.Red;
+        }
+        else
+        {
+            LblHotkeyWarning.Text = msg;
+            LblHotkeyWarning.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
+        }
+    }
+
+    // --- 테마 전환 ---
+    private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        var cfg = _configManager.Config;
+        if (RadioThemeDark.IsChecked == true)
+            cfg.Theme = "ModernDark";
+        else if (RadioThemeLight.IsChecked == true)
+            cfg.Theme = "ModernLight";
+        else
+            cfg.Theme = "Win98";
+    }
+
+    // --- 시트 동기화 & 다시 로그온 ---
+    private async void BtnSyncAll_Click(object sender, RoutedEventArgs e)
+    {
+        LblStatusBar.Text = "구글 시트에서 전체 동기화 진행 중...";
+        _configManager.Config.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
+        _configManager.Config.UserCsvUrl = TxtUserUrl.Text.Trim();
+        _configManager.Save();
+
+        var tTask = _templateManager.SyncFromRemoteAsync();
+        var uTask = _authService.SyncUserListFromRemoteAsync();
+
+        await Task.WhenAll(tTask, uTask);
+
+        var (tSuccess, tMsg) = tTask.Result;
+        var (uSuccess, uMsg) = uTask.Result;
+
+        _templatesObs = new ObservableCollection<TemplateItem>(_templateManager.Templates);
+        DgTemplates.ItemsSource = _templatesObs;
+        UpdateUserInfoDisplay();
+
+        MessageBox.Show($"{tMsg}\n{uMsg}", "동기화 결과", MessageBoxButton.OK, MessageBoxImage.Information);
+        LblStatusBar.Text = "전체 동기화 완료.";
+    }
+
+    private void BtnRelogin_Click(object sender, RoutedEventArgs e)
+    {
+        var loginWin = new LoginWindow(_authService, _configManager);
+        if (loginWin.ShowDialog() == true)
+        {
+            UpdateUserInfoDisplay();
+            LblStatusBar.Text = $"사용자 '{_authService.CurrentUser?.UserId}' 로그인 완료.";
+        }
+    }
+
+    // --- 확인 및 저장 ---
+    private void BtnSaveAndClose_Click(object sender, RoutedEventArgs e)
+    {
+        var cfg = _configManager.Config;
+        cfg.GlobalHotkey = TxtGlobalHotkey.Text.Trim();
+        cfg.TriggerKey = string.IsNullOrEmpty(TxtTriggerKey.Text) ? "\\" : TxtTriggerKey.Text;
+        cfg.EnableNumberSelection = ChkNumbers.IsChecked == true;
+
+        if (RadioSlashOnly.IsChecked == true)
+            cfg.CompleteKeyMode = "SlashOnly";
+        else if (RadioShiftSpace.IsChecked == true)
+            cfg.CompleteKeyMode = "ShiftSpace";
+        else
+            cfg.CompleteKeyMode = "SlashTab";
+
+        cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
+        cfg.UserCsvUrl = TxtUserUrl.Text.Trim();
+
+        _configManager.Save();
+        SettingsChanged?.Invoke();
+        Close();
+    }
+
+    private void BtnClose_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+}
