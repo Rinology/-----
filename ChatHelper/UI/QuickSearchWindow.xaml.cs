@@ -24,6 +24,16 @@ public partial class QuickSearchWindow : Window
         _templateManager = templateManager;
         _configManager = configManager;
 
+        try
+        {
+            string iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "app.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri(iconPath, UriKind.Absolute));
+            }
+        }
+        catch { }
+
         Deactivated += QuickSearchWindow_Deactivated;
     }
 

@@ -1,7 +1,6 @@
 <Window x:Class="ChatHelper.UI.ControlPanelWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Icon="Assets/app.ico"
         Title="ChatHelper 제어판" 
         Height="720" Width="920"
         WindowStartupLocation="CenterScreen"
@@ -29,7 +28,7 @@
                         <!-- 1. 타이틀 바 -->
                         <Grid Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <Image Source="pack://application:,,,/Assets/app.png" Width="16" Height="16" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                <TextBlock Text="⌨" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI Emoji, Tahoma"/>
                                 <TextBlock Text="ChatHelper 종합 제어판 &amp; 환경 설정" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
                             </StackPanel>
                             <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" Margin="0,0,4,0" Click="BtnClose_Click"/>
