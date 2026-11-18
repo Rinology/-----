@@ -68,11 +68,38 @@
         </Setter>
     </Style>
 
+    <!-- 윈도우 98 최소화/숨기기 버튼 스타일 [ _ ] -->
+    <Style x:Key="Win98MinimizeButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#C0C0C0"/>
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border BorderThickness="1" BorderBrush="#000000">
+                        <Border x:Name="Brd" BorderThickness="1" BorderBrush="#FFFFFF" Background="#C0C0C0">
+                            <Border BorderThickness="0,0,1,1" BorderBrush="#808080">
+                                <TextBlock Text="0" FontFamily="Marlett" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Brd" Property="BorderBrush" Value="#808080"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- 윈도우 98 닫기 버튼 스타일 [ X ] -->
     <Style x:Key="Win98CloseButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="#C0C0C0"/>
-        <Setter Property="Width" Value="18"/>
-        <Setter Property="Height" Value="16"/>
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Height" Value="18"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="10"/>
         <Setter Property="Template">

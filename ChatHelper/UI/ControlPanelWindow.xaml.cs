@@ -18,14 +18,18 @@ public partial class ControlPanelWindow : Window
 
     public event Action? SettingsChanged;
 
+    private bool _isInitializing = true;
+
     public ControlPanelWindow(ConfigManager configManager, TemplateManager templateManager, AuthService authService)
     {
-        InitializeComponent();
         _configManager = configManager;
         _templateManager = templateManager;
         _authService = authService;
 
+        InitializeComponent();
+
         LoadData();
+        _isInitializing = false;
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -180,6 +184,8 @@ public partial class ControlPanelWindow : Window
     // --- 단축키 충돌 검사 ---
     private void TxtGlobalHotkey_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (LblHotkeyWarning == null || TxtGlobalHotkey == null) return;
+
         string hk = TxtGlobalHotkey.Text.Trim();
         var (isConflict, msg) = HotkeyValidator.ValidateHotkey(hk);
 
@@ -198,10 +204,12 @@ public partial class ControlPanelWindow : Window
     // --- 테마 전환 ---
     private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
     {
+        if (_isInitializing || _configManager == null) return;
+
         var cfg = _configManager.Config;
-        if (RadioThemeDark.IsChecked == true)
+        if (RadioThemeDark?.IsChecked == true)
             cfg.Theme = "ModernDark";
-        else if (RadioThemeLight.IsChecked == true)
+        else if (RadioThemeLight?.IsChecked == true)
             cfg.Theme = "ModernLight";
         else
             cfg.Theme = "Win98";

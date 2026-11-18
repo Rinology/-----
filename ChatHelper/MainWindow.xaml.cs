@@ -161,25 +161,37 @@ public partial class MainWindow : Window
     {
         var user = _authService.CurrentUser;
         string userId = user?.UserId ?? _configManager.Config.CurrentUserId;
+        string planInfo = user != null ? $"{user.Plan} / D-{user.DaysRemaining}일" : "인증됨";
+        var trigger = _configManager.Config.TriggerKey ?? "\\";
+        var completeMode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
+        string keyHint = completeMode switch
+        {
+            "SlashOnly" => trigger,
+            "ShiftSpace" => "Shift + Space",
+            _ => $"{trigger} + Tab"
+        };
+
         bool isEnabled = _configManager.Config.IsEnabled;
 
         if (isEnabled)
         {
-            TxtTitleBar.Text = "🟢 ChatHelper v2.0 ME - 실행 중";
+            TxtTitleBar.Text = "🟢 ChatHelper v2.0 Millennium Edition - 실행 중";
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00B000"));
-            LblRunningStatus.Text = $"자동완성 작동 중 (ON)  |  계정: {userId}  |  템플릿: {_templateManager.Templates.Count}개";
+            LblRunningStatus.Text = "자동완성 작동 중 (ON)";
             LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080"));
             BtnTogglePause.Content = "⏸️ 일시정지";
         }
         else
         {
-            TxtTitleBar.Text = "🟡 ChatHelper v2.0 ME - 일시정지됨";
+            TxtTitleBar.Text = "🟡 ChatHelper v2.0 Millennium Edition - 일시정지됨";
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D08000"));
-            LblRunningStatus.Text = $"자동완성 일시정지 (OFF)  |  계정: {userId}";
+            LblRunningStatus.Text = "자동완성 일시정지 (OFF)";
             LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#800000"));
             BtnTogglePause.Content = "▶️ 다시켜기";
             _suggestionBar.Hide();
         }
+
+        LblSubStatus.Text = $"👤 계정: {userId} ({planInfo})   |   📋 템플릿: {_templateManager.Templates.Count}개   |   ⌨️ 완성키: {keyHint}";
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
