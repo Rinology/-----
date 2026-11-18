@@ -6,20 +6,13 @@ public static class ThemeManager
 {
     public static event Action? ThemeChanged;
 
-    public static string CurrentTheme { get; private set; } = "Win98";
+    public static string CurrentTheme => "Win98";
 
-    public static void ApplyTheme(string themeName)
+    public static void ApplyTheme(string themeName = "Win98")
     {
-        CurrentTheme = themeName switch
-        {
-            "WindowsVista" or "ModernDark" => "WindowsVista",
-            "Windows10" or "ModernLight" => "Windows10",
-            _ => "Win98"
-        };
-
         try
         {
-            var dictUri = new Uri($"Themes/{CurrentTheme}Theme.xaml", UriKind.Relative);
+            var dictUri = new Uri("Themes/Win98Theme.xaml", UriKind.Relative);
             var resourceDict = new ResourceDictionary { Source = dictUri };
 
             var appResources = Application.Current.Resources;
@@ -27,7 +20,7 @@ public static class ThemeManager
             appResources.MergedDictionaries.Add(resourceDict);
 
             ThemeChanged?.Invoke();
-            System.Diagnostics.Debug.WriteLine($"[ThemeManager] OS 세대별 테마 적용 완료: {CurrentTheme}");
+            System.Diagnostics.Debug.WriteLine("[ThemeManager] Windows 98 ME 클래식 테마 적용 완료");
         }
         catch (Exception ex)
         {

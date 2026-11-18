@@ -19,6 +19,14 @@ public static class TextInjectionService
     {
         try
         {
+            if (string.IsNullOrEmpty(text)) return;
+
+            // 본문 줄바꿈 처리: \n 이스케이프 문자 치환 및 CRLF(\r\n) 표준 줄바꿈으로 정규화
+            text = text.Replace("\\n", "\n")
+                       .Replace("\r\n", "\n")
+                       .Replace("\r", "\n")
+                       .Replace("\n", "\r\n");
+
             // 클립보드에 텍스트 복사 (STA Thread 보장)
             if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
             {

@@ -40,16 +40,43 @@ public partial class QuickSearchWindow : Window
     {
         _targetHwnd = targetHwnd;
 
-        // 마우스 커서 위치 계산하여 화면 중앙 또는 커서 인근에 표시
-        Win32Api.GetCursorPos(out var pt);
+        // 1. 텍스트 입력 캐럿(Caret) 위치 확인 (알약 뜨는 위치 근처)
+        double targetX, targetY;
+        if (Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+        {
+            targetX = caretX;
+            targetY = caretY;
+        }
+        else
+        {
+            // 캐럿 인식 실패 시 마우스 커서 위치 활용
+            Win32Api.GetCursorPos(out var pt);
+            targetX = pt.X;
+            targetY = pt.Y;
+        }
+
         double screenW = SystemParameters.PrimaryScreenWidth;
         double screenH = SystemParameters.PrimaryScreenHeight;
 
-        double targetX = pt.X - (Width / 2);
-        double targetY = pt.Y + 25;
+        // X 위치: 커서 인근에서 시작하되, 화면 너비를 벗어나지 않도록 보정
+        double desiredX = targetX - 40;
+        Left = Math.Max(10, Math.Min(desiredX, screenW - Width - 10));
 
-        Left = Math.Max(20, Math.Min(targetX, screenW - Width - 20));
-        Top = Math.Max(20, Math.Min(targetY, screenH - Height - 20));
+        // Y 위치: 커서 아래 +30px 위치하되, 너무 하단에 치우치면 커서 상단으로 보정
+        double desiredY = targetY + 30;
+        if (desiredY + Height > screenH - 50)
+        {
+            // 하단 공간 부족 -> 커서 위쪽으로 보정
+            desiredY = targetY - Height - 15;
+        }
+        
+        // 너무 상단에 치우치면 상단 최소 여백 10px로 보정
+        if (desiredY < 10)
+        {
+            desiredY = 10;
+        }
+
+        Top = desiredY;
 
         _selectedCategory = "전체";
         TxtSearch.Clear();

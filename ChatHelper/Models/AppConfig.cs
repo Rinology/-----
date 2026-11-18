@@ -12,8 +12,11 @@ public class AppConfig
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
-    // UI 테마: "Win98" (윈도우 98 클래식 3D), "WindowsVista" (윈도우 비스타 에어로 글래스), "Windows10" (윈도우 10 모던 플랫)
+    // UI 테마: Windows 98 ME 클래식 고정
     public string Theme { get; set; } = "Win98";
+
+    // 가로형 멀티 추천 바 최대 표시 개수 (3 ~ 10개, 기본 5개)
+    public int MaxCandidatesCount { get; set; } = 5;
 
     // 투명도 설정 (바탕화면 은은하게 비침 조절)
     public double StatusWindowOpacity { get; set; } = 0.90; // 활성 상태 프로그램창(우측하단) 투명도 (0.4 ~ 1.0)

@@ -33,19 +33,20 @@
                 <RowDefinition Height="44"/>
             </Grid.RowDefinitions>
 
-            <!-- 1. 타이틀 바 -->
-            <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <!-- 1. 타이틀 바 (마우스 드래그 이동 지원) -->
+            <Grid Grid.Row="0" Background="Transparent" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="🔍 CS 템플릿 빠른 검색 및 추천" 
                                Foreground="{DynamicResource ThemeText}" 
                                FontWeight="Bold" FontSize="15"/>
-                    <TextBlock Text="(단축키: Alt+Q  |  Tab: 템플릿 목록으로 이동)" 
+                    <TextBlock Text="(단축키: Alt+Q  |  Tab: 목록/카테고리 이동)" 
                                Foreground="{DynamicResource ThemeSubText}" 
                                FontSize="12" Margin="10,2,0,0"/>
                 </StackPanel>
                 <Button Content="✕" 
                         HorizontalAlignment="Right" 
                         Width="30" Height="28" 
+                        Cursor="Arrow"
                         Style="{DynamicResource ThemeCloseButtonStyle}" 
                         Click="BtnClose_Click"/>
             </Grid>
@@ -137,8 +138,8 @@
                 </ListBox>
             </Border>
 
-            <!-- 6. 하단 액션 툴바 -->
-            <Grid Grid.Row="5" Margin="0,8,0,0">
+            <!-- 6. 하단 액션 툴바 (드래그 이동 지원) -->
+            <Grid Grid.Row="5" Background="Transparent" Margin="0,8,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center" 
                            Text="↵ Enter: 이전 창에 입력  |  ↑/↓: 이동  |  Tab: 목록/검색 전환  |  Esc: 닫기" 
                            Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>

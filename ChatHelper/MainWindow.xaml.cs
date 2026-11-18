@@ -183,12 +183,7 @@ public partial class MainWindow : Window
         };
 
         bool isEnabled = _configManager.Config.IsEnabled;
-        string themeTag = ThemeManager.CurrentTheme switch
-        {
-            "WindowsVista" => "Vista Aero",
-            "Windows10" => "Windows 10",
-            _ => "Win98 ME"
-        };
+        string themeTag = "Win98 ME";
 
         // 활성 상태 프로그램창 투명도 적용 (바탕화면 은은하게 비침)
         Opacity = Math.Clamp(_configManager.Config.StatusWindowOpacity, 0.35, 1.0);

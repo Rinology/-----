@@ -35,14 +35,15 @@ public class TemplateManager
         var list = new List<TemplateItem>();
         try
         {
-            var lines = File.ReadAllLines(csvPath, Encoding.UTF8);
-            if (lines.Length <= 1)
+            var csvText = File.ReadAllText(csvPath, Encoding.UTF8);
+            var records = ParseCsvRecords(csvText);
+            if (records.Count <= 1)
                 return 0;
 
-            var header = lines[0].Split(',');
+            var header = records[0];
             int kwIdx = -1, titleIdx = -1, contentIdx = -1, catIdx = -1;
 
-            for (int i = 0; i < header.Length; i++)
+            for (int i = 0; i < header.Count; i++)
             {
                 var h = header[i].Trim().ToLower();
                 if (h.Contains("keyword") || h.Contains("키워드")) kwIdx = i;
@@ -51,19 +52,20 @@ public class TemplateManager
                 else if (h.Contains("category") || h.Contains("카테고리")) catIdx = i;
             }
 
-            for (int i = 1; i < lines.Length; i++)
+            for (int i = 1; i < records.Count; i++)
             {
-                var line = lines[i];
-                if (string.IsNullOrWhiteSpace(line)) continue;
-
-                var cols = ParseCsvLine(line);
+                var cols = records[i];
                 if (cols.Count == 0) continue;
+
+                var rawContent = contentIdx >= 0 && contentIdx < cols.Count ? cols[contentIdx] : "";
+                // 줄바꿈 이스케이프 문자 치환 및 CRLF 정규화
+                rawContent = rawContent.Replace("\\n", "\n").Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
 
                 var item = new TemplateItem
                 {
                     Keyword = kwIdx >= 0 && kwIdx < cols.Count ? cols[kwIdx].Trim() : "",
                     Title = titleIdx >= 0 && titleIdx < cols.Count ? cols[titleIdx].Trim() : "",
-                    Content = contentIdx >= 0 && contentIdx < cols.Count ? cols[contentIdx] : "",
+                    Content = rawContent,
                     Category = catIdx >= 0 && catIdx < cols.Count ? cols[catIdx].Trim() : "일반"
                 };
 
@@ -262,20 +264,21 @@ public class TemplateManager
         return list;
     }
 
-    private static List<string> ParseCsvLine(string line)
+    private static List<List<string>> ParseCsvRecords(string csvText)
     {
-        var result = new List<string>();
-        var current = new StringBuilder();
+        var records = new List<List<string>>();
+        var currentRecord = new List<string>();
+        var currentField = new StringBuilder();
         bool inQuotes = false;
 
-        for (int i = 0; i < line.Length; i++)
+        for (int i = 0; i < csvText.Length; i++)
         {
-            char c = line[i];
+            char c = csvText[i];
             if (c == '\"')
             {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '\"')
+                if (inQuotes && i + 1 < csvText.Length && csvText[i + 1] == '\"')
                 {
-                    current.Append('\"');
+                    currentField.Append('\"');
                     i++;
                 }
                 else
@@ -285,15 +288,39 @@ public class TemplateManager
             }
             else if (c == ',' && !inQuotes)
             {
-                result.Add(current.ToString());
-                current.Clear();
+                currentRecord.Add(currentField.ToString());
+                currentField.Clear();
+            }
+            else if ((c == '\r' || c == '\n') && !inQuotes)
+            {
+                if (c == '\r' && i + 1 < csvText.Length && csvText[i + 1] == '\n')
+                {
+                    i++;
+                }
+                currentRecord.Add(currentField.ToString());
+                currentField.Clear();
+
+                if (currentRecord.Any(f => !string.IsNullOrWhiteSpace(f)))
+                {
+                    records.Add(currentRecord);
+                }
+                currentRecord = new List<string>();
             }
             else
             {
-                current.Append(c);
+                currentField.Append(c);
             }
         }
-        result.Add(current.ToString());
-        return result;
+
+        if (currentField.Length > 0 || currentRecord.Count > 0)
+        {
+            currentRecord.Add(currentField.ToString());
+            if (currentRecord.Any(f => !string.IsNullOrWhiteSpace(f)))
+            {
+                records.Add(currentRecord);
+            }
+        }
+
+        return records;
     }
 }

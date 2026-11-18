@@ -59,14 +59,7 @@ public partial class ControlPanelWindow : Window
         else
             RadioSlashTab.IsChecked = true;
 
-        // 3. 테마 및 표시 설정 로드
-        if (cfg.Theme == "WindowsVista")
-            RadioThemeVista.IsChecked = true;
-        else if (cfg.Theme == "Windows10")
-            RadioThemeWin10.IsChecked = true;
-        else
-            RadioThemeWin98.IsChecked = true;
-
+        // 3. 표시 및 알약 크기 설정 로드
         if (cfg.PillScale == 1)
             RadioPillScale1.IsChecked = true;
         else if (cfg.PillScale == 3)
@@ -110,6 +103,12 @@ public partial class ControlPanelWindow : Window
             RadioModeManual.IsChecked = true;
         else
             RadioModeInline.IsChecked = true;
+
+        // 멀티 알약 최대 개수 (3~10)
+        int maxCountIdx = Math.Clamp(cfg.MaxCandidatesCount, 3, 10) - 3;
+        CmbMaxCandidates.SelectedIndex = maxCountIdx;
+
+        UpdateSlashOnlyLock();
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
 
@@ -238,19 +237,30 @@ public partial class ControlPanelWindow : Window
         }
     }
 
-    // --- 테마 전환 ---
-    private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
+    // --- 완성 키 모드 변경 (SlashOnly 시 단일 알약 고정 및 안내) ---
+    private void CompleteKeyMode_Changed(object sender, RoutedEventArgs e)
     {
-        if (_isInitializing || _configManager == null) return;
+        if (_isInitializing) return;
+        UpdateSlashOnlyLock();
+    }
 
-        string targetTheme = "Win98";
-        if (RadioThemeVista?.IsChecked == true)
-            targetTheme = "WindowsVista";
-        else if (RadioThemeWin10?.IsChecked == true)
-            targetTheme = "Windows10";
+    private void UpdateSlashOnlyLock()
+    {
+        if (RadioSlashOnly == null || RadioModeHorizontal == null || RadioModeInline == null) return;
 
-        _configManager.Config.Theme = targetTheme;
-        ThemeManager.ApplyTheme(targetTheme);
+        if (RadioSlashOnly.IsChecked == true)
+        {
+            RadioModeInline.IsChecked = true;
+            RadioModeHorizontal.IsEnabled = false;
+            if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = false;
+            if (TxtSlashOnlyNotice != null) TxtSlashOnlyNotice.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            RadioModeHorizontal.IsEnabled = true;
+            if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = true;
+            if (TxtSlashOnlyNotice != null) TxtSlashOnlyNotice.Visibility = Visibility.Collapsed;
+        }
     }
 
     // --- 시트 동기화 & 다시 로그온 ---
@@ -297,11 +307,36 @@ public partial class ControlPanelWindow : Window
         cfg.EnableNumberSelection = ChkNumbers.IsChecked == true;
 
         if (RadioSlashOnly.IsChecked == true)
+        {
             cfg.CompleteKeyMode = "SlashOnly";
+            cfg.DisplayMode = "InlinePill"; // SlashOnly는 1개 단일 칩으로 고정
+        }
         else if (RadioShiftSpace.IsChecked == true)
+        {
             cfg.CompleteKeyMode = "ShiftSpace";
+            if (RadioModeHorizontal.IsChecked == true)
+                cfg.DisplayMode = "HorizontalBar";
+            else if (RadioModeManual.IsChecked == true)
+                cfg.DisplayMode = "ManualOnly";
+            else
+                cfg.DisplayMode = "InlinePill";
+        }
         else
+        {
             cfg.CompleteKeyMode = "SlashTab";
+            if (RadioModeHorizontal.IsChecked == true)
+                cfg.DisplayMode = "HorizontalBar";
+            else if (RadioModeManual.IsChecked == true)
+                cfg.DisplayMode = "ManualOnly";
+            else
+                cfg.DisplayMode = "InlinePill";
+        }
+
+        // 멀티 알약 최대 개수 저장 (3~10)
+        if (CmbMaxCandidates != null && CmbMaxCandidates.SelectedIndex >= 0)
+        {
+            cfg.MaxCandidatesCount = CmbMaxCandidates.SelectedIndex + 3;
+        }
 
         if (RadioPillScale1.IsChecked == true)
             cfg.PillScale = 1;
@@ -334,13 +369,6 @@ public partial class ControlPanelWindow : Window
         else if (RadioStatusOpacity65.IsChecked == true) cfg.StatusWindowOpacity = 0.65;
         else if (RadioStatusOpacity85.IsChecked == true) cfg.StatusWindowOpacity = 0.85;
         else cfg.StatusWindowOpacity = 1.0;
-
-        if (RadioModeHorizontal.IsChecked == true)
-            cfg.DisplayMode = "HorizontalBar";
-        else if (RadioModeManual.IsChecked == true)
-            cfg.DisplayMode = "ManualOnly";
-        else
-            cfg.DisplayMode = "InlinePill";
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
