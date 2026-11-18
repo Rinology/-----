@@ -25,8 +25,8 @@ public class KeyboardHookService : IDisposable
     private IntPtr _lastTargetHwnd = IntPtr.Zero;
     private bool _isReplacing = false;
 
-    // 트리거 키(\)가 활성화되어 추천 바가 대기 중인지 여부
-    public bool IsTriggerActive { get; private set; } = false;
+    // 추천 칩이 떠 있을 때 '\' 키를 눌렀는지 여부
+    private bool _triggerArmed = false;
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -63,20 +63,19 @@ public class KeyboardHookService : IDisposable
         {
             int vkCode = Marshal.ReadInt32(lParam);
 
-            // Alt 키 상태 확인 (GetAsyncKeyState VK_MENU: 0x12)
+            // Alt 키 상태 (VK_MENU: 0x12)
             bool isAltPressed = (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0;
 
-            // 0. Alt + Q 전역 수동 검색 단축키
-            if (isAltPressed && vkCode == 0x51) // 'Q'
+            // Alt + Q 수동 검색창
+            if (isAltPressed && vkCode == 0x51)
             {
                 GlobalHotkeyTriggered?.Invoke();
-                return (IntPtr)1; // 원래 키 동작 가로챔
+                return (IntPtr)1;
             }
 
-            // 키 처리 및 가로채기(Eat) 여부 결정
             if (ProcessKeyDown(vkCode))
             {
-                return (IntPtr)1; // OS 및 채팅창으로 전달되지 않게 차단!
+                return (IntPtr)1; // 키 가로채기 (Eat)
             }
         }
 
@@ -89,30 +88,52 @@ public class KeyboardHookService : IDisposable
         {
             _lastTargetHwnd = Win32Api.GetForegroundWindow();
 
-            // 1. Tab 키: 추천 후보가 떠 있는 상태에서 완성 키로 가로채기
-            if (vkCode == Win32Api.VK_TAB)
+            // 백슬래시 키 ('\', VK_OEM_5 = 0xDC)가 눌려있는지 확인
+            bool isSlashHeld = (GetAsyncKeyState(0xDC) & 0x8000) != 0;
+
+            // 1. 추천 칩이 떠 있을 때의 완성 트리거 처리 (\+Tab 또는 \ 누른 직후 Tab)
+            if (_currentCandidates.Count > 0)
             {
-                if (_currentCandidates.Count > 0)
+                // 사용자가 '\' (0xDC) 키를 눌렀을 때:
+                // 화면에 '\'가 쳐지지 않게 가로채고, 완성 준비 상태(_triggerArmed)로 전환!
+                if (vkCode == 0xDC)
                 {
-                    CompleteSelection(_currentCandidates[0], _currentMatchedLen);
-                    return true; // 원래 Tab 키 동작 방지!
+                    _triggerArmed = true;
+                    return true; // 채팅창에 '\' 입력 방지! 깔끔하게 가로챔!
                 }
-                // 후보가 없으면 원래 Tab 키 100% 정상 통과!
-                return false;
+
+                // 완성 트리거: [ \ 키가 눌린 상태에서 Tab ] 또는 [ \ 키를 누른 직후 Tab ]
+                if (vkCode == Win32Api.VK_TAB)
+                {
+                    if (isSlashHeld || _triggerArmed)
+                    {
+                        CompleteSelection(_currentCandidates[0], _currentMatchedLen);
+                        return true; // 원래 Tab 방지하고 즉시 완성!
+                    }
+                    else
+                    {
+                        // '\' 없이 그냥 누른 일반 Tab 키는 100% 정상 통과! 추천 칩만 닫음
+                        ClearCandidates();
+                        return false;
+                    }
+                }
+
+                // 1~9 숫자 키 선택 (\+1, \+2 등)
+                if (_triggerArmed && vkCode >= 0x31 && vkCode <= 0x39)
+                {
+                    int index = vkCode - 0x31;
+                    if (index < _currentCandidates.Count)
+                    {
+                        CompleteSelection(_currentCandidates[index], _currentMatchedLen);
+                        return true;
+                    }
+                }
             }
 
-            // 2. 1~9 숫자 키 선택
-            if (_configManager.Config.EnableNumberSelection && _currentCandidates.Count > 0 && vkCode >= 0x31 && vkCode <= 0x39)
-            {
-                int index = vkCode - 0x31;
-                if (index < _currentCandidates.Count)
-                {
-                    CompleteSelection(_currentCandidates[index], _currentMatchedLen);
-                    return true; // 원래 숫자 키 차단
-                }
-            }
+            // 일반 타이핑이 시작되면 _triggerArmed 리셋
+            _triggerArmed = false;
 
-            // 3. 백스페이스
+            // 2. 백스페이스
             if (vkCode == Win32Api.VK_BACK)
             {
                 if (_buffer.Length > 0)
@@ -123,45 +144,34 @@ public class KeyboardHookService : IDisposable
                 return false;
             }
 
-            // 4. 엔터 또는 ESC 키
+            // 3. 엔터 또는 ESC 키 -> 버퍼 초기화 및 칩 닫기
             if (vkCode == Win32Api.VK_RETURN || vkCode == Win32Api.VK_ESCAPE)
             {
                 _buffer.Clear();
-                IsTriggerActive = false;
                 ClearCandidates();
                 return false;
             }
 
-            // 5. 트리거 키 '\' (VK_OEM_5 = 0xDC) 감지
-            if (vkCode == 0xDC)
+            // 4. 스페이스바 (공백) -> 단어 끝남, 버퍼 초기화
+            if (vkCode == Win32Api.VK_SPACE)
             {
-                _buffer.Append('\\');
-                IsTriggerActive = true;
-                EvaluateCandidates();
+                _buffer.Clear();
+                ClearCandidates();
                 return false;
             }
 
-            // 6. 물리 영문 자판 (A-Z, 0x41 ~ 0x5A) 감지
+            // 5. 물리 영문 자판 (A-Z, 0x41 ~ 0x5A) -> 한글 모드/영문 모드 상관없이 물리 키 감지
             if (vkCode >= 0x41 && vkCode <= 0x5A)
             {
                 char ch = char.ToLower((char)vkCode);
                 _buffer.Append(ch);
-                if (_buffer.Length > 20)
+                if (_buffer.Length > 15)
                 {
-                    _buffer.Remove(0, _buffer.Length - 20);
+                    _buffer.Remove(0, _buffer.Length - 15);
                 }
 
-                // 실시간 매칭 검사
+                // 글자 치자마자 즉시 실시간 후보 평가 -> 알약 칩 활성화!
                 EvaluateCandidates();
-                return false;
-            }
-
-            // 7. 스페이스바 (공백)
-            if (vkCode == Win32Api.VK_SPACE)
-            {
-                _buffer.Clear();
-                IsTriggerActive = false;
-                ClearCandidates();
                 return false;
             }
         }
@@ -172,30 +182,23 @@ public class KeyboardHookService : IDisposable
     private void EvaluateCandidates()
     {
         var raw = _buffer.ToString();
-        var trigger = _configManager.Config.TriggerKey ?? "\\";
-
-        // 트리거 모드 체크: 설정된 트리거(\)로 시작하는지 확인
-        if (!string.IsNullOrEmpty(trigger))
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            int lastTriggerIdx = raw.LastIndexOf(trigger, StringComparison.Ordinal);
-            if (lastTriggerIdx < 0)
-            {
-                ClearCandidates();
-                return;
-            }
+            ClearCandidates();
+            return;
+        }
 
-            string tokenAfterTrigger = raw[lastTriggerIdx..]; // 예: "\qt", "\ds"
-            var list = _templateManager.FindMatchingCandidates(tokenAfterTrigger, out int matchedLen);
-            if (list.Count > 0)
-            {
-                _currentCandidates = list;
-                _currentMatchedLen = matchedLen;
-                CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
-            }
-            else
-            {
-                ClearCandidates();
-            }
+        // 최근 입력된 단어로 추천 검색 (접두사 \ 없이도 바로 검색!)
+        var list = _templateManager.FindMatchingCandidates(raw, out int matchedLen);
+        if (list.Count > 0)
+        {
+            _currentCandidates = list;
+            _currentMatchedLen = matchedLen;
+            CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
+        }
+        else
+        {
+            ClearCandidates();
         }
     }
 
@@ -203,7 +206,7 @@ public class KeyboardHookService : IDisposable
     {
         _isReplacing = true;
         _buffer.Clear();
-        IsTriggerActive = false;
+        _triggerArmed = false;
         ClearCandidates();
 
         var hwnd = _lastTargetHwnd != IntPtr.Zero ? _lastTargetHwnd : Win32Api.GetForegroundWindow();
@@ -212,12 +215,12 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
-                // 지울 글자 수: 트리거(\) + 쳐진 글자 수
+                // 화면에 쳐진 글자 수(예: 'ㅇㄴ' -> 2타)만큼 백스페이스로 싹 지우고 문장 주입!
                 TextInjectionService.ReplaceText(deleteCount, item.Content, hwnd);
             }
             finally
             {
-                Thread.Sleep(100);
+                Thread.Sleep(80);
                 _isReplacing = false;
             }
         });
@@ -227,6 +230,7 @@ public class KeyboardHookService : IDisposable
     {
         _currentCandidates.Clear();
         _currentMatchedLen = 0;
+        _triggerArmed = false;
         RequestCloseCandidates?.Invoke();
     }
 

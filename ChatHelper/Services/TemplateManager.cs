@@ -126,20 +126,19 @@ public class TemplateManager
         if (string.IsNullOrWhiteSpace(rawToken))
             return new List<TemplateItem>();
 
-        var trigger = _configManager.Config.TriggerKey ?? "\\";
-        var token = rawToken.Trim();
+        var token = rawToken.Trim().ToLower();
 
-        bool hasTrigger = false;
+        // 접두사 '\'가 붙어있으면 떼어냄
+        var trigger = _configManager.Config.TriggerKey ?? "\\";
         if (!string.IsNullOrEmpty(trigger) && token.StartsWith(trigger))
         {
             token = token[trigger.Length..];
-            hasTrigger = true;
         }
 
         if (string.IsNullOrEmpty(token))
             return new List<TemplateItem>();
 
-        // 물리 키보드 영문 키워드와 직접 대소문자 무시 일치 검색
+        // 키워드 직접 일치 및 부분 일치 검색 (예: 'ds', 'qt')
         var list = Templates.Where(t =>
             (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.StartsWith(token, StringComparison.OrdinalIgnoreCase)) ||
             t.Title.StartsWith(token, StringComparison.OrdinalIgnoreCase)
@@ -147,7 +146,7 @@ public class TemplateManager
 
         if (list.Count > 0)
         {
-            matchedLen = token.Length + (hasTrigger ? trigger.Length : 0);
+            matchedLen = token.Length;
         }
 
         return list;
