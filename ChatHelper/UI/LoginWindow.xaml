@@ -65,8 +65,8 @@
 
                             <!-- 하단 버튼들 -->
                             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                                <Button Content="확인" Style="{DynamicResource ThemeButtonStyle}" Width="80" Height="26" Margin="0,0,6,0" Click="BtnLogin_Click" IsDefault="True"/>
-                                <Button Content="취소" Style="{DynamicResource ThemeButtonStyle}" Width="75" Height="26" Click="BtnClose_Click"/>
+                                <Button x:Name="BtnLogin" Content="확인" Style="{DynamicResource ThemeButtonStyle}" Width="80" Height="26" Margin="0,0,6,0" Click="BtnLogin_Click" IsDefault="True"/>
+                                <Button x:Name="BtnCancel" Content="취소" Style="{DynamicResource ThemeButtonStyle}" Width="75" Height="26" Click="BtnClose_Click"/>
                             </StackPanel>
                         </Grid>
                     </Grid>

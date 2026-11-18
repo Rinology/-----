@@ -9,6 +9,7 @@ public class AuthService
 {
     private readonly ConfigManager _configManager;
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private readonly object _userLock = new();
 
     public UserInfo? CurrentUser { get; private set; }
     public List<UserInfo> Users { get; private set; } = new();
@@ -94,25 +95,33 @@ public class AuthService
         }
     }
 
+    public async Task<(bool Success, string Message, UserInfo? User)> ValidateUserAsync(string userId)
+    {
+        return await Task.Run(() => ValidateUser(userId));
+    }
+
     public (bool Success, string Message, UserInfo? User) ValidateUser(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
             return (false, "아이디를 입력해 주세요.", null);
 
-        var user = Users.FirstOrDefault(u => u.UserId.Equals(userId.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (user == null)
-            return (false, "등록되지 않은 아이디입니다. 관리자에게 문의하세요.", null);
+        lock (_userLock)
+        {
+            var user = Users.FirstOrDefault(u => u.UserId.Equals(userId.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (user == null)
+                return (false, "등록되지 않은 아이디입니다. 관리자에게 문의하세요.", null);
 
-        if (user.Status != "active")
-            return (false, "비활성화 또는 차단된 계정입니다. (사유: 관리자 차단)", user);
+            if (user.Status != "active")
+                return (false, "비활성화 또는 차단된 계정입니다. (사유: 관리자 차단)", user);
 
-        if (user.IsExpired)
-            return (false, $"이용 기간이 만료되었습니다. (만료일: {user.ExpireDate:yyyy-MM-dd})\n연장 문의가 필요합니다.", user);
+            if (user.IsExpired)
+                return (false, $"이용 기간이 만료되었습니다. (만료일: {user.ExpireDate:yyyy-MM-dd})\n연장 문의가 필요합니다.", user);
 
-        CurrentUser = user;
-        _configManager.Config.CurrentUserId = user.UserId;
-        _configManager.Save();
+            CurrentUser = user;
+            _configManager.Config.CurrentUserId = user.UserId;
+            _configManager.Save();
 
-        return (true, $"인증 성공! (만료일: {user.ExpireDate:yyyy-MM-dd}, {user.DaysRemaining}일 남음)", user);
+            return (true, $"인증 성공! (만료일: {user.ExpireDate:yyyy-MM-dd}, {user.DaysRemaining}일 남음)", user);
+        }
     }
 }

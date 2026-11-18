@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 using ChatHelper.Services;
 
@@ -163,7 +164,7 @@ public partial class SuggestionBar : Window
         double h = ActualHeight > 0 ? ActualHeight : 42;
 
         // 창 투명도 (흐리게 조절)
-        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, 0.5, 1.0);
+        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
 
         if (_configManager.Config.PillPlacement == "ScreenBottomRight")
         {
@@ -173,7 +174,7 @@ public partial class SuggestionBar : Window
         else
         {
             int offsetY = _configManager.Config.PillOffsetY;
-            if (offsetY <= 0) offsetY = 35;
+            if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
 
             Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
             if (caretY + offsetY + h > screenHeight - 10)

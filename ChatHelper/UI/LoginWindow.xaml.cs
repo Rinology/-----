@@ -43,26 +43,47 @@ public partial class LoginWindow : Window
         }
     }
 
-    private void BtnLogin_Click(object sender, RoutedEventArgs e)
+    private async void BtnLogin_Click(object sender, RoutedEventArgs e)
     {
         string userId = TxtUserId.Text.Trim();
-        var (success, msg, user) = _authService.ValidateUser(userId);
-
-        if (success)
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            IsAuthenticated = true;
-            _configManager.Config.CurrentUserId = userId;
-            _configManager.Config.KeepLoggedIn = ChkKeepLoggedIn.IsChecked == true;
-            _configManager.Save();
-
-            MessageBox.Show(msg, "로그온 성공", MessageBoxButton.OK, MessageBoxImage.Information);
-            DialogResult = true;
-            Close();
+            LblStatus.Text = "아이디를 입력해 주세요.";
+            return;
         }
-        else
+
+        // UI 블로킹 방지: 컨트롤 비활성화 및 진행 표시
+        BtnLogin.IsEnabled = false;
+        BtnCancel.IsEnabled = false;
+        TxtUserId.IsEnabled = false;
+        LblStatus.Text = "사용자 인증 확인 중...";
+
+        try
         {
-            LblStatus.Text = msg;
-            MessageBox.Show(msg, "로그온 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var (success, msg, user) = await _authService.ValidateUserAsync(userId);
+
+            if (success)
+            {
+                IsAuthenticated = true;
+                _configManager.Config.CurrentUserId = userId;
+                _configManager.Config.KeepLoggedIn = ChkKeepLoggedIn.IsChecked == true;
+                _configManager.Save();
+
+                MessageBox.Show(msg, "로그온 성공", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogResult = true;
+                Close();
+            }
+            else
+            {
+                LblStatus.Text = msg;
+                MessageBox.Show(msg, "로그온 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        finally
+        {
+            BtnLogin.IsEnabled = true;
+            BtnCancel.IsEnabled = true;
+            TxtUserId.IsEnabled = true;
         }
     }
 

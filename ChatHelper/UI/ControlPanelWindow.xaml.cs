@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 using ChatHelper.Services;
 
@@ -115,7 +116,7 @@ public partial class ControlPanelWindow : Window
             RadioModeInline.IsChecked = true;
 
         // 멀티 알약 최대 개수 (3~10)
-        int maxCountIdx = Math.Clamp(cfg.MaxCandidatesCount, 3, 10) - 3;
+        int maxCountIdx = Math.Clamp(cfg.MaxCandidatesCount, AppConstants.MinCandidatesCount, AppConstants.MaxCandidatesCount) - AppConstants.MinCandidatesCount;
         CmbMaxCandidates.SelectedIndex = maxCountIdx;
 
         UpdateSlashOnlyLock();
@@ -345,15 +346,15 @@ public partial class ControlPanelWindow : Window
         // 멀티 알약 최대 개수 저장 (3~10)
         if (CmbMaxCandidates != null && CmbMaxCandidates.SelectedIndex >= 0)
         {
-            cfg.MaxCandidatesCount = CmbMaxCandidates.SelectedIndex + 3;
+            cfg.MaxCandidatesCount = CmbMaxCandidates.SelectedIndex + AppConstants.MinCandidatesCount;
         }
 
         if (RadioPillScale1.IsChecked == true)
-            cfg.PillScale = 1;
+            cfg.PillScale = AppConstants.PillScaleNormal;
         else if (RadioPillScale3.IsChecked == true)
-            cfg.PillScale = 3;
+            cfg.PillScale = AppConstants.PillScaleExtraLarge;
         else
-            cfg.PillScale = 2;
+            cfg.PillScale = AppConstants.PillScaleLarge;
 
         // 알약 위치 및 간격 저장
         if (RadioPosFixed.IsChecked == true)
@@ -363,9 +364,9 @@ public partial class ControlPanelWindow : Window
         else
         {
             cfg.PillPlacement = "CursorNearby";
-            if (RadioPosFar.IsChecked == true) cfg.PillOffsetY = 65;
-            else if (RadioPosNearby1.IsChecked == true) cfg.PillOffsetY = 15;
-            else cfg.PillOffsetY = 35;
+            if (RadioPosFar.IsChecked == true) cfg.PillOffsetY = AppConstants.PillOffsetFar;
+            else if (RadioPosNearby1.IsChecked == true) cfg.PillOffsetY = AppConstants.PillOffsetTight;
+            else cfg.PillOffsetY = AppConstants.PillOffsetNormal;
         }
 
         // 창 투명도 (흐리게) 저장

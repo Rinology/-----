@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 using ChatHelper.Services;
 
@@ -95,7 +96,7 @@ public partial class QuickSearchWindow : Window
         BuildCategoryChips();
         UpdateList();
 
-        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, 0.6, 1.0);
+        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
 
         Show();
         WindowState = WindowState.Normal;

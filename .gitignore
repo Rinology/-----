@@ -1,17 +1,15 @@
-# Virtual Environment & Python
-.venv/
-env/
-venv/
-__pycache__/
-*.py[cod]
+# Build output & temporary files
+**/[Bb]in/
+**/[Oo]bj/
 
-# .NET / C#
-ChatHelper/bin/
-ChatHelper/obj/
-publish/*.pdb
+# Debug symbols
+*.pdb
 
-# IDE & OS
-.vscode/
-.idea/
-Thumbs.db
-Desktop.ini
+# Visual Studio & VS Code cache
+.vs/
+*.user
+*.suo
+
+# Temporary files & logs
+*.tmp
+*.log

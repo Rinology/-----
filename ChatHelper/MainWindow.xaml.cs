@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 using ChatHelper.Services;
 using ChatHelper.UI;
@@ -46,7 +47,7 @@ public partial class MainWindow : Window
 
         ThemeManager.ThemeChanged += () =>
         {
-            Dispatcher.Invoke(UpdateStatusUi);
+            Dispatcher.BeginInvoke(UpdateStatusUi);
         };
     }
 
@@ -195,21 +196,21 @@ public partial class MainWindow : Window
         bool isEnabled = _configManager.Config.IsEnabled;
 
         // 활성 상태 프로그램창 투명도 적용 (바탕화면 은은하게 비침)
-        Opacity = Math.Clamp(_configManager.Config.StatusWindowOpacity, 0.35, 1.0);
+        Opacity = Math.Clamp(_configManager.Config.StatusWindowOpacity, AppConstants.MinStatusWindowOpacity, AppConstants.MaxStatusWindowOpacity);
 
         if (isEnabled)
         {
-            TxtTitleBar.Text = "ChatHelper Millennium Edition - 실행 중";
+            TxtTitleBar.Text = AppConstants.TitleStatusRunning;
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00B000"));
-            LblRunningStatus.Text = "자동완성 작동 중 (ON)";
+            LblRunningStatus.Text = AppConstants.StatusRunningText;
             LblRunningStatus.Foreground = (Brush)FindResource("ThemeText");
             BtnTogglePause.Content = "⏸️ 일시정지";
         }
         else
         {
-            TxtTitleBar.Text = "ChatHelper Millennium Edition - 일시정지됨";
+            TxtTitleBar.Text = AppConstants.TitleStatusPaused;
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D08000"));
-            LblRunningStatus.Text = "자동완성 일시정지 (OFF)";
+            LblRunningStatus.Text = AppConstants.StatusPausedText;
             LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#800000"));
             BtnTogglePause.Content = "▶️ 다시켜기";
             _suggestionBar.Hide();

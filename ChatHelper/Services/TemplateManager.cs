@@ -264,7 +264,7 @@ public class TemplateManager
         return list;
     }
 
-    private static List<List<string>> ParseCsvRecords(string csvText)
+    public static List<List<string>> ParseCsvRecords(string csvText)
     {
         var records = new List<List<string>>();
         var currentRecord = new List<string>();
