@@ -91,6 +91,16 @@ public partial class MainWindow : Window
         InitTrayService();
         _hookService.Start();
 
+        // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
+        _ = Task.Run(async () =>
+        {
+            var (success, _) = await _templateManager.SyncFromRemoteAsync();
+            if (success)
+            {
+                Dispatcher.BeginInvoke(UpdateStatusUi);
+            }
+        });
+
         if (!_configManager.Config.ShowStatusWindow)
         {
             HideToTray(showNotification: true);

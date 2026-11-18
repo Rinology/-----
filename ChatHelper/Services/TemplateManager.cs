@@ -7,6 +7,8 @@ namespace ChatHelper.Services;
 
 public class TemplateManager
 {
+    public const string DefaultTemplateSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6/pub?gid=1212205674&single=true&output=csv";
+
     private readonly ConfigManager _configManager;
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
@@ -26,19 +28,44 @@ public class TemplateManager
             csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
         }
 
+        // 로컬 캐시 파일이 없으면 구글 스프레드시트에서 동기화 시도
         if (!File.Exists(csvPath))
         {
-            Templates.Clear();
-            return 0;
+            try
+            {
+                var task = SyncFromRemoteAsync();
+                task.Wait(TimeSpan.FromSeconds(6));
+            }
+            catch { }
         }
 
+        if (File.Exists(csvPath))
+        {
+            try
+            {
+                var csvText = File.ReadAllText(csvPath, Encoding.UTF8);
+                return ParseTemplatesFromCsv(csvText);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TemplateManager] 로컬 파일 로드 에러: {ex.Message}");
+            }
+        }
+
+        return Templates.Count;
+    }
+
+    public int ParseTemplatesFromCsv(string csvText)
+    {
         var list = new List<TemplateItem>();
         try
         {
-            var csvText = File.ReadAllText(csvPath, Encoding.UTF8);
             var records = ParseCsvRecords(csvText);
             if (records.Count <= 1)
+            {
+                Templates.Clear();
                 return 0;
+            }
 
             var header = records[0];
             int kwIdx = -1, titleIdx = -1, contentIdx = -1, catIdx = -1;
@@ -79,11 +106,11 @@ public class TemplateManager
             }
 
             Templates = list;
-            System.Diagnostics.Debug.WriteLine($"[TemplateManager] {Templates.Count}개 템플릿 로드 완료");
+            System.Diagnostics.Debug.WriteLine($"[TemplateManager] {Templates.Count}개 템플릿 파싱 완료");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[TemplateManager] 로드 에러: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[TemplateManager] 파싱 에러: {ex.Message}");
         }
 
         return Templates.Count;
@@ -113,7 +140,7 @@ public class TemplateManager
         }
     }
 
-    public void SaveTemplatesToCsv()
+    private void SaveTemplatesToCsv()
     {
         var csvPath = _configManager.Config.CsvFilePath;
         if (!Path.IsPathRooted(csvPath))
@@ -122,34 +149,54 @@ public class TemplateManager
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine("keyword,title,content,category");
-
+        sb.AppendLine("Keyword,Title,Content,Category");
         foreach (var it in Templates)
         {
-            string escContent = it.Content.Replace("\"", "\"\"");
+            var escContent = it.Content.Replace("\"", "\"\"");
             sb.AppendLine($"{it.Keyword},{it.Title},\"{escContent}\",{it.Category}");
         }
 
-        File.WriteAllText(csvPath, sb.ToString(), Encoding.UTF8);
+        try
+        {
+            File.WriteAllText(csvPath, sb.ToString(), Encoding.UTF8);
+        }
+        catch { }
     }
 
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync()
     {
-        var url = _configManager.Config.RemoteCsvUrl?.Trim();
+        var url = EnvService.Get("TEMPLATE_SHEET_URL");
         if (string.IsNullOrWhiteSpace(url))
-            return (false, "설정된 구글 스프레드시트 CSV URL이 없습니다.");
+        {
+            url = _configManager.Config.RemoteCsvUrl?.Trim();
+        }
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            url = DefaultTemplateSheetUrl;
+        }
 
         try
         {
             var response = await _httpClient.GetStringAsync(url);
-            var csvPath = _configManager.Config.CsvFilePath;
-            if (!Path.IsPathRooted(csvPath))
+            if (string.IsNullOrWhiteSpace(response))
             {
-                csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
+                return (false, "구글 스프레드시트 응답이 비어있습니다.");
             }
 
-            await File.WriteAllTextAsync(csvPath, response, Encoding.UTF8);
-            var count = LoadTemplates();
+            var count = ParseTemplatesFromCsv(response);
+
+            // 로컬 캐시 파일 보관
+            try
+            {
+                var csvPath = _configManager.Config.CsvFilePath;
+                if (!Path.IsPathRooted(csvPath))
+                {
+                    csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
+                }
+                await File.WriteAllTextAsync(csvPath, response, Encoding.UTF8);
+            }
+            catch { }
+
             return (true, $"동기화 성공! {count}개 템플릿을 불러왔습니다.");
         }
         catch (Exception ex)
