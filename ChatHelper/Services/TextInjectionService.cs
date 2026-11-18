@@ -9,7 +9,9 @@ public static class TextInjectionService
         for (int i = 0; i < count; i++)
         {
             Win32Api.keybd_event(Win32Api.VK_BACK, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(3);
             Win32Api.keybd_event(Win32Api.VK_BACK, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(3);
         }
     }
 
@@ -17,7 +19,7 @@ public static class TextInjectionService
     {
         try
         {
-            // 클립보드 설정 (WPF Dispatcher 활용 또는 STA Thread)
+            // 클립보드에 텍스트 복사 (STA Thread 보장)
             if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
             {
                 Clipboard.SetDataObject(text, false);
@@ -38,12 +40,13 @@ public static class TextInjectionService
             if (targetHwnd != IntPtr.Zero && Win32Api.GetForegroundWindow() != targetHwnd)
             {
                 Win32Api.SetForegroundWindow(targetHwnd);
-                Thread.Sleep(5);
+                Thread.Sleep(10);
             }
 
-            // Ctrl + V 전송
+            // Ctrl + V 키 이벤트 전송
             Win32Api.keybd_event(Win32Api.VK_CONTROL, 0, 0, UIntPtr.Zero);
             Win32Api.keybd_event(Win32Api.VK_V, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(5);
             Win32Api.keybd_event(Win32Api.VK_V, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
             Win32Api.keybd_event(Win32Api.VK_CONTROL, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
         }
@@ -64,7 +67,7 @@ public static class TextInjectionService
         if (deleteCount > 0)
         {
             SendBackspaces(deleteCount);
-            Thread.Sleep(5);
+            Thread.Sleep(10);
         }
 
         FastPasteText(newText, targetHwnd);

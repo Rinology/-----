@@ -20,11 +20,16 @@ public class KeyboardHookService : IDisposable
     public event Action? RequestCloseCandidates;
     public event Action? GlobalHotkeyTriggered;
 
-    // 현재 활성화된 후보 목록 캐시
     private List<TemplateItem> _currentCandidates = new();
     private int _currentMatchedLen = 0;
     private IntPtr _lastTargetHwnd = IntPtr.Zero;
     private bool _isReplacing = false;
+
+    // 트리거 키(\)가 활성화되어 추천 바가 대기 중인지 여부
+    public bool IsTriggerActive { get; private set; } = false;
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
 
     public KeyboardHookService(ConfigManager configManager, TemplateManager templateManager)
     {
@@ -57,11 +62,21 @@ public class KeyboardHookService : IDisposable
         if (nCode >= 0 && wParam == (IntPtr)Win32Api.WM_KEYDOWN && !_isReplacing)
         {
             int vkCode = Marshal.ReadInt32(lParam);
-            var result = ProcessKeyDown(vkCode);
-            if (result == true)
+
+            // Alt 키 상태 확인 (GetAsyncKeyState VK_MENU: 0x12)
+            bool isAltPressed = (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0;
+
+            // 0. Alt + Q 전역 수동 검색 단축키
+            if (isAltPressed && vkCode == 0x51) // 'Q'
             {
-                // 키 이벤트를 가로채서 원래 창으로 전달되지 않게 삼킴
-                return (IntPtr)1;
+                GlobalHotkeyTriggered?.Invoke();
+                return (IntPtr)1; // 원래 키 동작 가로챔
+            }
+
+            // 키 처리 및 가로채기(Eat) 여부 결정
+            if (ProcessKeyDown(vkCode))
+            {
+                return (IntPtr)1; // OS 및 채팅창으로 전달되지 않게 차단!
             }
         }
 
@@ -70,49 +85,30 @@ public class KeyboardHookService : IDisposable
 
     private bool ProcessKeyDown(int vkCode)
     {
-        var config = _configManager.Config;
-        string trigger = config.TriggerKey ?? "\\";
-
         lock (_lock)
         {
             _lastTargetHwnd = Win32Api.GetForegroundWindow();
 
-            // 0. Alt + Q 전역 단축키 감지
-            if (vkCode == 0x51 && (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Alt) != 0)
-            {
-                GlobalHotkeyTriggered?.Invoke();
-                return true;
-            }
-
-            // 1. Tab 키 처리
+            // 1. Tab 키: 추천 후보가 떠 있는 상태에서 완성 키로 가로채기
             if (vkCode == Win32Api.VK_TAB)
             {
                 if (_currentCandidates.Count > 0)
                 {
-                    // 트리거 키(\)가 활성화되어 있거나 설정에 따라 Tab으로 완성
-                    bool hasTrigger = !string.IsNullOrEmpty(trigger) && _buffer.ToString().Contains(trigger);
-                    if (!config.RequireTriggerForTab || hasTrigger)
-                    {
-                        CompleteSelection(_currentCandidates[0], _currentMatchedLen);
-                        return true; // 원래 Tab 키 동작 방지!
-                    }
+                    CompleteSelection(_currentCandidates[0], _currentMatchedLen);
+                    return true; // 원래 Tab 키 동작 방지!
                 }
-                // 후보가 없거나 트리거 상태가 아니면 원래 Tab 키 그대로 통과
+                // 후보가 없으면 원래 Tab 키 100% 정상 통과!
                 return false;
             }
 
-            // 2. 1~9 숫자 키 선택 처리
-            if (config.EnableNumberSelection && _currentCandidates.Count > 0 && vkCode >= 0x31 && vkCode <= 0x39)
+            // 2. 1~9 숫자 키 선택
+            if (_configManager.Config.EnableNumberSelection && _currentCandidates.Count > 0 && vkCode >= 0x31 && vkCode <= 0x39)
             {
-                bool hasTrigger = !string.IsNullOrEmpty(trigger) && _buffer.ToString().Contains(trigger);
-                if (!config.RequireTriggerForTab || hasTrigger)
+                int index = vkCode - 0x31;
+                if (index < _currentCandidates.Count)
                 {
-                    int index = vkCode - 0x31;
-                    if (index < _currentCandidates.Count)
-                    {
-                        CompleteSelection(_currentCandidates[index], _currentMatchedLen);
-                        return true; // 원래 숫자 키 입력 방지
-                    }
+                    CompleteSelection(_currentCandidates[index], _currentMatchedLen);
+                    return true; // 원래 숫자 키 차단
                 }
             }
 
@@ -131,28 +127,42 @@ public class KeyboardHookService : IDisposable
             if (vkCode == Win32Api.VK_RETURN || vkCode == Win32Api.VK_ESCAPE)
             {
                 _buffer.Clear();
+                IsTriggerActive = false;
                 ClearCandidates();
                 return false;
             }
 
-            // 5. 일반 문자 변환
-            char ch = ConvertVkCodeToChar(vkCode);
-            if (ch != '\0')
+            // 5. 트리거 키 '\' (VK_OEM_5 = 0xDC) 감지
+            if (vkCode == 0xDC)
             {
-                _buffer.Append(ch);
-                if (_buffer.Length > 30)
-                {
-                    _buffer.Remove(0, _buffer.Length - 30);
-                }
-
-                // 즉시 단축어 검사 (예: \ㅇㄴ 치면 바로 완성)
-                if (CheckImmediateExpansion())
-                {
-                    return false;
-                }
-
-                // 실시간 추천 후보 검사
+                _buffer.Append('\\');
+                IsTriggerActive = true;
                 EvaluateCandidates();
+                return false;
+            }
+
+            // 6. 물리 영문 자판 (A-Z, 0x41 ~ 0x5A) 감지
+            if (vkCode >= 0x41 && vkCode <= 0x5A)
+            {
+                char ch = char.ToLower((char)vkCode);
+                _buffer.Append(ch);
+                if (_buffer.Length > 20)
+                {
+                    _buffer.Remove(0, _buffer.Length - 20);
+                }
+
+                // 실시간 매칭 검사
+                EvaluateCandidates();
+                return false;
+            }
+
+            // 7. 스페이스바 (공백)
+            if (vkCode == Win32Api.VK_SPACE)
+            {
+                _buffer.Clear();
+                IsTriggerActive = false;
+                ClearCandidates();
+                return false;
             }
         }
 
@@ -162,58 +172,38 @@ public class KeyboardHookService : IDisposable
     private void EvaluateCandidates()
     {
         var raw = _buffer.ToString();
-        var tokens = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var curToken = tokens.Length > 0 ? tokens[^1] : "";
-
-        if (string.IsNullOrEmpty(curToken))
-        {
-            ClearCandidates();
-            return;
-        }
-
-        var list = _templateManager.FindMatchingCandidates(curToken, out int matchedLen);
-        if (list.Count > 0)
-        {
-            _currentCandidates = list;
-            _currentMatchedLen = matchedLen;
-            CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
-        }
-        else
-        {
-            ClearCandidates();
-        }
-    }
-
-    private bool CheckImmediateExpansion()
-    {
-        var raw = _buffer.ToString();
         var trigger = _configManager.Config.TriggerKey ?? "\\";
-        if (string.IsNullOrEmpty(trigger))
-            return false;
 
-        foreach (var item in _templateManager.Templates)
+        // 트리거 모드 체크: 설정된 트리거(\)로 시작하는지 확인
+        if (!string.IsNullOrEmpty(trigger))
         {
-            if (string.IsNullOrWhiteSpace(item.Keyword)) continue;
-
-            string targetEng = $"{trigger}{item.Keyword}";
-            string korKeyword = TemplateManager.ConvertEngToKor(item.Keyword);
-            string targetKor = $"{trigger}{korKeyword}";
-
-            if (raw.EndsWith(targetEng, StringComparison.OrdinalIgnoreCase) || raw.EndsWith(targetKor))
+            int lastTriggerIdx = raw.LastIndexOf(trigger, StringComparison.Ordinal);
+            if (lastTriggerIdx < 0)
             {
-                int len = targetEng.Length;
-                CompleteSelection(item, len);
-                return true;
+                ClearCandidates();
+                return;
+            }
+
+            string tokenAfterTrigger = raw[lastTriggerIdx..]; // 예: "\qt", "\ds"
+            var list = _templateManager.FindMatchingCandidates(tokenAfterTrigger, out int matchedLen);
+            if (list.Count > 0)
+            {
+                _currentCandidates = list;
+                _currentMatchedLen = matchedLen;
+                CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
+            }
+            else
+            {
+                ClearCandidates();
             }
         }
-
-        return false;
     }
 
     private void CompleteSelection(TemplateItem item, int deleteCount)
     {
         _isReplacing = true;
         _buffer.Clear();
+        IsTriggerActive = false;
         ClearCandidates();
 
         var hwnd = _lastTargetHwnd != IntPtr.Zero ? _lastTargetHwnd : Win32Api.GetForegroundWindow();
@@ -222,11 +212,12 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
+                // 지울 글자 수: 트리거(\) + 쳐진 글자 수
                 TextInjectionService.ReplaceText(deleteCount, item.Content, hwnd);
             }
             finally
             {
-                Thread.Sleep(80);
+                Thread.Sleep(100);
                 _isReplacing = false;
             }
         });
@@ -237,24 +228,6 @@ public class KeyboardHookService : IDisposable
         _currentCandidates.Clear();
         _currentMatchedLen = 0;
         RequestCloseCandidates?.Invoke();
-    }
-
-    private static char ConvertVkCodeToChar(int vkCode)
-    {
-        if (vkCode >= 0x41 && vkCode <= 0x5A) // A-Z
-            return char.ToLower((char)vkCode);
-        if (vkCode >= 0x30 && vkCode <= 0x39) // 0-9
-            return (char)vkCode;
-        if (vkCode == 0xDC) // '\' (Backslash)
-            return '\\';
-        if (vkCode == 0xBF) // '/' (Slash)
-            return '/';
-        if (vkCode == 0xBA) // ';' (Semicolon)
-            return ';';
-        if (vkCode == Win32Api.VK_SPACE)
-            return ' ';
-
-        return '\0';
     }
 
     public void Dispose()

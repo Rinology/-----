@@ -7,14 +7,6 @@ namespace ChatHelper.Services;
 
 public class TemplateManager
 {
-    private static readonly Dictionary<char, char> EngToKorMap = new()
-    {
-        {'q', 'ㅂ'}, {'w', 'ㅈ'}, {'e', 'ㄷ'}, {'r', 'ㄱ'}, {'t', 'ㅅ'}, {'y', 'ㅛ'}, {'u', 'ㅕ'}, {'i', 'ㅑ'}, {'o', 'ㅐ'}, {'p', 'ㅔ'},
-        {'a', 'ㅁ'}, {'s', 'ㄴ'}, {'d', 'ㅇ'}, {'f', 'ㄹ'}, {'g', 'ㅎ'}, {'h', 'ㅗ'}, {'j', 'ㅓ'}, {'k', 'ㅏ'}, {'l', 'ㅣ'},
-        {'z', 'ㅋ'}, {'x', 'ㅌ'}, {'c', 'ㅊ'}, {'v', 'ㅍ'}, {'b', 'ㅠ'}, {'n', 'ㅜ'}, {'m', 'ㅡ'},
-        {'Q', 'ㅃ'}, {'W', 'ㅉ'}, {'E', 'ㄸ'}, {'R', 'ㄲ'}, {'T', 'ㅆ'}, {'O', 'ㅒ'}, {'P', 'ㅖ'}
-    };
-
     private readonly ConfigManager _configManager;
     private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
@@ -47,7 +39,6 @@ public class TemplateManager
             if (lines.Length <= 1)
                 return 0;
 
-            // 헤더 파싱
             var header = lines[0].Split(',');
             int kwIdx = -1, titleIdx = -1, contentIdx = -1, catIdx = -1;
 
@@ -136,9 +127,8 @@ public class TemplateManager
             return new List<TemplateItem>();
 
         var trigger = _configManager.Config.TriggerKey ?? "\\";
-        var token = rawToken;
+        var token = rawToken.Trim();
 
-        // 트리거 접두사가 있으면 제거하고 검색
         bool hasTrigger = false;
         if (!string.IsNullOrEmpty(trigger) && token.StartsWith(trigger))
         {
@@ -149,12 +139,10 @@ public class TemplateManager
         if (string.IsNullOrEmpty(token))
             return new List<TemplateItem>();
 
-        // 두벌식 변환 토큰 생성 (예: "ds" -> "ㅇㄴ")
-        var korToken = ConvertEngToKor(token);
-
+        // 물리 키보드 영문 키워드와 직접 대소문자 무시 일치 검색
         var list = Templates.Where(t =>
-            (!string.IsNullOrEmpty(t.Keyword) && (t.Keyword.StartsWith(token, StringComparison.OrdinalIgnoreCase) || t.Keyword.StartsWith(korToken))) ||
-            t.Title.StartsWith(token, StringComparison.OrdinalIgnoreCase) || t.Title.StartsWith(korToken)
+            (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.StartsWith(token, StringComparison.OrdinalIgnoreCase)) ||
+            t.Title.StartsWith(token, StringComparison.OrdinalIgnoreCase)
         ).ToList();
 
         if (list.Count > 0)
@@ -163,19 +151,6 @@ public class TemplateManager
         }
 
         return list;
-    }
-
-    public static string ConvertEngToKor(string eng)
-    {
-        var sb = new StringBuilder();
-        foreach (var c in eng)
-        {
-            if (EngToKorMap.TryGetValue(c, out var k))
-                sb.Append(k);
-            else
-                sb.Append(c);
-        }
-        return sb.ToString();
     }
 
     private static List<string> ParseCsvLine(string line)

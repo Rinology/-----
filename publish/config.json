@@ -1,0 +1,10 @@
+{
+  "TriggerKey": "\\",
+  "RequireTriggerForTab": true,
+  "EnableNumberSelection": true,
+  "DisplayMode": "InlinePill",
+  "GlobalHotkey": "Alt+Q",
+  "CsvFilePath": "chat_templates.csv",
+  "RemoteCsvUrl": "",
+  "EnableChatLogging": false
+}
