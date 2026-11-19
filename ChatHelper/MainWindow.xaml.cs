@@ -95,12 +95,13 @@ public partial class MainWindow : Window
         InitTrayService();
         _hookService.Start();
 
-        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화
+        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
         _ = Task.Run(async () =>
         {
             var (success, _) = await _templateManager.SyncFromRemoteAsync();
             await _glossaryService.SyncFromRemoteAsync();
             await OllamaService.Instance.SyncRemoteAiRulesAsync();
+            _ = OllamaService.Instance.WarmUpAsync();
             if (success)
             {
                 Dispatcher.BeginInvoke(UpdateStatusUi);

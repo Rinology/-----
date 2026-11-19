@@ -184,6 +184,30 @@ public class OllamaService : IDisposable
     }
 
     /// <summary>
+    /// 앱 시작 시 Ollama 데몬을 띄우고 모델을 RAM에 미리 예열(첫 입력 지연 제거)
+    /// </summary>
+    public async Task WarmUpAsync()
+    {
+        try
+        {
+            if (!await EnsureRunningAsync())
+                return;
+
+            var payload = new
+            {
+                model = _modelName,
+                messages = new[] { new { role = "user", content = "안녕" } },
+                stream = false,
+                options = new { num_predict = 1, num_ctx = 1024 },
+                keep_alive = "10m"
+            };
+            using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync($"{_baseUrl}/api/chat", content);
+        }
+        catch { }
+    }
+
+    /// <summary>
     /// Google Spreadsheet(AI_RULES_SHEET_URL)에서 톤앤매너/규칙을 동적으로 불러와 시스템 프롬프트에 반영
     /// 컬럼 예시: key, value (또는 rule, content)
     /// </summary>
@@ -273,9 +297,10 @@ public class OllamaService : IDisposable
             {
                 temperature = _temperature,
                 top_p = 0.85,
-                num_predict = 120
+                num_predict = 75,
+                num_ctx = 1024
             },
-            keep_alive = "5m" // 5분간 미사용 시 RAM 자동 반환
+            keep_alive = "10m" // 10분간 RAM 유지로 즉시 응답 보장
         };
 
         string jsonPayload = JsonSerializer.Serialize(requestBody);

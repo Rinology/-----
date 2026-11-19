@@ -347,7 +347,7 @@ public class KeyboardHookService : IDisposable
             }
 
             _pendingAiRaw = raw;
-            _aiDebounceTimer.Change(450, Timeout.Infinite);
+            _aiDebounceTimer.Change(300, Timeout.Infinite);
             return;
         }
 
@@ -396,12 +396,10 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
-                var (_, pills, inferredKw) = await _suggestionEngine.GenerateAsync(
-                    hangul, useAiFallback: false, extractKeywordWithAi: false, token);
+                // 시트 추천은 즉시(<1ms) 로컬 검색을 사용하고, Ollama는 답변 생성 1회만 호출해 지연 최소화
+                var pills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 5);
+                string inferredKw = pills.FirstOrDefault()?.ContentKeyword ?? hangul;
 
-                if (token.IsCancellationRequested) return;
-
-                // 시트 추천 여부와 관계없이 반드시 AI 추천 답변(+ 사내 용어집 RAG)도 함께 생성
                 string aiAnswer = string.Empty;
                 try
                 {
