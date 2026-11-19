@@ -339,6 +339,14 @@ public partial class MainWindow : Window
             ? targetHwnd.Value
             : Win32Api.GetForegroundWindow();
 
+        // 만약 포그라운드가 ChatHelper 자신이거나 없으면, 마지막 외부 작업 창으로 대체
+        uint myPid = (uint)Process.GetCurrentProcess().Id;
+        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
+        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
+        {
+            hwnd = _hookService.LastTargetHwnd;
+        }
+
         if (_quickAiWindow == null || !_quickAiWindow.IsLoaded)
         {
             _quickAiWindow = new QuickAiWindow();

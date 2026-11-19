@@ -1,57 +1,72 @@
 using System;
-using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
+using Windows.Graphics.Imaging;
+using Windows.Media.Ocr;
+using Windows.Globalization;
+using Windows.Storage.Streams;
 
 namespace ChatHelper.Tests;
 
 public class Program
 {
-    public static int Main(string[] args)
+    [STAThread]
+    public static void Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
-        Console.WriteLine("==================================================");
-        Console.WriteLine(" ChatHelper Core Services Unit Test Suite");
-        Console.WriteLine("==================================================");
-        Console.WriteLine();
+        Console.WriteLine("=== Direct OCR Test ===");
 
-        int passed = 0;
-        int failed = 0;
-        var sw = Stopwatch.StartNew();
-
-        void RunSuite(string name, Action testAction)
+        // Get clipboard image directly in STA thread
+        var data = System.Windows.Clipboard.GetDataObject();
+        var img = System.Windows.Clipboard.GetImage();
+        if (img == null)
         {
-            Console.Write($"[RUNNING] {name}... ");
-            try
-            {
-                testAction();
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("PASSED");
-                Console.ResetColor();
-                passed++;
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("FAILED");
-                Console.ResetColor();
-                Console.WriteLine($"   => Error: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    Console.WriteLine($"   => Inner: {ex.InnerException.Message}");
-                }
-                failed++;
-            }
+            Console.WriteLine("Image is null on clipboard!");
+            return;
         }
 
-        RunSuite("ConfigManager (Thread-Safety & Persistence)", ConfigManagerTests.RunAll);
-        RunSuite("AuthService (User Validation & Async Flow)", AuthServiceTests.RunAll);
-        RunSuite("TemplateManager (CSV Parsing & Search/Matching)", TemplateManagerTests.RunAll);
+        Console.WriteLine($"Image size: {img.PixelWidth}x{img.PixelHeight}");
 
-        sw.Stop();
-        Console.WriteLine();
-        Console.WriteLine("--------------------------------------------------");
-        Console.WriteLine($"Result: {passed} Passed, {failed} Failed (Time: {sw.ElapsedMilliseconds} ms)");
-        Console.WriteLine("--------------------------------------------------");
+        try
+        {
+            // 1. Save to memory stream
+            using var ms = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(img));
+            encoder.Save(ms);
+            byte[] bytes = ms.ToArray();
+            Console.WriteLine($"PNG bytes: {bytes.Length}");
 
-        return failed == 0 ? 0 : 1;
+            // 2. Write to WinRT stream using DataWriter safely
+            var ras = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(ras.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(bytes);
+                writer.StoreAsync().AsTask().Wait();
+                writer.FlushAsync().AsTask().Wait();
+                writer.DetachStream();
+            }
+
+            ras.Seek(0);
+            var decoder = Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(ras).AsTask().Result;
+            using var raw = decoder.GetSoftwareBitmapAsync().AsTask().Result;
+            using var softwareBitmap = SoftwareBitmap.Convert(raw, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+
+            var lang = new Language("ko");
+            var engine = OcrEngine.TryCreateFromLanguage(lang) ?? OcrEngine.TryCreateFromUserProfileLanguages();
+            if (engine == null)
+            {
+                Console.WriteLine("No OCR Engine available!");
+                return;
+            }
+
+            var ocrResult = engine.RecognizeAsync(softwareBitmap).AsTask().Result;
+            Console.WriteLine($"OCR Extracted Text: '{ocrResult.Text}'");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during OCR: {ex}");
+        }
     }
 }

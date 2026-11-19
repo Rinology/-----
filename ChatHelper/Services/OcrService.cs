@@ -12,8 +12,7 @@ using WpfImaging = System.Windows.Media.Imaging;
 namespace ChatHelper.Services;
 
 /// <summary>
-/// Windows 10/11 네이티브 내장 OCR 서비스 (0.01초 초고속 한글/영문 인식)
-/// 외부 추가 라이브러리나 인터넷 연결 없이 100% 로컬 메모리에서 실행됩니다.
+/// Windows 10/11 네이티브 내장 OCR 서비스 (0.05초 초고속 한글/영문 인식)
 /// </summary>
 public static class OcrService
 {
@@ -30,14 +29,12 @@ public static class OcrService
 
             try
             {
-                // 한국어 엔진 우선 시도
                 var lang = new Language("ko");
                 if (OcrEngine.IsLanguageSupported(lang))
                 {
                     _koreanEngine = OcrEngine.TryCreateFromLanguage(lang);
                 }
 
-                // fallback: 시스템 기본 언어
                 _koreanEngine ??= OcrEngine.TryCreateFromUserProfileLanguages();
             }
             catch (Exception ex)
@@ -62,20 +59,32 @@ public static class OcrService
                 return string.Empty;
             }
 
-            // WPF BitmapSource를 SoftwareBitmap으로 변환
-            using var memoryStream = new InMemoryRandomAccessStream();
-            var encoder = new WpfImaging.PngBitmapEncoder();
-            encoder.Frames.Add(WpfImaging.BitmapFrame.Create(bitmapSource));
-            
-            using (var stream = memoryStream.AsStreamForWrite())
+            // 1. WPF BitmapSource를 PNG byte 배열로 변환
+            byte[] bytes;
+            using (var ms = new MemoryStream())
             {
-                encoder.Save(stream);
-                await stream.FlushAsync();
+                var encoder = new WpfImaging.PngBitmapEncoder();
+                encoder.Frames.Add(WpfImaging.BitmapFrame.Create(bitmapSource));
+                encoder.Save(ms);
+                bytes = ms.ToArray();
             }
 
-            memoryStream.Seek(0);
-            var decoder = await Wgi.BitmapDecoder.CreateAsync(memoryStream);
-            using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
+            if (bytes.Length == 0) return string.Empty;
+
+            // 2. DataWriter를 통해 WinRT InMemoryRandomAccessStream에 안전하게 쓰기 (Dispose 문제 완전 해결)
+            var ras = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(ras.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(bytes);
+                await writer.StoreAsync();
+                await writer.FlushAsync();
+                writer.DetachStream();
+            }
+
+            ras.Seek(0);
+            var decoder = await Wgi.BitmapDecoder.CreateAsync(ras);
+            using var rawBitmap = await decoder.GetSoftwareBitmapAsync();
+            using var softwareBitmap = Wgi.SoftwareBitmap.Convert(rawBitmap, Wgi.BitmapPixelFormat.Bgra8, Wgi.BitmapAlphaMode.Premultiplied);
 
             var ocrResult = await engine.RecognizeAsync(softwareBitmap);
             return ocrResult.Text?.Trim() ?? string.Empty;

@@ -21,6 +21,7 @@ public class KeyboardHookService : IDisposable
     public event Action? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
 
+    public IntPtr LastTargetHwnd => _lastTargetHwnd;
     private List<TemplateItem> _currentCandidates = new();
     private int _currentMatchedLen = 0;
     private IntPtr _lastTargetHwnd = IntPtr.Zero;
@@ -80,6 +81,17 @@ public class KeyboardHookService : IDisposable
         if (nCode >= 0 && (wParam == (IntPtr)Win32Api.WM_KEYDOWN || wParam == (IntPtr)Win32Api.WM_SYSKEYDOWN) && !_isReplacing)
         {
             int vkCode = Marshal.ReadInt32(lParam);
+            int scanCode = Marshal.ReadInt32(lParam + 4);
+
+            // Chrome, Google Chat, Edge 등 브라우저의 한글 IME 조합 중(0xE5: VK_PROCESSKEY)일 때 물리 키코드로 완벽 복원
+            if (vkCode == 0xE5)
+            {
+                int mapped = Win32Api.MapVirtualKey((uint)scanCode, Win32Api.MAPVK_VSC_TO_VK_EX);
+                if (mapped > 0)
+                {
+                    vkCode = mapped;
+                }
+            }
 
             bool isAltPressed = (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0;
             bool isCtrlPressed = (GetAsyncKeyState(Win32Api.VK_CONTROL) & 0x8000) != 0;

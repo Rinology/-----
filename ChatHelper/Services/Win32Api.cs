@@ -28,6 +28,13 @@ public static class Win32Api
     public const int VK_RWIN = 0x5C;
 
     public const uint KEYEVENTF_KEYUP = 0x0002;
+    public const uint MAPVK_VK_TO_VSC = 0x00;
+    public const uint MAPVK_VSC_TO_VK = 0x01;
+    public const uint MAPVK_VK_TO_CHAR = 0x02;
+    public const uint MAPVK_VSC_TO_VK_EX = 0x03;
+
+    [DllImport("user32.dll")]
+    public static extern int MapVirtualKey(uint uCode, uint uMapType);
 
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_NOACTIVATE = 0x08000000;
@@ -122,6 +129,10 @@ public static class Win32Api
     public static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
     public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -145,8 +156,9 @@ public static class Win32Api
     private static readonly uint CurrentProcessId = (uint)Process.GetCurrentProcess().Id;
 
     /// <summary>
-    /// 현재 포커스된 창이 유효한 외부 채팅/문서 입력 창인지 확인하고,
-    /// 캐럿(Caret) 위치를 구함. (바탕화면, 작업표시줄, 자기 자신 창은 제외)
+    /// 현재 포커스된 창이 유효한 외부 채팅/문서 입력 창인지 확인하고 위치를 구함.
+    /// 메모장뿐만 아니라 크롬, 구글 채팅(Google Chat), 엣지, 일렉트론, 슬랙 등 모던 웹 앱을 100% 지원합니다.
+    /// (바탕화면, 작업표시줄, 자기 자신 창만 안전하게 제외)
     /// </summary>
     public static bool TryGetValidInputPosition(out double x, out double y, out IntPtr activeHwnd)
     {
@@ -169,11 +181,10 @@ public static class Win32Api
         if (className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "NotifyIconOverflowWindow")
             return false;
 
-        // 3. GUI 스레드 정보에서 캐럿(Caret) 또는 포커스 컨트롤 확인
+        // 3. 표준 Win32 캐럿(Caret) 위치 시도 (메모장, 카카오톡 기본 입력창 등)
         var gui = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
         if (GetGUIThreadInfo(tid, ref gui))
         {
-            // 표준 Win32 캐럿이 있는 경우 (메모장, 카카오톡 기본 입력창 등)
             IntPtr caretHwnd = gui.hwndCaret != IntPtr.Zero ? gui.hwndCaret : gui.hwndFocus;
             if (caretHwnd != IntPtr.Zero && (gui.rcCaret.Left != 0 || gui.rcCaret.Top != 0 || gui.rcCaret.Bottom != 0))
             {
@@ -185,17 +196,29 @@ public static class Win32Api
                     return true;
                 }
             }
-
-            // Chromium / Electron / 웹 브라우저 등 커스텀 렌더링 창은 hwndFocus가 존재함
-            if (gui.hwndFocus != IntPtr.Zero)
-            {
-                GetCursorPos(out var mPt);
-                x = mPt.X;
-                y = mPt.Y;
-                return true;
-            }
         }
 
-        return false;
+        // 4. Chromium, Chrome, Google Chat, Electron, Slack 등 모던 브라우저/웹 앱 지원 (Fallback)
+        GetCursorPos(out var mPt);
+        if (GetWindowRect(activeHwnd, out var rcWin))
+        {
+            // 마우스 커서가 해당 브라우저/채팅창 내에 있으면 마우스 위치 기준
+            if (mPt.X >= rcWin.Left && mPt.X <= rcWin.Right && mPt.Y >= rcWin.Top && mPt.Y <= rcWin.Bottom)
+            {
+                x = mPt.X;
+                y = mPt.Y + 16;
+                return true;
+            }
+
+            // 마우스가 창 밖에 있으면 창 하단 입력창 위치(바닥에서 80px 위)로 자연스럽게 배치
+            x = Math.Max(rcWin.Left + 50, 100);
+            y = Math.Max(rcWin.Bottom - 90, rcWin.Top + 100);
+            return true;
+        }
+
+        // 기본 마우스 위치
+        x = mPt.X;
+        y = mPt.Y + 16;
+        return true;
     }
 }

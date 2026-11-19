@@ -71,6 +71,18 @@ public class OllamaService : IDisposable
                     }
                 }
 
+                if (root.TryGetProperty("few_shot_examples", out var examplesEl) && examplesEl.ValueKind == JsonValueKind.Array)
+                {
+                    sb.AppendLine("\n[모범 답변 예시]");
+                    foreach (var eg in examplesEl.EnumerateArray())
+                    {
+                        if (eg.TryGetProperty("input", out var inEl) && eg.TryGetProperty("output", out var outEl))
+                        {
+                            sb.AppendLine($"문의: {inEl.GetString()} => 답장: {outEl.GetString()}");
+                        }
+                    }
+                }
+
                 if (sb.Length > 0)
                 {
                     _systemPrompt = sb.ToString().Trim();
@@ -153,7 +165,7 @@ public class OllamaService : IDisposable
     {
         await EnsureRunningAsync();
 
-        string userPrompt = $"[고객 문의 내용]\n{customerMessage.Trim()}\n\n위 고객 문의에 대해 정중하고 친절한 CS 상담원 답변을 1~2문장으로 작성해줘:";
+        string userPrompt = $"[상대방 메시지 내용]\n{customerMessage.Trim()}\n\n위 메시지에 대해 즉시 보낼 수 있는 1~2문장의 간결하고 명확한 답장을 작성해줘:";
 
         var requestBody = new
         {
@@ -166,8 +178,9 @@ public class OllamaService : IDisposable
             stream = false,
             options = new
             {
-                temperature = 0.4,
-                top_p = 0.9
+                temperature = 0.2,
+                top_p = 0.85,
+                num_predict = 120
             },
             keep_alive = "5m" // 5분간 미사용 시 RAM 자동 반환
         };

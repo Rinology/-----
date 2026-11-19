@@ -1,9 +1,16 @@
 # Environment file
 .env
 
+# Local Data & Dynamic Configuration (Google Spreadsheet URL이 원본)
+*.csv
+config.json
+publish/*.csv
+publish/config.json
+
 # Build output & temporary files
 **/[Bb]in/
 **/[Oo]bj/
+publish/*.pdb
 
 # Debug symbols
 *.pdb
