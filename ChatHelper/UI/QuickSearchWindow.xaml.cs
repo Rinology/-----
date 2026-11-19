@@ -322,7 +322,7 @@ public partial class QuickSearchWindow : Window
             {
                 Title = "새 템플릿 등록 및 구글 시트 업로드",
                 Width = 520,
-                Height = 440,
+                Height = 500,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this,
                 Background = (Brush)FindResource("ThemeBg"),
@@ -333,17 +333,25 @@ public partial class QuickSearchWindow : Window
 
             var sp = new StackPanel { Margin = new Thickness(16) };
 
-            sp.Children.Add(new TextBlock { Text = "단축어 (영문/자모 매핑):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
+            sp.Children.Add(new TextBlock { Text = "단축어 (keyword - 자동완성용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
             var txtKw = new TextBox { Height = 32, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(txtKw);
+
+            sp.Children.Add(new TextBlock { Text = "본문 키워드 (contentKeyword - AI/의미 검색용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
+            var txtContentKw = new TextBox { Height = 32, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(txtContentKw);
 
             sp.Children.Add(new TextBlock { Text = "제목:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
             var txtTitle = new TextBox { Height = 32, Text = currentQuery, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(txtTitle);
 
             sp.Children.Add(new TextBlock { Text = "카테고리:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
             var txtCat = new TextBox { Height = 32, Text = _selectedCategory == "전체" ? "일반" : _selectedCategory, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(txtCat);
 
             sp.Children.Add(new TextBlock { Text = "치환될 본문 내용:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
             var txtContent = new TextBox { Height = 80, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(txtContent);
 
             var btnUpload = new Button
             {
@@ -364,6 +372,7 @@ public partial class QuickSearchWindow : Window
                 var newItem = new TemplateItem
                 {
                     Keyword = txtKw.Text.Trim(),
+                    ContentKeyword = txtContentKw.Text.Trim(),
                     Title = txtTitle.Text.Trim(),
                     Category = string.IsNullOrWhiteSpace(txtCat.Text) ? "일반" : txtCat.Text.Trim(),
                     Content = txtContent.Text

@@ -13,6 +13,7 @@ public static class TemplateManagerTests
         Test_ParseCsvRecords_Multiline_And_Escaping();
         Test_Search_And_Category_Filtering();
         Test_Candidate_Matching();
+        Test_ContentKeyword_Parsing_And_SuggestionEngine();
     }
 
     private static void Test_ParseCsvRecords_Multiline_And_Escaping()
@@ -114,6 +115,53 @@ public static class TemplateManagerTests
             Assert(candidates.Count >= 1, "Should find candidates starting with qv");
             Assert(candidates[0].Keyword == "qv", "First candidate should be 'qv'");
             Assert(matchedLen == 2, $"Matched length should be 2 ('qv' to be erased), got {matchedLen}");
+        }
+        finally
+        {
+            if (File.Exists(testConfig)) File.Delete(testConfig);
+            if (File.Exists(testCsv)) File.Delete(testCsv);
+        }
+    }
+
+    private static void Test_ContentKeyword_Parsing_And_SuggestionEngine()
+    {
+        string testConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_config_ckw.json");
+        string testCsv = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_ckw.csv");
+
+        try
+        {
+            if (File.Exists(testConfig)) File.Delete(testConfig);
+            if (File.Exists(testCsv)) File.Delete(testCsv);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("keyword,contentKeyword,title,content,category");
+            sb.AppendLine("반품,반품안내,반품 절차 안내,상품 수령 후 7일 이내 반품 접수가 가능합니다.,교환반품");
+            sb.AppendLine("사과,화난 고객 달래주기,불만 고객 응대,이용에 불편을 드려 대단히 죄송합니다. 즉시 확인하여 안내드리겠습니다.,CS응대");
+            sb.AppendLine("wtt2,배송,배송 일정 안내,주문 후 영업일 기준 1~2일 이내 출고됩니다.,배송");
+            File.WriteAllText(testCsv, sb.ToString(), Encoding.UTF8);
+
+            var configManager = new ConfigManager(testConfig);
+            configManager.Config.CsvFilePath = testCsv;
+            configManager.Save();
+
+            var templateManager = new TemplateManager(configManager);
+            Assert(templateManager.Templates.Count == 3, $"Expected 3 templates, got {templateManager.Templates.Count}");
+            Assert(templateManager.Templates[0].Keyword == "반품", "Keyword should be '반품'");
+            Assert(templateManager.Templates[0].ContentKeyword == "반품안내", "ContentKeyword should be '반품안내'");
+
+            var engine = new SuggestionEngine(templateManager);
+            var pills = engine.SearchRelatedPills("화난 고객 달래주기", maxResults: 3);
+            Assert(pills.Count >= 1, "Should find at least 1 pill for '화난 고객 달래주기'");
+            Assert(pills[0].Keyword == "사과", $"Top pill should be '사과', got '{pills[0].Keyword}'");
+
+            var deliveryPills = engine.SearchRelatedPills("배송안내", maxResults: 3);
+            Assert(deliveryPills.Count >= 1, "Should find at least 1 pill for '배송안내'");
+            Assert(deliveryPills[0].Keyword == "wtt2", $"Top delivery pill should be 'wtt2', got '{deliveryPills[0].Keyword}'");
+
+            Assert(HangulAssembler.ConvertQwertyToHangul("dlstkakftodtjd") == "인사말생성",
+                $"Expected '인사말생성', got '{HangulAssembler.ConvertQwertyToHangul("dlstkakftodtjd")}'");
+            Assert(HangulAssembler.ConvertQwertyToHangul("qothddksso") == "배송안내",
+                $"Expected '배송안내', got '{HangulAssembler.ConvertQwertyToHangul("qothddksso")}'");
         }
         finally
         {

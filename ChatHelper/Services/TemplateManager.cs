@@ -68,15 +68,21 @@ public class TemplateManager
             }
 
             var header = records[0];
-            int kwIdx = -1, titleIdx = -1, contentIdx = -1, catIdx = -1;
+            int kwIdx = -1, contentKwIdx = -1, titleIdx = -1, contentIdx = -1, catIdx = -1;
 
             for (int i = 0; i < header.Count; i++)
             {
                 var h = header[i].Trim().ToLower();
-                if (h.Contains("keyword") || h.Contains("키워드")) kwIdx = i;
-                else if (h.Contains("title") || h.Contains("제목")) titleIdx = i;
-                else if (h.Contains("content") || h.Contains("내용")) contentIdx = i;
-                else if (h.Contains("category") || h.Contains("카테고리")) catIdx = i;
+                if (h == "contentkeyword" || h.Contains("contentkeyword") || h.Contains("content_keyword") || h.Contains("본문키워드") || h.Contains("내용키워드"))
+                    contentKwIdx = i;
+                else if (h.Contains("keyword") || h.Contains("키워드"))
+                    kwIdx = i;
+                else if (h.Contains("title") || h.Contains("제목"))
+                    titleIdx = i;
+                else if (h.Contains("content") || h.Contains("내용"))
+                    contentIdx = i;
+                else if (h.Contains("category") || h.Contains("카테고리"))
+                    catIdx = i;
             }
 
             for (int i = 1; i < records.Count; i++)
@@ -91,6 +97,7 @@ public class TemplateManager
                 var item = new TemplateItem
                 {
                     Keyword = kwIdx >= 0 && kwIdx < cols.Count ? cols[kwIdx].Trim() : "",
+                    ContentKeyword = contentKwIdx >= 0 && contentKwIdx < cols.Count ? cols[contentKwIdx].Trim() : "",
                     Title = titleIdx >= 0 && titleIdx < cols.Count ? cols[titleIdx].Trim() : "",
                     Content = rawContent,
                     Category = catIdx >= 0 && catIdx < cols.Count ? cols[catIdx].Trim() : "일반"
@@ -149,11 +156,10 @@ public class TemplateManager
         }
 
         var sb = new StringBuilder();
-        sb.AppendLine("Keyword,Title,Content,Category");
+        sb.AppendLine("Keyword,ContentKeyword,Title,Content,Category");
         foreach (var it in Templates)
         {
-            var escContent = it.Content.Replace("\"", "\"\"");
-            sb.AppendLine($"{it.Keyword},{it.Title},\"{escContent}\",{it.Category}");
+            sb.AppendLine($"{EscapeCsvField(it.Keyword)},{EscapeCsvField(it.ContentKeyword)},{EscapeCsvField(it.Title)},{EscapeCsvField(it.Content)},{EscapeCsvField(it.Category)}");
         }
 
         try
@@ -234,51 +240,27 @@ public class TemplateManager
         var q = query.Trim().ToLower();
         return queryable.Where(t =>
             (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.ToLower().Contains(q)) ||
+            (!string.IsNullOrEmpty(t.ContentKeyword) && t.ContentKeyword.ToLower().Contains(q)) ||
             (!string.IsNullOrEmpty(t.Title) && t.Title.ToLower().Contains(q)) ||
             (!string.IsNullOrEmpty(t.Content) && t.Content.ToLower().Contains(q)) ||
             (!string.IsNullOrEmpty(t.Category) && t.Category.ToLower().Contains(q))
         ).ToList();
     }
 
+    private static string EscapeCsvField(string? value)
+    {
+        var v = value ?? string.Empty;
+        if (v.Contains(',') || v.Contains('"') || v.Contains('\n') || v.Contains('\r'))
+        {
+            return $"\"{v.Replace("\"", "\"\"")}\"";
+        }
+        return v;
+    }
+
     public async Task<(bool Success, string Message)> UploadTemplateToRemoteSheetAsync(TemplateItem item, string? note = null)
     {
-        var uploadUrl = _configManager.Config.SheetUploadUrl?.Trim();
-        if (string.IsNullOrWhiteSpace(uploadUrl))
-        {
-            return (false, "설정(제어판 ➔ 시트 & 라이선스)에 스프레드시트 업로드 URL이 등록되어 있지 않습니다. 로컬 CSV에는 정상 저장되었습니다.");
-        }
-
-        try
-        {
-            var payload = new
-            {
-                action = "append",
-                keyword = item.Keyword,
-                title = item.Title,
-                content = item.Content,
-                category = item.Category,
-                userId = _configManager.Config.CurrentUserId,
-                note = note ?? "로컬 검색/AI 추천에서 등록됨",
-                createdAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-            };
-
-            var json = System.Text.Json.JsonSerializer.Serialize(payload);
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync(uploadUrl, content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return (true, "구글 스프레드시트에 성공적으로 업로드 및 등록되었습니다!");
-            }
-            else
-            {
-                return (false, $"업로드 응답 오류 (HTTP {response.StatusCode})");
-            }
-        }
-        catch (Exception ex)
-        {
-            return (false, $"업로드 요청 실패: {ex.Message}");
-        }
+        var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
+        return await registrationService.RegisterAsync(item);
     }
 
     public List<TemplateItem> FindMatchingCandidates(string rawToken, out int matchedLen)

@@ -66,10 +66,15 @@
                             </Grid>
                         </GroupBox>
 
-                        <!-- 3. AI 추천 답변 영역 -->
-                        <GroupBox Grid.Row="2" Header="💡 추천 CS 답변 (친절하고 정중한 한국어 존댓말)" Margin="5,2,5,2" FontFamily="Tahoma, Gulim">
+                        <!-- 3. AI 추천 답변 및 시트 알약 제안 영역 -->
+                        <GroupBox Grid.Row="2" Header="💡 추천 CS 답변 &amp; 시트 알약 제안 (친절하고 정중한 한국어 존댓말)" Margin="5,2,5,2" FontFamily="Tahoma, Gulim">
                             <Grid Margin="4">
-                                <TextBox x:Name="TxtAiResponse" 
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel x:Name="PnlSuggestedPills" Grid.Row="0" Margin="0,0,0,4" Visibility="Collapsed"/>
+                                <TextBox x:Name="TxtAiResponse" Grid.Row="1"
                                          TextWrapping="Wrap" AcceptsReturn="True" 
                                          VerticalScrollBarVisibility="Auto"
                                          FontSize="13" FontFamily="Malgun Gothic, Segoe UI"
@@ -78,7 +83,7 @@
                                          FontWeight="Medium"
                                          Padding="6"/>
                                 <!-- 로딩 오버레이 -->
-                                <Border x:Name="PnlLoading" Background="#C0FFFFFF" Visibility="Collapsed">
+                                <Border x:Name="PnlLoading" Grid.Row="1" Background="#C0FFFFFF" Visibility="Collapsed">
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <TextBlock Text="⚡ 로컬 AI가 친절한 답변을 작성 중입니다..." 
                                                    FontWeight="Bold" FontSize="13" Foreground="#000080" 
@@ -102,6 +107,9 @@
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0">
+                                <Button x:Name="BtnSaveToSheet" Content="💾 시트 저장" 
+                                        Width="88" Height="25" Margin="0,0,5,0"
+                                        Style="{DynamicResource ThemeWin98Button}" Click="BtnSaveToSheet_Click"/>
                                 <Button x:Name="BtnRegenerate" Content="🔄 다시작성(F5)" 
                                         Width="95" Height="25" Margin="0,0,5,0"
                                         Style="{DynamicResource ThemeWin98Button}" Click="BtnRegenerate_Click"/>

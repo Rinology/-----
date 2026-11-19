@@ -181,10 +181,18 @@ public partial class MainWindow : Window
 
         _suggestionBar.ItemSelected += (item, matchedLen, targetHwnd) =>
         {
-            Task.Run(() =>
+            bool useShiftHome = _hookService.IsNaturalLanguageMode;
+            _hookService.ClearAll();
+            Task.Run(async () =>
             {
-                TextInjectionService.ReplaceText(matchedLen, item.Content, targetHwnd);
+                TextInjectionService.ReplaceText(matchedLen, item.Content, targetHwnd, useShiftHome);
+                await TryAutoUploadAiSelectionAsync(item);
             });
+        };
+
+        _hookService.ItemAutoCompleted += (item) =>
+        {
+            _ = Task.Run(() => TryAutoUploadAiSelectionAsync(item));
         };
 
         _quickSearchWindow.ItemSelected += (item, targetHwnd) =>
@@ -349,7 +357,7 @@ public partial class MainWindow : Window
 
         if (_quickAiWindow == null || !_quickAiWindow.IsLoaded)
         {
-            _quickAiWindow = new QuickAiWindow();
+            _quickAiWindow = new QuickAiWindow(_templateManager, _configManager);
         }
 
         _quickAiWindow.ShowForTarget(hwnd);
@@ -401,6 +409,35 @@ public partial class MainWindow : Window
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         UpdateStatusUi();
         _trayIconService?.ShowBalloon("구글 시트 동기화", msg);
+    }
+
+    private async Task TryAutoUploadAiSelectionAsync(TemplateItem item)
+    {
+        if (!_configManager.Config.AutoUploadAiSelection || item.Category != "AI생성")
+            return;
+
+        try
+        {
+            var existingKeywords = _templateManager.Templates.Select(t => t.Keyword);
+            var structured = await OllamaService.Instance.StructureTemplateForSheetAsync(
+                item.Keyword, item.Content, existingKeywords);
+
+            _templateManager.AddTemplate(structured);
+            var (success, msg) = await _templateManager.UploadTemplateToRemoteSheetAsync(structured);
+            Dispatcher.BeginInvoke(() =>
+            {
+                UpdateStatusUi();
+                if (success)
+                {
+                    _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록", $"'{structured.Title}' ({structured.Keyword}) 항목이 구글 시트에 추가되었습니다.");
+                }
+                else
+                {
+                    _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록 실패", msg);
+                }
+            });
+        }
+        catch { }
     }
 
     private void ExitApp()

@@ -19,6 +19,7 @@ public static class Win32Api
     public const int VK_MENU = 0x12; // ALT
     public const int VK_ESCAPE = 0x1B;
     public const int VK_SPACE = 0x20;
+    public const int VK_HOME = 0x24;
     public const int VK_LEFT = 0x25;
     public const int VK_UP = 0x26;
     public const int VK_RIGHT = 0x27;

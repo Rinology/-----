@@ -257,10 +257,10 @@
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
                                 <StackPanel>
                                     <TextBlock Text="6. 추천 바 형태 및 작업표시줄 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <RadioButton x:Name="RadioModeInline" Content="인라인 스마트 알약 툴팁 (1개 칩 형태)" Margin="8,4" IsChecked="True"/>
+                                    <RadioButton x:Name="RadioModeInline" GroupName="DisplayModeGroup" Content="인라인 스마트 알약 툴팁 (1개 칩 형태)" Margin="8,4" IsChecked="True"/>
                                     
                                     <StackPanel Orientation="Horizontal" Margin="8,4">
-                                        <RadioButton x:Name="RadioModeHorizontal" Content="가로형 멀티 추천 바 — 표시 개수: " VerticalAlignment="Center"/>
+                                        <RadioButton x:Name="RadioModeHorizontal" GroupName="DisplayModeGroup" Content="가로형 멀티 추천 바 — 표시 개수: " VerticalAlignment="Center"/>
                                         <ComboBox x:Name="CmbMaxCandidates" Width="75" Height="28" Margin="6,0,8,0" VerticalContentAlignment="Center">
                                             <ComboBoxItem Content="3개"/>
                                             <ComboBoxItem Content="4개"/>
@@ -274,10 +274,13 @@
                                         <TextBlock Text="(3 ~ 최대 10개 선택 가능)" Foreground="{DynamicResource ThemeSubText}" FontSize="12" VerticalAlignment="Center"/>
                                     </StackPanel>
 
-                                    <RadioButton x:Name="RadioModeManual" Content="수동 검색 모드만 사용 (Alt+Q 전용)" Margin="8,4"/>
+                                    <RadioButton x:Name="RadioModeManual" GroupName="DisplayModeGroup" Content="수동 검색 모드만 사용 (Alt+Q 전용)" Margin="8,4"/>
 
                                     <CheckBox x:Name="ChkShowStatusWindow" Content="화면 우측 하단 및 작업표시줄에 실행 상태표시창 항상 보이기" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
                                     <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 우측 하단 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
+
+                                    <CheckBox x:Name="ChkAutoUploadAi" Content="🤖 AI 추천 답변 선택 시 자동으로 구글 스프레드시트에 정리 후 등록" Margin="8,10,0,2" IsChecked="False" FontWeight="SemiBold"/>
+                                    <TextBlock Text="  (체크 시 \+A 또는 클릭으로 AI 추천을 채택할 때마다 Ollama가 단축키·제목을 정리해 시트에 자동 추가합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

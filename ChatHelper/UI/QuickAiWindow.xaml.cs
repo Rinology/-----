@@ -1,21 +1,37 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using ChatHelper.Models;
 using ChatHelper.Services;
 
 namespace ChatHelper.UI;
 
 public partial class QuickAiWindow : Window
 {
+    private readonly SuggestionEngine? _suggestionEngine;
+    private readonly ConfigManager? _configManager;
     private IntPtr _targetHwnd = IntPtr.Zero;
     private CancellationTokenSource? _cts;
+    private string _lastInferredContentKeyword = string.Empty;
 
-    public QuickAiWindow()
+    public QuickAiWindow() : this(null, null)
+    {
+    }
+
+    public QuickAiWindow(TemplateManager? templateManager, ConfigManager? configManager = null)
     {
         InitializeComponent();
+        _configManager = configManager;
+        if (templateManager != null)
+        {
+            _suggestionEngine = new SuggestionEngine(templateManager);
+        }
     }
 
     /// <summary>
@@ -78,11 +94,42 @@ public partial class QuickAiWindow : Window
 
         try
         {
-            string answer = await OllamaService.Instance.GenerateCsAnswerAsync(prompt, _cts.Token);
+            string answer;
+            List<TemplateItem> pills = new();
+
+            if (_suggestionEngine != null)
+            {
+                // 1. Ollama가 스프레드시트 목록 + 로컬 퍼지 검색을 함께 분석해 알약/답변 제안
+                string inferredKw;
+                (answer, pills, inferredKw) = await _suggestionEngine.GenerateAsync(
+                    prompt, useAiFallback: true, extractKeywordWithAi: true, _cts.Token);
+
+                _lastInferredContentKeyword = inferredKw;
+
+                // 제어판 추천 바 형태 반영: InlinePill이면 1개, HorizontalBar이면 설정 개수만큼 알약 표시
+                var mode = _configManager?.Config.DisplayMode ?? "HorizontalBar";
+                if (mode == "InlinePill" && pills.Count > 1)
+                {
+                    pills = pills.GetRange(0, 1);
+                }
+                else if (_configManager != null)
+                {
+                    int maxPills = Math.Clamp(_configManager.Config.MaxCandidatesCount, 3, 10);
+                    if (pills.Count > maxPills)
+                        pills = pills.GetRange(0, maxPills);
+                }
+
+                RenderPills(pills);
+            }
+            else
+            {
+                answer = await OllamaService.Instance.GenerateCsAnswerAsync(prompt, _cts.Token);
+            }
+
             sw.Stop();
 
             TxtAiResponse.Text = answer;
-            TxtStatus.Text = $"✅ 생성 완료! ({sw.ElapsedMilliseconds}ms) - [Tab]을 누르면 대화창에 바로 입력됩니다.";
+            TxtStatus.Text = $"✅ 생성 완료! ({sw.ElapsedMilliseconds}ms) - [Tab] 대화창 입력  |  [💾 시트 저장]으로 키워드 등록";
             TxtAiResponse.Focus();
             TxtAiResponse.SelectAll();
         }
@@ -167,6 +214,174 @@ public partial class QuickAiWindow : Window
         {
             DragMove();
         }
+    }
+
+    private void RenderPills(List<TemplateItem> pills)
+    {
+        PnlSuggestedPills.Children.Clear();
+        if (pills == null || pills.Count == 0)
+        {
+            PnlSuggestedPills.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PnlSuggestedPills.Visibility = Visibility.Visible;
+        foreach (var item in pills)
+        {
+            string label = !string.IsNullOrWhiteSpace(item.Keyword)
+                ? $"💊 [{item.Keyword}] {item.Title}"
+                : $"💊 {item.Title}";
+
+            var pillBtn = new Button
+            {
+                Content = label,
+                Margin = new Thickness(0, 0, 5, 4),
+                Padding = new Thickness(8, 3, 8, 3),
+                FontSize = 11.5,
+                Cursor = Cursors.Hand,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E8EEF7")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")),
+                BorderThickness = new Thickness(1),
+                Foreground = Brushes.Black
+            };
+            pillBtn.Click += (s, e) =>
+            {
+                TxtAiResponse.Text = item.Content;
+                _lastInferredContentKeyword = !string.IsNullOrWhiteSpace(item.ContentKeyword)
+                    ? item.ContentKeyword
+                    : item.Keyword;
+                TxtStatus.Text = $"💊 시트 템플릿 '{item.Title}' 선택됨 - [Tab]으로 바로 입력하거나 수정 후 [💾 시트 저장] 가능";
+            };
+            PnlSuggestedPills.Children.Add(pillBtn);
+        }
+    }
+
+    private async void BtnSaveToSheet_Click(object sender, RoutedEventArgs e)
+    {
+        string content = TxtAiResponse.Text.Trim();
+        string query = TxtCustomerInput.Text.Trim();
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            MessageBox.Show("저장할 답변 내용이 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        BtnSaveToSheet.IsEnabled = false;
+        TxtStatus.Text = "🤖 Ollama가 시트 저장용 항목(단축키/키워드/제목/분류)을 정리 중입니다...";
+
+        try
+        {
+            TemplateItem structured;
+            if (_suggestionEngine != null)
+            {
+                structured = await _suggestionEngine.PrepareStructuredTemplateAsync(query, content);
+            }
+            else
+            {
+                structured = await OllamaService.Instance.StructureTemplateForSheetAsync(query, content, Array.Empty<string>());
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lastInferredContentKeyword) && string.IsNullOrWhiteSpace(structured.ContentKeyword))
+            {
+                structured.ContentKeyword = _lastInferredContentKeyword;
+            }
+
+            // 사용자 확인 및 미세 수정 후 업로드
+            var confirmed = ShowStructuredUploadConfirmDialog(structured);
+            if (confirmed == null)
+            {
+                TxtStatus.Text = "시트 저장이 취소되었습니다.";
+                return;
+            }
+
+            TxtStatus.Text = "💾 구글 스프레드시트에 업로드 중...";
+            bool success;
+            string msg;
+            if (_suggestionEngine != null)
+            {
+                (success, msg) = await _suggestionEngine.CommitAsync(confirmed);
+            }
+            else
+            {
+                var reg = new KeywordRegistrationService();
+                (success, msg) = await reg.RegisterAsync(confirmed);
+            }
+
+            TxtStatus.Text = success ? $"✅ 시트 저장 완료! (단축키: {confirmed.Keyword}, 키워드: {confirmed.ContentKeyword})" : $"⚠️ 저장 실패: {msg}";
+            MessageBox.Show(msg, "구글 시트 저장 결과", MessageBoxButton.OK,
+                success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+        finally
+        {
+            BtnSaveToSheet.IsEnabled = true;
+        }
+    }
+
+    private TemplateItem? ShowStructuredUploadConfirmDialog(TemplateItem draft)
+    {
+        TemplateItem? result = null;
+
+        var dlg = new Window
+        {
+            Title = "AI 정리 결과 확인 및 구글 시트 업로드",
+            Width = 480,
+            Height = 460,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0")),
+            WindowStyle = WindowStyle.ToolWindow,
+            Topmost = true
+        };
+
+        var panel = new StackPanel { Margin = new Thickness(14) };
+        panel.Children.Add(new TextBlock { Text = "🤖 Ollama가 정리한 시트 저장 항목입니다. 필요시 수정 후 업로드하세요.", Margin = new Thickness(0, 0, 0, 10), FontWeight = FontWeights.Bold });
+
+        panel.Children.Add(new TextBlock { Text = "단축어 (keyword - 짧은 영문/숫자):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+        var txtKw = new TextBox { Text = draft.Keyword, Height = 28, Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(4, 2, 4, 2) };
+        panel.Children.Add(txtKw);
+
+        panel.Children.Add(new TextBlock { Text = "본문 키워드 (contentKeyword - 검색용):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+        var txtCkw = new TextBox { Text = draft.ContentKeyword, Height = 28, Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(4, 2, 4, 2) };
+        panel.Children.Add(txtCkw);
+
+        panel.Children.Add(new TextBlock { Text = "제목 (title):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+        var txtTitle = new TextBox { Text = draft.Title, Height = 28, Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(4, 2, 4, 2) };
+        panel.Children.Add(txtTitle);
+
+        panel.Children.Add(new TextBlock { Text = "카테고리 (category):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+        var txtCat = new TextBox { Text = draft.Category, Height = 28, Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(4, 2, 4, 2) };
+        panel.Children.Add(txtCat);
+
+        panel.Children.Add(new TextBlock { Text = "답변 본문 (content):", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 3) });
+        var txtBody = new TextBox { Text = draft.Content, Height = 85, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(0, 0, 0, 12), Padding = new Thickness(4) };
+        panel.Children.Add(txtBody);
+
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var btnOk = new Button { Content = "💾 확인 및 시트 업로드", Width = 155, Height = 30, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 6, 0) };
+        var btnCancel = new Button { Content = "취소", Width = 75, Height = 30 };
+
+        btnOk.Click += (s, ev) =>
+        {
+            result = new TemplateItem
+            {
+                Keyword = txtKw.Text.Trim(),
+                ContentKeyword = txtCkw.Text.Trim(),
+                Title = txtTitle.Text.Trim(),
+                Category = string.IsNullOrWhiteSpace(txtCat.Text) ? "일반" : txtCat.Text.Trim(),
+                Content = txtBody.Text.Trim()
+            };
+            dlg.DialogResult = true;
+            dlg.Close();
+        };
+        btnCancel.Click += (s, ev) => dlg.Close();
+
+        btnRow.Children.Add(btnOk);
+        btnRow.Children.Add(btnCancel);
+        panel.Children.Add(btnRow);
+
+        dlg.Content = panel;
+        dlg.ShowDialog();
+        return result;
     }
 
     private void BtnRegenerate_Click(object sender, RoutedEventArgs e)

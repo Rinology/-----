@@ -15,6 +15,28 @@ public class Program
     public static void Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+        if (args.Length > 0 && args[0] == "--ocr")
+        {
+            RunDirectOcrTest();
+            return;
+        }
+
+        Console.WriteLine("=== ChatHelper Unit Tests ===");
+        AuthServiceTests.RunAll();
+        Console.WriteLine("[PASS] AuthServiceTests");
+
+        ConfigManagerTests.RunAll();
+        Console.WriteLine("[PASS] ConfigManagerTests");
+
+        TemplateManagerTests.RunAll();
+        Console.WriteLine("[PASS] TemplateManagerTests");
+
+        Console.WriteLine("All unit tests passed!");
+    }
+
+    private static void RunDirectOcrTest()
+    {
         Console.WriteLine("=== Direct OCR Test ===");
 
         // Get clipboard image directly in STA thread

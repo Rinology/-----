@@ -23,3 +23,6 @@ publish/*.pdb
 # Temporary files & logs
 *.tmp
 *.log
+
+# GAS script for write webhook
+GAS/Code.gs

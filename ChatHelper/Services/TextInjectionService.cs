@@ -87,18 +87,45 @@ public static class TextInjectionService
         }
     }
 
-    public static void ReplaceText(int deleteCount, string newText, IntPtr targetHwnd)
+    public static void ReplaceText(int deleteCount, string newText, IntPtr targetHwnd, bool useShiftHome = false)
     {
         if (targetHwnd != IntPtr.Zero && Win32Api.GetForegroundWindow() != targetHwnd)
         {
             Win32Api.SetForegroundWindow(targetHwnd);
-            Thread.Sleep(15);
+            Thread.Sleep(20);
         }
 
-        if (deleteCount > 0)
+        if (deleteCount > 0 || useShiftHome)
         {
-            SendBackspaces(deleteCount);
-            Thread.Sleep(15);
+            // 한글 IME 조합 중인 마지막 글자가 Backspace 여러 번을 소모해 앞 글자가 남는 현상 방지:
+            // Right Arrow(0x27)로 조합을 먼저 확정
+            Win32Api.keybd_event(Win32Api.VK_RIGHT, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(10);
+            Win32Api.keybd_event(Win32Api.VK_RIGHT, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(20);
+
+            if (useShiftHome)
+            {
+                // Shift + Home 으로 현재 줄 전체 선택 후 Backspace (한글 IME 잔존 글자 원천 차단)
+                Win32Api.keybd_event(Win32Api.VK_SHIFT, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(10);
+                Win32Api.keybd_event(Win32Api.VK_HOME, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(15);
+                Win32Api.keybd_event(Win32Api.VK_HOME, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(10);
+                Win32Api.keybd_event(Win32Api.VK_SHIFT, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(20);
+
+                Win32Api.keybd_event(Win32Api.VK_BACK, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(10);
+                Win32Api.keybd_event(Win32Api.VK_BACK, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(20);
+            }
+            else
+            {
+                SendBackspaces(deleteCount);
+                Thread.Sleep(20);
+            }
         }
 
         FastPasteText(newText, targetHwnd);

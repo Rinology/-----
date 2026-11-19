@@ -122,6 +122,7 @@ public partial class ControlPanelWindow : Window
         UpdateSlashOnlyLock();
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
+        ChkAutoUploadAi.IsChecked = cfg.AutoUploadAiSelection;
 
         // 4. 시트 및 유저 정보
         TxtTemplateUrl.Text = cfg.RemoteCsvUrl ?? "";
@@ -382,6 +383,7 @@ public partial class ControlPanelWindow : Window
         else cfg.StatusWindowOpacity = 1.0;
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
+        cfg.AutoUploadAiSelection = ChkAutoUploadAi.IsChecked == true;
         cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
         cfg.UserCsvUrl = TxtUserUrl.Text.Trim();
         cfg.SheetUploadUrl = TxtUploadUrl.Text.Trim();

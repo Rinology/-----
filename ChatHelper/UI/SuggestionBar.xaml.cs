@@ -53,6 +53,9 @@ public partial class SuggestionBar : Window
         _targetHwnd = targetHwnd;
 
         ItemsPanel.Children.Clear();
+        AiRowPanel.Children.Clear();
+        AiRowPanel.Visibility = Visibility.Collapsed;
+        ItemsPanel.Visibility = Visibility.Visible;
 
         var trigger = _configManager.Config.TriggerKey ?? "\\";
         var completeMode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
@@ -76,50 +79,60 @@ public partial class SuggestionBar : Window
 
         MainBorder.Padding = mainPadding;
 
-        // '\' 단독 즉시 실행 모드이거나 InlinePill 모드인 경우 단일 알약으로 고정
+        var sheetItems = candidates.Where(c => c.Category != "AI생성").ToList();
+        var aiItem = candidates.FirstOrDefault(c => c.Category == "AI생성");
+
+        // '\' 단독 즉시 실행 모드이거나 InlinePill 모드인 경우 단일 알약으로 고정 (AI 추천은 별도 아래 줄에 표시)
         if (completeMode == "SlashOnly" || mode == "InlinePill")
         {
             MainBorder.CornerRadius = new CornerRadius(0);
             MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFE1")); // Win98 툴팁 크림 옐로우
             MainBorder.BorderBrush = Brushes.Black;
 
-            var topItem = candidates[0];
-
-            var badge = new Border
+            if (sheetItems.Count > 0)
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")), // Win98 네이비
-                CornerRadius = new CornerRadius(0),
-                Padding = badgePadding,
-                Margin = new Thickness(0, 0, 8, 0)
-            };
-            var badgeText = new TextBlock
-            {
-                Text = tabKeyHint,
-                Foreground = Brushes.White,
-                FontSize = badgeFontSize,
-                FontWeight = FontWeights.Bold,
-                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
-            };
-            badge.Child = badgeText;
-            ItemsPanel.Children.Add(badge);
+                var topItem = sheetItems[0];
 
-            var preview = topItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
-            if (preview.Length > maxPreviewLen) preview = preview[..maxPreviewLen] + "...";
+                var badge = new Border
+                {
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")), // Win98 네이비
+                    CornerRadius = new CornerRadius(0),
+                    Padding = badgePadding,
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+                var badgeText = new TextBlock
+                {
+                    Text = tabKeyHint,
+                    Foreground = Brushes.White,
+                    FontSize = badgeFontSize,
+                    FontWeight = FontWeights.Bold,
+                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+                };
+                badge.Child = badgeText;
+                ItemsPanel.Children.Add(badge);
 
-            var btn = new Button
+                var preview = topItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
+                if (preview.Length > maxPreviewLen) preview = preview[..maxPreviewLen] + "...";
+
+                var btn = new Button
+                {
+                    Content = $"{topItem.Title}: \"{preview}\"",
+                    Foreground = Brushes.Black,
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Cursor = Cursors.Hand,
+                    FontSize = contentFontSize,
+                    FontWeight = FontWeights.SemiBold,
+                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                    Focusable = false
+                };
+                btn.Click += (s, e) => SelectItem(topItem);
+                ItemsPanel.Children.Add(btn);
+            }
+            else
             {
-                Content = $"{topItem.Title}: \"{preview}\"",
-                Foreground = Brushes.Black,
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                Cursor = Cursors.Hand,
-                FontSize = contentFontSize,
-                FontWeight = FontWeights.SemiBold,
-                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
-                Focusable = false
-            };
-            btn.Click += (s, e) => SelectItem(topItem);
-            ItemsPanel.Children.Add(btn);
+                ItemsPanel.Visibility = Visibility.Collapsed;
+            }
         }
         else
         {
@@ -129,32 +142,86 @@ public partial class SuggestionBar : Window
 
             // 유저가 설정한 최대 개수 (3 ~ 10개) 반영
             int maxAllowed = Math.Clamp(_configManager.Config.MaxCandidatesCount, 3, 10);
-            int maxCount = Math.Min(maxAllowed, candidates.Count);
-            for (int i = 0; i < maxCount; i++)
-            {
-                var item = candidates[i];
-                string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
+            var visibleSheetItems = sheetItems.Take(maxAllowed).ToList();
 
-                var chip = new Button
-                {
-                    Content = $"[{keyHint}] {item.Title}",
-                    Foreground = (i > 0) ? Brushes.Black : Brushes.White,
-                    Background = (i == 0)
-                        ? (Brush)new BrushConverter().ConvertFromString("#000080")!
-                        : (Brush)new BrushConverter().ConvertFromString("#D4D0C8")!,
-                    BorderBrush = (Brush)new BrushConverter().ConvertFromString("#808080")!,
-                    BorderThickness = new Thickness(1),
-                    Margin = new Thickness(0, 0, 6, 0),
-                    Padding = badgePadding,
-                    Cursor = Cursors.Hand,
-                    FontSize = contentFontSize - 2,
-                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
-                    FontWeight = (i == 0) ? FontWeights.Bold : FontWeights.Normal,
-                    Focusable = false
-                };
-                chip.Click += (s, e) => SelectItem(item);
-                ItemsPanel.Children.Add(chip);
+            if (visibleSheetItems.Count == 0)
+            {
+                ItemsPanel.Visibility = Visibility.Collapsed;
             }
+            else
+            {
+                for (int i = 0; i < visibleSheetItems.Count; i++)
+                {
+                    var item = visibleSheetItems[i];
+                    string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
+
+                    var chip = new Button
+                    {
+                        Content = $"[{keyHint}] {item.Title}",
+                        Foreground = (i > 0) ? Brushes.Black : Brushes.White,
+                        Background = (i == 0)
+                            ? (Brush)new BrushConverter().ConvertFromString("#000080")!
+                            : (Brush)new BrushConverter().ConvertFromString("#D4D0C8")!,
+                        BorderBrush = (Brush)new BrushConverter().ConvertFromString("#808080")!,
+                        BorderThickness = new Thickness(1),
+                        Margin = new Thickness(0, 0, 6, 0),
+                        Padding = badgePadding,
+                        Cursor = Cursors.Hand,
+                        FontSize = contentFontSize - 2,
+                        FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                        FontWeight = (i == 0) ? FontWeights.Bold : FontWeights.Normal,
+                        Focusable = false
+                    };
+                    chip.Click += (s, e) => SelectItem(item);
+                    ItemsPanel.Children.Add(chip);
+                }
+            }
+        }
+
+        // 🤖 AI 추천 전용 별도 라인 (항상 시트 알약 줄 아래에 1줄 추가 표시)
+        if (aiItem != null)
+        {
+            AiRowPanel.Visibility = Visibility.Visible;
+            AiRowPanel.Margin = ItemsPanel.Visibility == Visibility.Visible ? new Thickness(0, 6, 0, 0) : new Thickness(0);
+
+            string aiKeyHint = sheetItems.Count == 0 ? tabKeyHint : $"{trigger}+A";
+            var aiBadge = new Border
+            {
+                Background = (Brush)new BrushConverter().ConvertFromString("#1D4ED8")!,
+                BorderBrush = Brushes.Black,
+                BorderThickness = new Thickness(1),
+                Padding = badgePadding,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            aiBadge.Child = new TextBlock
+            {
+                Text = aiKeyHint,
+                Foreground = Brushes.White,
+                FontSize = badgeFontSize,
+                FontWeight = FontWeights.Bold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+            };
+            AiRowPanel.Children.Add(aiBadge);
+
+            var aiPreview = aiItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
+            if (aiPreview.Length > maxPreviewLen) aiPreview = aiPreview[..maxPreviewLen] + "...";
+
+            var aiBtn = new Button
+            {
+                Content = $"🤖 AI 추천: \"{aiPreview}\"",
+                Foreground = Brushes.Black,
+                Background = (Brush)new BrushConverter().ConvertFromString("#EFF6FF")!,
+                BorderBrush = (Brush)new BrushConverter().ConvertFromString("#1D4ED8")!,
+                BorderThickness = new Thickness(1),
+                Padding = badgePadding,
+                Cursor = Cursors.Hand,
+                FontSize = contentFontSize - 1,
+                FontWeight = FontWeights.SemiBold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                Focusable = false
+            };
+            aiBtn.Click += (s, e) => SelectItem(aiItem);
+            AiRowPanel.Children.Add(aiBtn);
         }
 
         UpdateLayout();

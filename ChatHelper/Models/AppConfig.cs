@@ -48,4 +48,5 @@ public class AppConfig
     public string RemoteCsvUrl { get; set; } = "";
     public string SheetUploadUrl { get; set; } = ""; // 스프레드시트 새 행 등록(웹훅/Apps Script) URL
     public bool EnableLocalAi { get; set; } = false; // 로컬 AI 자연어 추천 기능 사용 여부
+    public bool AutoUploadAiSelection { get; set; } = false; // AI 추천 채택 시 자동 시트 업로드 여부
 }
