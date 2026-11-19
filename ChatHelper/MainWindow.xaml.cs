@@ -13,12 +13,14 @@ public partial class MainWindow : Window
 {
     private readonly ConfigManager _configManager;
     private readonly TemplateManager _templateManager;
+    private readonly GlossaryService _glossaryService;
     private readonly AuthService _authService;
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
     private readonly QuickSearchWindow _quickSearchWindow;
     private QuickAiWindow? _quickAiWindow;
+    private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
 
@@ -31,8 +33,9 @@ public partial class MainWindow : Window
         _configManager = new ConfigManager();
         ThemeManager.ApplyTheme(_configManager.Config.Theme);
         _templateManager = new TemplateManager(_configManager);
+        _glossaryService = new GlossaryService(_configManager);
         _authService = new AuthService(_configManager);
-        _hookService = new KeyboardHookService(_configManager, _templateManager);
+        _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);
         _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
@@ -92,10 +95,12 @@ public partial class MainWindow : Window
         InitTrayService();
         _hookService.Start();
 
-        // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
+        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화
         _ = Task.Run(async () =>
         {
             var (success, _) = await _templateManager.SyncFromRemoteAsync();
+            await _glossaryService.SyncFromRemoteAsync();
+            await OllamaService.Instance.SyncRemoteAiRulesAsync();
             if (success)
             {
                 Dispatcher.BeginInvoke(UpdateStatusUi);
@@ -267,6 +272,17 @@ public partial class MainWindow : Window
         OpenQuickAi();
     }
 
+    private void BtnGlossary_Click(object sender, RoutedEventArgs e)
+    {
+        if (_glossaryWindow == null || !_glossaryWindow.IsLoaded)
+        {
+            _glossaryWindow = new GlossaryWindow(_glossaryService);
+        }
+        _glossaryWindow.Show();
+        _glossaryWindow.WindowState = WindowState.Normal;
+        _glossaryWindow.Activate();
+    }
+
     private void BtnTogglePause_Click(object sender, RoutedEventArgs e)
     {
         _configManager.Config.IsEnabled = !_configManager.Config.IsEnabled;
@@ -357,7 +373,7 @@ public partial class MainWindow : Window
 
         if (_quickAiWindow == null || !_quickAiWindow.IsLoaded)
         {
-            _quickAiWindow = new QuickAiWindow(_templateManager, _configManager);
+            _quickAiWindow = new QuickAiWindow(_templateManager, _configManager, _glossaryService);
         }
 
         _quickAiWindow.ShowForTarget(hwnd);
@@ -447,6 +463,7 @@ public partial class MainWindow : Window
         _suggestionBar.Close();
         _quickSearchWindow.Close();
         _quickAiWindow?.Close();
+        _glossaryWindow?.Close();
         _controlPanelWindow?.Close();
         OllamaService.Instance.Dispose();
         Application.Current.Shutdown();

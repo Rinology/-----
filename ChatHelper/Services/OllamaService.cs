@@ -25,14 +25,19 @@ public class OllamaService : IDisposable
     private readonly HttpClient _httpClient;
     private Process? _ollamaProcess;
     private readonly string _baseUrl;
+    private readonly string _modelName;
+    private double _temperature = 0.15;
     public const string DefaultModel = "qwen2.5:1.5b";
 
-    private string _systemPrompt = "너는 친절하고 전문적인 쇼핑몰 CS 고객센터 상담원이야. 항상 정중하고 부드러운 한국어 존댓말로 답변해. 사족이나 따옴표 없이 고객에게 보낼 본문만 1~3문장으로 간결하게 작성해.";
+    private string _systemPrompt =
+        "너는 친절하고 정확한 우리 회사 CS 고객센터 상담원이야. 항상 정중하고 부드러운 한국어 존댓말로 사족이나 따옴표 없이 고객에게 보낼 본문만 1~3문장으로 간결하게 작성해. " +
+        "사내 용어집 참고 정보가 주어지면 반드시 그 용어와 설명만 기준으로 답변하고, 확인되지 않은 가격·수치·스펙·일정은 절대 지어내지 마.";
 
     private OllamaService()
     {
         var configuredEndpoint = EnvService.Get("LOCAL_LLM_ENDPOINT", "http://localhost:11434");
         _baseUrl = NormalizeBaseUrl(configuredEndpoint);
+        _modelName = EnvService.Get("LOCAL_LLM_MODEL", DefaultModel);
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(30)
@@ -179,26 +184,94 @@ public class OllamaService : IDisposable
     }
 
     /// <summary>
-    /// 고객 문의 메시지나 캡처 OCR 텍스트를 기반으로 정중한 친절 CS 답변 생성
+    /// Google Spreadsheet(AI_RULES_SHEET_URL)에서 톤앤매너/규칙을 동적으로 불러와 시스템 프롬프트에 반영
+    /// 컬럼 예시: key, value (또는 rule, content)
     /// </summary>
-    public async Task<string> GenerateCsAnswerAsync(string customerMessage, CancellationToken cancellationToken = default)
+    public async Task<bool> SyncRemoteAiRulesAsync(CancellationToken cancellationToken = default)
+    {
+        var url = EnvService.Get("AI_RULES_SHEET_URL");
+        if (string.IsNullOrWhiteSpace(url))
+            return false;
+
+        try
+        {
+            string csv = await _httpClient.GetStringAsync(url, cancellationToken);
+            var records = TemplateManager.ParseCsvRecords(csv);
+            if (records.Count <= 1) return false;
+
+            var sb = new StringBuilder();
+            for (int i = 1; i < records.Count; i++)
+            {
+                var cols = records[i];
+                if (cols.Count < 2) continue;
+                string key = cols[0].Trim().ToLowerInvariant();
+                string val = cols[1].Trim();
+                if (string.IsNullOrWhiteSpace(val)) continue;
+
+                if (key == "temperature" && double.TryParse(val, System.Globalization.CultureInfo.InvariantCulture, out double temp))
+                {
+                    _temperature = Math.Clamp(temp, 0.0, 1.0);
+                }
+                else
+                {
+                    sb.AppendLine($"- [{cols[0].Trim()}] {val}");
+                }
+            }
+
+            if (sb.Length > 0)
+            {
+                _systemPrompt = sb.ToString().Trim();
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 고객 문의 메시지나 자연어 의도(+ 사내 용어집 RAG)를 기반으로 정중한 친절 CS 답변 생성
+    /// </summary>
+    public Task<string> GenerateCsAnswerAsync(string customerMessage, CancellationToken cancellationToken = default)
+        => GenerateCsAnswerAsync(customerMessage, null, cancellationToken);
+
+    public async Task<string> GenerateCsAnswerAsync(
+        string customerMessage,
+        IReadOnlyList<GlossaryItem>? glossaryMatches,
+        CancellationToken cancellationToken = default)
     {
         await EnsureRunningAsync();
 
-        string userPrompt = $"[상대방 메시지 내용]\n{customerMessage.Trim()}\n\n위 메시지에 대해 즉시 보낼 수 있는 1~2문장의 간결하고 명확한 답장을 작성해줘:";
+        var promptSb = new StringBuilder();
+        if (glossaryMatches != null && glossaryMatches.Count > 0)
+        {
+            promptSb.AppendLine("[사내 용어집 참고 정보 - 반드시 이 사실 정보만 기준으로 작성하고 없는 스펙/가격/정책은 지어내지 마세요]");
+            foreach (var g in glossaryMatches)
+            {
+                promptSb.Append($"- 용어: {g.Term}");
+                if (!string.IsNullOrWhiteSpace(g.Aliases)) promptSb.Append($" (유사어: {g.Aliases})");
+                promptSb.Append($" | 설명: {g.Description}");
+                if (!string.IsNullOrWhiteSpace(g.Guide)) promptSb.Append($" | 주의: {g.Guide}");
+                promptSb.AppendLine();
+            }
+            promptSb.AppendLine();
+        }
+
+        promptSb.AppendLine($"[고객 문의 또는 작성 의도]\n{customerMessage.Trim()}\n");
+        promptSb.Append("위 내용에 대해 사족 없이 고객에게 바로 보낼 수 있는 1~2문장의 정중하고 정확한 한국어 답장만 작성해줘:");
 
         var requestBody = new
         {
-            model = DefaultModel,
+            model = _modelName,
             messages = new[]
             {
                 new { role = "system", content = _systemPrompt },
-                new { role = "user", content = userPrompt }
+                new { role = "user", content = promptSb.ToString() }
             },
             stream = false,
             options = new
             {
-                temperature = 0.2,
+                temperature = _temperature,
                 top_p = 0.85,
                 num_predict = 120
             },

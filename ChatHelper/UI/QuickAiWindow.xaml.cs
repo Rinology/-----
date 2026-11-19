@@ -20,17 +20,17 @@ public partial class QuickAiWindow : Window
     private CancellationTokenSource? _cts;
     private string _lastInferredContentKeyword = string.Empty;
 
-    public QuickAiWindow() : this(null, null)
+    public QuickAiWindow() : this(null, null, null)
     {
     }
 
-    public QuickAiWindow(TemplateManager? templateManager, ConfigManager? configManager = null)
+    public QuickAiWindow(TemplateManager? templateManager, ConfigManager? configManager = null, GlossaryService? glossaryService = null)
     {
         InitializeComponent();
         _configManager = configManager;
         if (templateManager != null)
         {
-            _suggestionEngine = new SuggestionEngine(templateManager);
+            _suggestionEngine = new SuggestionEngine(templateManager, null, glossaryService);
         }
     }
 

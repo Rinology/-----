@@ -162,6 +162,11 @@ public static class TemplateManagerTests
                 $"Expected '인사말생성', got '{HangulAssembler.ConvertQwertyToHangul("dlstkakftodtjd")}'");
             Assert(HangulAssembler.ConvertQwertyToHangul("qothddksso") == "배송안내",
                 $"Expected '배송안내', got '{HangulAssembler.ConvertQwertyToHangul("qothddksso")}'");
+
+            var glossary = new GlossaryService(configManager, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_glossary.csv"));
+            glossary.ParseGlossaryCsv("term,aliases,description,guide,category\n폴드,\"폴더, fold\",퀄리스포츠 접이식 전기자전거 모델입니다.,폴드 표기 유지,제품\n");
+            var matchedTerms = glossary.FindRelevantTerms("폴더 추천해줘");
+            Assert(matchedTerms.Count == 1 && matchedTerms[0].Term == "폴드", "Glossary should match alias '폴더' -> '폴드'");
         }
         finally
         {

@@ -14,12 +14,17 @@ public class SuggestionEngine
 {
     private readonly TemplateManager _templateManager;
     private readonly KeywordRegistrationService _registrationService;
+    private readonly GlossaryService? _glossaryService;
     private TemplateItem? _pendingSave;
 
-    public SuggestionEngine(TemplateManager templateManager, KeywordRegistrationService? registrationService = null)
+    public SuggestionEngine(
+        TemplateManager templateManager,
+        KeywordRegistrationService? registrationService = null,
+        GlossaryService? glossaryService = null)
     {
         _templateManager = templateManager;
         _registrationService = registrationService ?? new KeywordRegistrationService();
+        _glossaryService = glossaryService;
     }
 
     public TemplateItem? PendingSave => _pendingSave;
@@ -80,14 +85,15 @@ public class SuggestionEngine
         var topMatch = pills.FirstOrDefault();
         string answer = topMatch?.Content ?? string.Empty;
 
-        // 3. 일치하는 템플릿이 없고 AI 폴백이 켜져 있으면 로컬 LLM으로 짧은 답변 생성
+        // 3. 일치하는 템플릿이 없고 AI 폴백이 켜져 있으면 로컬 LLM(+ 사내 용어집 RAG)으로 짧은 답변 생성
         if (string.IsNullOrWhiteSpace(answer) && useAiFallback)
         {
             try
             {
                 if (ollamaReady || await OllamaService.Instance.IsServerRespondingAsync())
                 {
-                    answer = await OllamaService.Instance.GenerateCsAnswerAsync(query, cancellationToken);
+                    var glossaryMatches = _glossaryService?.FindRelevantTerms(query);
+                    answer = await OllamaService.Instance.GenerateCsAnswerAsync(query, glossaryMatches, cancellationToken);
                 }
             }
             catch

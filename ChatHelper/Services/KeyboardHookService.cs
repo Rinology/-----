@@ -9,6 +9,7 @@ public class KeyboardHookService : IDisposable
 {
     private readonly ConfigManager _configManager;
     private readonly TemplateManager _templateManager;
+    private readonly GlossaryService? _glossaryService;
     private readonly SuggestionEngine _suggestionEngine;
 
     private IntPtr _hookId = IntPtr.Zero;
@@ -42,11 +43,12 @@ public class KeyboardHookService : IDisposable
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
 
-    public KeyboardHookService(ConfigManager configManager, TemplateManager templateManager)
+    public KeyboardHookService(ConfigManager configManager, TemplateManager templateManager, GlossaryService? glossaryService = null)
     {
         _configManager = configManager;
         _templateManager = templateManager;
-        _suggestionEngine = new SuggestionEngine(templateManager);
+        _glossaryService = glossaryService;
+        _suggestionEngine = new SuggestionEngine(templateManager, null, glossaryService);
         _autoHideTimer = new System.Threading.Timer(OnAutoHideTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
         _aiDebounceTimer = new System.Threading.Timer(OnAiDebounceElapsed, null, Timeout.Infinite, Timeout.Infinite);
     }
@@ -376,10 +378,12 @@ public class KeyboardHookService : IDisposable
         string hangul = HangulAssembler.ConvertQwertyToHangul(targetRaw).Trim();
         if (hangul.Length < 2) return;
 
-        // 일반 단타 채팅 오작동 방지: 시트에 관련 항목이 있거나, 생성/안내/추천 등 의도 키워드 포함 또는 4글자 이상일 때 Ollama 실행
+        // 일반 단타 채팅 오작동 방지: 시트/용어집에 관련 항목이 있거나, 생성/안내/추천 등 의도 키워드 포함 또는 4글자 이상일 때 Ollama 실행
+        var glossaryMatches = _glossaryService?.FindRelevantTerms(hangul, maxResults: 5);
         bool hasIntent = hangul.Contains("생성") || hangul.Contains("작성") || hangul.Contains("추천")
                       || hangul.Contains("안내") || hangul.Contains("만들") || hangul.Contains("답변")
-                      || hangul.Contains("달래") || hangul.Length >= 4;
+                      || hangul.Contains("달래") || (glossaryMatches != null && glossaryMatches.Count > 0)
+                      || hangul.Length >= 4;
         var quickPills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 3);
         if (!hasIntent && quickPills.Count == 0)
             return;
@@ -397,13 +401,13 @@ public class KeyboardHookService : IDisposable
 
                 if (token.IsCancellationRequested) return;
 
-                // 시트 추천 여부와 관계없이 반드시 AI 추천 답변도 함께 생성
+                // 시트 추천 여부와 관계없이 반드시 AI 추천 답변(+ 사내 용어집 RAG)도 함께 생성
                 string aiAnswer = string.Empty;
                 try
                 {
                     if (await OllamaService.Instance.IsServerRespondingAsync())
                     {
-                        aiAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, token);
+                        aiAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
                     }
                 }
                 catch { }
