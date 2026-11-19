@@ -1,6 +1,0 @@
-﻿user_id,pw,expire_date,status,plan,memo
-taerin,1234,2026-12-31,active,VIP,기본 관리자 계정
-admin,admin1234,2027-12-31,active,Admin,슈퍼 관리자
-tester,1234,2026-12-31,active,Pro,상담원 테스터
-expired_user,1234,2025-01-01,active,Basic,만료 테스트 계정
-blocked_user,1234,2026-12-31,inactive,Basic,차단 테스트 계정
