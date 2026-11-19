@@ -19,6 +19,7 @@ public class KeyboardHookService : IDisposable
     public event Action<List<TemplateItem>, int, IntPtr>? CandidatesUpdated;
     public event Action? RequestCloseCandidates;
     public event Action? GlobalHotkeyTriggered;
+    public event Action<IntPtr>? AiHotkeyTriggered;
 
     private List<TemplateItem> _currentCandidates = new();
     private int _currentMatchedLen = 0;
@@ -89,6 +90,14 @@ public class KeyboardHookService : IDisposable
             if (isAltPressed && !isCtrlPressed && vkCode == 0x51)
             {
                 GlobalHotkeyTriggered?.Invoke();
+                return (IntPtr)1;
+            }
+
+            // Alt + X 로컬 AI 상담 비서 호출
+            if (isAltPressed && !isCtrlPressed && vkCode == 0x58)
+            {
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                AiHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
 

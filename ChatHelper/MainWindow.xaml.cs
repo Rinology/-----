@@ -18,6 +18,7 @@ public partial class MainWindow : Window
 
     private readonly SuggestionBar _suggestionBar;
     private readonly QuickSearchWindow _quickSearchWindow;
+    private QuickAiWindow? _quickAiWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
 
@@ -173,6 +174,11 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(OpenQuickSearch);
         };
 
+        _hookService.AiHotkeyTriggered += (targetHwnd) =>
+        {
+            Dispatcher.Invoke(() => OpenQuickAi(targetHwnd));
+        };
+
         _suggestionBar.ItemSelected += (item, matchedLen, targetHwnd) =>
         {
             Task.Run(() =>
@@ -248,6 +254,11 @@ public partial class MainWindow : Window
         OpenQuickSearch();
     }
 
+    private void BtnQuickAi_Click(object sender, RoutedEventArgs e)
+    {
+        OpenQuickAi();
+    }
+
     private void BtnTogglePause_Click(object sender, RoutedEventArgs e)
     {
         _configManager.Config.IsEnabled = !_configManager.Config.IsEnabled;
@@ -321,6 +332,21 @@ public partial class MainWindow : Window
         _quickSearchWindow.ShowAtCursor(hwnd);
     }
 
+    private void OpenQuickAi(IntPtr? targetHwnd = null)
+    {
+        _suggestionBar.Hide();
+        IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
+            ? targetHwnd.Value
+            : Win32Api.GetForegroundWindow();
+
+        if (_quickAiWindow == null || !_quickAiWindow.IsLoaded)
+        {
+            _quickAiWindow = new QuickAiWindow();
+        }
+
+        _quickAiWindow.ShowForTarget(hwnd);
+    }
+
     private void OpenControlPanel()
     {
         _suggestionBar.Hide();
@@ -375,7 +401,9 @@ public partial class MainWindow : Window
         _trayIconService?.Dispose();
         _suggestionBar.Close();
         _quickSearchWindow.Close();
+        _quickAiWindow?.Close();
         _controlPanelWindow?.Close();
+        OllamaService.Instance.Dispose();
         Application.Current.Shutdown();
     }
 
