@@ -20,6 +20,7 @@ public class KeyboardHookService : IDisposable
 
     public event Action<List<TemplateItem>, int, IntPtr>? CandidatesUpdated;
     public event Action<TemplateItem, int, IntPtr>? AiCandidateReady;
+    public event Action<string>? AiGeneratingStarted;
     public event Action? RequestCloseCandidates;
     public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
@@ -106,22 +107,23 @@ public class KeyboardHookService : IDisposable
                 }
             }
 
-            int flags = Marshal.ReadInt32(lParam + 8);
-            bool isAltPressed = (flags & 0x20) != 0 || (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0 || wParam == (IntPtr)Win32Api.WM_SYSKEYDOWN;
+            // 한국어 한/영 전환키(Right Alt: 0xA5, VK_HANGUL: 0x15)는 단축키 조합키로 취급하지 않음
+            bool isHangulKey = (vkCode == 0x15 || vkCode == 0xA5);
+            bool isLeftAltPressed = !isHangulKey && ((GetAsyncKeyState(0xA4) & 0x8000) != 0); // VK_LMENU = 0xA4
             bool isCtrlPressed = (GetAsyncKeyState(Win32Api.VK_CONTROL) & 0x8000) != 0;
             bool isWinPressed = (GetAsyncKeyState(Win32Api.VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(Win32Api.VK_RWIN) & 0x8000) != 0;
             bool isShiftPressed = (GetAsyncKeyState(Win32Api.VK_SHIFT) & 0x8000) != 0;
 
-            // Alt + Q 수동 검색창 호출 (Q vkCode 0x51 또는 scanCode 0x10)
-            if (isAltPressed && !isCtrlPressed && (vkCode == 0x51 || scanCode == 0x10))
+            // Alt + Q 수동 검색창 호출 (왼쪽 Alt + Q)
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == 0x51 || scanCode == 0x10))
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 GlobalHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
 
-            // Alt + X 로컬 AI 상담 비서 호출 (X vkCode 0x58 또는 scanCode 0x2D)
-            if (isAltPressed && !isCtrlPressed && (vkCode == 0x58 || scanCode == 0x2D))
+            // Alt + X 로컬 AI 상담 비서 호출 (왼쪽 Alt + X)
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == 0x58 || scanCode == 0x2D))
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 AiHotkeyTriggered?.Invoke(fgHwnd);
@@ -134,8 +136,9 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // Ctrl, Alt, Win 단축키(예: Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+S 등) 입력 시 버퍼 초기화 및 무시!
-            if (isCtrlPressed || isAltPressed || isWinPressed)
+            // Ctrl, 왼쪽 Alt, Win 조합 단축키(예: Ctrl+C, Ctrl+V, Alt+Tab 등) 입력 시 버퍼 초기화 및 무시
+            // ※ 한/영 전환키(Right Alt)는 절대 버퍼를 초기화하지 않아야 구글채팅, 카카오톡, 메모장에서 완벽 작동함!
+            if (isCtrlPressed || isLeftAltPressed || isWinPressed)
             {
                 lock (_lock)
                 {
@@ -280,8 +283,26 @@ public class KeyboardHookService : IDisposable
                 return false;
             }
 
-            // 4. 물리 영문 자판 (A-Z, 0x41 ~ 0x5A)
-            if (vkCode >= 0x41 && vkCode <= 0x5A)
+            // 4. 일반 문자 입력 (영문 A-Z, 숫자 0-9, 기호 '\' 및 '₩')
+            char? inputChar = null;
+            if (vkCode >= 0x41 && vkCode <= 0x5A) // A-Z
+            {
+                inputChar = isShiftPressed ? char.ToUpper((char)vkCode) : char.ToLower((char)vkCode);
+            }
+            else if (vkCode >= 0x30 && vkCode <= 0x39 && !isShiftPressed) // 숫자 0-9 (키보드 상단)
+            {
+                inputChar = (char)('0' + (vkCode - 0x30));
+            }
+            else if (vkCode >= 0x60 && vkCode <= 0x69) // 숫자 0-9 (키패드)
+            {
+                inputChar = (char)('0' + (vkCode - 0x60));
+            }
+            else if (vkCode == 0xDC) // '\' 또는 '₩'
+            {
+                inputChar = '\\';
+            }
+
+            if (inputChar.HasValue)
             {
                 // 현재 창이 실제 입력 가능한 창인지 먼저 확인 (자기 자신 창이나 바탕화면이면 무시)
                 if (!Win32Api.TryGetValidInputPosition(out _, out _, out _))
@@ -291,8 +312,7 @@ public class KeyboardHookService : IDisposable
                     return false;
                 }
 
-                char ch = isShiftPressed ? char.ToUpper((char)vkCode) : char.ToLower((char)vkCode);
-                _buffer.Append(ch);
+                _buffer.Append(inputChar.Value);
                 if (_buffer.Length > 30)
                 {
                     _buffer.Remove(0, _buffer.Length - 30);
@@ -360,7 +380,11 @@ public class KeyboardHookService : IDisposable
             return;
 
         _pendingAiRaw = raw;
-        _aiDebounceTimer.Change(350, Timeout.Infinite);
+        _aiDebounceTimer.Change(300, Timeout.Infinite);
+
+        // 사용자가 타이핑하자마자 헬프 화면에 즉시 "⚡ AI 답변 생성 중..." 알림
+        string query = !string.IsNullOrWhiteSpace(hangul) ? hangul : raw;
+        AiGeneratingStarted?.Invoke(query);
     }
 
     private void ShowCandidateList(List<TemplateItem> list, int matchedLen, bool isNaturalLanguage)

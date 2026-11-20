@@ -46,18 +46,27 @@
                                 <Border BorderThickness="1,1,0,0" BorderBrush="#000000">
                                     <Border BorderThickness="0,0,1,1" BorderBrush="#DFDFDF" Background="#D4D0C8" Padding="10,5">
                                         <StackPanel VerticalAlignment="Center">
-                                            <!-- 1행: 실행 상태 및 시트 동기화/AI 모드 지연시간 실시간 이력 -->
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                                                <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#00A000" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                <TextBlock x:Name="LblRunningStatus" Text="자동완성 작동 중 (ON)" FontSize="12.5" FontWeight="Bold" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI" VerticalAlignment="Center"/>
-                                                <TextBlock x:Name="LblSyncStatus" Text="  |  🔄 시트: 최근 동기화 완료" FontSize="11.5" Foreground="#004080" FontFamily="Tahoma, Gulim" VerticalAlignment="Center"/>
-                                                <TextBlock x:Name="LblAiStatus" Text="  |  🤖 AI 모드: 연결됨 (qwen2.5:1.5b)" FontSize="11.5" Foreground="#006000" FontFamily="Tahoma, Gulim" VerticalAlignment="Center"/>
+                                            <!-- 1행: 실행 상태 및 우측 상단 실시간 알림 배지 (사용자 지정 위치) -->
+                                            <Grid Margin="0,0,0,3">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#00A000" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock x:Name="LblRunningStatus" Text="자동완성 작동 중 (ON)" FontSize="12.5" FontWeight="Bold" Foreground="#000000" FontFamily="Tahoma, Gulim, Segoe UI" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="LblAiStatus" Text="  |  🤖 AI 모드: ON (qwen2.5:1.5b)" FontSize="11.5" Foreground="#006000" FontFamily="Tahoma, Gulim" VerticalAlignment="Center"/>
+                                                </StackPanel>
+
+                                                <!-- 우측 상단 알림 배지 (자동 갱신 완료 / AI 답변 시트 업로드 완료 표시) -->
+                                                <Border x:Name="BadgeNotice" HorizontalAlignment="Right" Background="#006000" CornerRadius="2" Padding="8,2" VerticalAlignment="Center" Margin="0,0,2,0">
+                                                    <TextBlock x:Name="TxtNotice" Text="✅ 갱신 완료!" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11" FontFamily="Tahoma, Gulim"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- 2행: 계정 정보 및 단축키, 시트 동기화 시각 -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock x:Name="LblSubStatus" Text="👤 계정: taerin   |   📋 템플릿: 74개   |   ⌨️ 완성키: \ + Tab" FontSize="11.5" Foreground="#333333" FontFamily="Tahoma, Gulim, Segoe UI"/>
+                                                <TextBlock x:Name="LblSyncStatus" Text="   |   🔄 시트: 11:25" FontSize="11.5" Foreground="#004080" FontFamily="Tahoma, Gulim"/>
                                             </StackPanel>
 
-                                            <!-- 2행: 계정 정보 및 단축키 -->
-                                            <TextBlock x:Name="LblSubStatus" Text="👤 계정: taerin   |   📋 템플릿: 65개   |   ⌨️ 완성키: \ + Tab" FontSize="11.5" Foreground="#333333" FontFamily="Tahoma, Gulim, Segoe UI" Margin="0,0,0,4"/>
-
-                                            <!-- 3행: 랜덤 템플릿 롤링 팝업 전광판 (전체 목록 중 4초마다 팁 순환) -->
+                                            <!-- 3행: 랜덤 템플릿 롤링 팝업 전광판 (간결하게 키워드와 제목만 순환) -->
                                             <Border BorderThickness="1,1,0,0" BorderBrush="#808080">
                                                 <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">
                                                     <Border Background="#FFFFE1" BorderThickness="1" BorderBrush="#A0A0A0" Padding="8,3">

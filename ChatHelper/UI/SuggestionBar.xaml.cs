@@ -191,9 +191,75 @@ public partial class SuggestionBar : Window
         Show();
     }
 
+    public void ShowAiGeneratingPlaceholder(string promptHint = "")
+    {
+        if (!_configManager.Config.EnableLocalAi || !_configManager.Config.IsEnabled) return;
+
+        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+            return;
+
+        var targetPanel = (_configManager.Config.AiPlacement == "Top") ? TopAiRowPanel : BottomAiRowPanel;
+        var otherPanel = (_configManager.Config.AiPlacement == "Top") ? BottomAiRowPanel : TopAiRowPanel;
+
+        otherPanel.Children.Clear();
+        otherPanel.Visibility = Visibility.Collapsed;
+
+        targetPanel.Children.Clear();
+        targetPanel.Visibility = Visibility.Visible;
+
+        int scale = _configManager.Config.PillScale;
+        if (scale < 1) scale = 2;
+        double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
+        double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
+        Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
+
+        var aiBadge = new Border
+        {
+            Background = (Brush)new BrushConverter().ConvertFromString("#4F46E5")!,
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(1),
+            Padding = badgePadding,
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        aiBadge.Child = new TextBlock
+        {
+            Text = "AI",
+            Foreground = Brushes.White,
+            FontSize = badgeFontSize,
+            FontWeight = FontWeights.Bold,
+            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+        };
+        targetPanel.Children.Add(aiBadge);
+
+        var placeholderBorder = new Border
+        {
+            Background = (Brush)new BrushConverter().ConvertFromString("#EEF2FF")!,
+            BorderBrush = (Brush)new BrushConverter().ConvertFromString("#6366F1")!,
+            BorderThickness = new Thickness(1),
+            Padding = badgePadding
+        };
+        string text = string.IsNullOrWhiteSpace(promptHint)
+            ? "⚡ 로컬 AI 답변 생성 중..."
+            : $"⚡ 로컬 AI 답변 생성 중... (\"{promptHint}\")";
+        var placeholderText = new TextBlock
+        {
+            Text = text,
+            Foreground = (Brush)new BrushConverter().ConvertFromString("#1E1B4B")!,
+            FontSize = contentFontSize - 1,
+            FontWeight = FontWeights.SemiBold,
+            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+        };
+        placeholderBorder.Child = placeholderText;
+        targetPanel.Children.Add(placeholderBorder);
+
+        UpdateLayout();
+        Reposition(caretX, caretY);
+        Show();
+    }
+
     public void UpdateAiCandidate(TemplateItem aiItem)
     {
-        if (!IsVisible || aiItem == null) return;
+        if (aiItem == null) return;
         if (!_candidates.Any(c => c.Category == "AI생성"))
         {
             _candidates.Add(aiItem);
@@ -210,6 +276,7 @@ public partial class SuggestionBar : Window
         {
             Reposition(cx, cy);
         }
+        Show();
     }
 
     private void RenderAiRow(TemplateItem aiItem)

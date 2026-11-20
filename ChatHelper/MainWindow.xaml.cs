@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using ChatHelper.Constants;
 using ChatHelper.Models;
@@ -25,8 +26,13 @@ public partial class MainWindow : Window
     private TrayIconService? _trayIconService;
     private System.Threading.Timer? _periodicSyncTimer;
     private System.Windows.Threading.DispatcherTimer? _tickerTimer;
+    private System.Windows.Threading.DispatcherTimer? _noticeTimer;
     private DateTime _lastSyncTime = DateTime.Now;
     private readonly Random _rand = new();
+
+    private const int HOTKEY_SEARCH_ID = 9001;
+    private const int HOTKEY_AI_ID = 9002;
+    private HwndSource? _hwndSource;
 
     public MainWindow()
     {
@@ -110,7 +116,11 @@ public partial class MainWindow : Window
             _ = OllamaService.Instance.WarmUpAsync();
             if (success)
             {
-                Dispatcher.BeginInvoke(UpdateStatusUi);
+                Dispatcher.BeginInvoke(() =>
+                {
+                    UpdateStatusUi();
+                    ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
+                });
             }
         });
 
@@ -196,6 +206,14 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() =>
             {
                 _suggestionBar.UpdateAiCandidate(aiItem);
+            });
+        };
+
+        _hookService.AiGeneratingStarted += (promptHint) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _suggestionBar.ShowAiGeneratingPlaceholder(promptHint);
             });
         };
 
@@ -418,11 +436,8 @@ public partial class MainWindow : Window
 
         int idx = _rand.Next(templates.Count);
         var item = templates[idx];
-        string preview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
-        if (preview.Length > 55) preview = preview[..55] + "...";
-
         string trigger = _configManager.Config.TriggerKey ?? "\\";
-        TxtRollingTicker.Text = $"{trigger}{item.Keyword}  ➔  [{item.Title}] \"{preview}\"";
+        TxtRollingTicker.Text = $"{trigger}{item.Keyword}  ➔  {item.Title}";
     }
 
     private void OpenQuickAi(IntPtr? targetHwnd = null)
@@ -490,6 +505,73 @@ public partial class MainWindow : Window
         _trayIconService?.ShowBalloon("템플릿 갱신", $"{count}개 템플릿 로드 완료");
     }
 
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+        if (_hwndSource != null)
+        {
+            _hwndSource.AddHook(HwndHook);
+            RegisterGlobalHotkeys(_hwndSource.Handle);
+        }
+    }
+
+    private void RegisterGlobalHotkeys(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        // Alt + Q (0x51), Alt + X (0x58) 시스템 전역 핫키 등록
+        Win32Api.RegisterHotKey(hwnd, HOTKEY_SEARCH_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x51);
+        Win32Api.RegisterHotKey(hwnd, HOTKEY_AI_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x58);
+    }
+
+    private void UnregisterGlobalHotkeys(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        Win32Api.UnregisterHotKey(hwnd, HOTKEY_SEARCH_ID);
+        Win32Api.UnregisterHotKey(hwnd, HOTKEY_AI_ID);
+    }
+
+    private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == Win32Api.WM_HOTKEY)
+        {
+            int id = wParam.ToInt32();
+            if (id == HOTKEY_SEARCH_ID)
+            {
+                OpenQuickSearch();
+                handled = true;
+            }
+            else if (id == HOTKEY_AI_ID)
+            {
+                OpenQuickAi();
+                handled = true;
+            }
+        }
+        return IntPtr.Zero;
+    }
+
+    public void ShowNoticeBadge(string msg, string hexBgColor = "#006000")
+    {
+        Dispatcher.Invoke(() =>
+        {
+            TxtNotice.Text = msg;
+            BadgeNotice.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hexBgColor));
+            BadgeNotice.Visibility = Visibility.Visible;
+
+            _noticeTimer?.Stop();
+            _noticeTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+            _noticeTimer.Tick += (s, e) =>
+            {
+                _noticeTimer.Stop();
+                BadgeNotice.Visibility = Visibility.Collapsed;
+            };
+            _noticeTimer.Start();
+        });
+    }
+
     private async Task SyncRemoteAsync()
     {
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
@@ -497,6 +579,10 @@ public partial class MainWindow : Window
         await OllamaService.Instance.SyncRemoteAiRulesAsync();
         _lastSyncTime = DateTime.Now;
         UpdateStatusUi();
+        if (success)
+        {
+            ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
+        }
         _trayIconService?.ShowBalloon("구글 시트 동기화", msg);
     }
 
@@ -521,7 +607,11 @@ public partial class MainWindow : Window
                 if (success)
                 {
                     _lastSyncTime = DateTime.Now;
-                    Dispatcher.BeginInvoke(UpdateStatusUi);
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        UpdateStatusUi();
+                        ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
+                    });
                 }
             }
             catch (Exception ex)
@@ -556,10 +646,12 @@ public partial class MainWindow : Window
                 UpdateStatusUi();
                 if (success)
                 {
+                    ShowNoticeBadge("✅ 업로드완료!", "#1D4ED8");
                     _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록", $"'{structured.Title}' ({structured.Keyword}) 항목이 구글 시트에 추가되었습니다.");
                 }
                 else
                 {
+                    ShowNoticeBadge("⚠️ 업로드 실패", "#B91C1C");
                     _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록 실패", msg);
                 }
             });
@@ -569,7 +661,13 @@ public partial class MainWindow : Window
 
     private void ExitApp()
     {
+        if (_hwndSource != null)
+        {
+            UnregisterGlobalHotkeys(_hwndSource.Handle);
+            _hwndSource.RemoveHook(HwndHook);
+        }
         _tickerTimer?.Stop();
+        _noticeTimer?.Stop();
         _periodicSyncTimer?.Dispose();
         _hookService.Stop();
         _trayIconService?.Dispose();
