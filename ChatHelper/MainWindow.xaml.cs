@@ -645,32 +645,16 @@ public partial class MainWindow : Window
         if (item.Category != "AI생성")
             return;
 
+        // 영문 번역 결과는 스프레드시트 자동 업로드 보류
         bool isTranslationItem = item.ContentKeyword != null && item.ContentKeyword.StartsWith("영문번역");
-        if (!_configManager.Config.AutoUploadAiSelection && !isTranslationItem)
+        if (isTranslationItem || !_configManager.Config.AutoUploadAiSelection)
             return;
 
         try
         {
             var existingKeywords = _templateManager.Templates.Select(t => t.Keyword);
-            TemplateItem structured;
-            if (isTranslationItem)
-            {
-                // 한->영 번역 채택 시: 한글 원문을 키워드/제목으로, 영문 번역문을 본문으로 즉시 학습 & 시트 저장
-                string koPhrase = item.Keyword?.Trim() ?? "영문번역";
-                structured = new TemplateItem
-                {
-                    Keyword = koPhrase.Length <= 10 ? koPhrase : koPhrase[..10],
-                    ContentKeyword = $"영문번역, {koPhrase}",
-                    Title = $"[영문] {koPhrase}",
-                    Content = item.Content.Trim(),
-                    Category = "영문번역"
-                };
-            }
-            else
-            {
-                structured = await OllamaService.Instance.StructureTemplateForSheetAsync(
-                    item.Keyword, item.Content, existingKeywords);
-            }
+            var structured = await OllamaService.Instance.StructureTemplateForSheetAsync(
+                item.Keyword, item.Content, existingKeywords);
 
             _templateManager.AddTemplate(structured);
             var (success, msg) = await _templateManager.UploadTemplateToRemoteSheetAsync(structured);

@@ -439,11 +439,10 @@ public class OllamaService : IDisposable
     }
 
     /// <summary>
-    /// 한글 문장을 자연스러운 비즈니스 영문으로 번역 (로컬 Ollama 활용)
+    /// 한글 문장을 영문으로 직접 번역 (톤앤매너/용어집 참고 없이 순수 번역만 수행)
     /// </summary>
     public async Task<string> TranslateKoToEnAsync(
         string koreanText,
-        IReadOnlyList<GlossaryItem>? glossaryMatches = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(koreanText))
@@ -451,33 +450,22 @@ public class OllamaService : IDisposable
 
         await EnsureRunningAsync();
 
-        var promptSb = new StringBuilder();
-        if (glossaryMatches != null && glossaryMatches.Count > 0)
-        {
-            promptSb.AppendLine("[Company Glossary Reference]");
-            foreach (var g in glossaryMatches)
-            {
-                promptSb.AppendLine($"- {g.Term}: {g.Description}");
-            }
-            promptSb.AppendLine();
-        }
-
-        promptSb.AppendLine($"Translate the following Korean text into natural, polite business English. Output ONLY the English translation without any quotes or explanation:\n{koreanText.Trim()}");
+        string prompt = $"Translate this Korean text into English. Output ONLY the English translation:\n{koreanText.Trim()}";
 
         var requestBody = new
         {
             model = _modelName,
             messages = new[]
             {
-                new { role = "system", content = "You are a professional Korean-to-English business translator. Output only the translated English sentence without quotes or extra commentary." },
-                new { role = "user", content = promptSb.ToString() }
+                new { role = "system", content = "You are a direct Korean-to-English translator. Do not reply to the message; strictly translate the Korean text into English. Output only the English translation without quotes or extra words." },
+                new { role = "user", content = prompt }
             },
             stream = false,
             options = new
             {
-                temperature = 0.1,
+                temperature = 0.0,
                 num_predict = 80,
-                num_ctx = 1024
+                num_ctx = 512
             },
             keep_alive = "10m"
         };

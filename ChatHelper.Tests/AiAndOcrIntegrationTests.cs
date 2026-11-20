@@ -78,11 +78,16 @@ public static class AiAndOcrIntegrationTests
             "PARAM,temperature,일관성,0.15,Y\n";
         Assert(OllamaService.Instance.ParseAiRulesFromCsv(sampleRulesCsv), "ParseAiRulesFromCsv should succeed on 5-column DB CSV");
 
-        // 사칙연산 계산기 검증 ("5 * 10 =" -> "50")
+        // 사칙연산 계산기 검증 ("5 * 10 =" -> "50", "(100 - 20) / 4 =" -> "20", "50000 * 0.9 =" -> "45000")
         Assert(MathCalcHelper.TryEvaluate("5 * 10 =", out string calcRes, out string calcEq) && calcRes == "50" && calcEq == "5 * 10 = 50",
             $"Expected '50' and '5 * 10 = 50', got '{calcRes}' / '{calcEq}'");
         Assert(MathCalcHelper.TryEvaluate("12000 + 3000", out string sumRes, out _) && sumRes == "15000",
             $"Expected '15000', got '{sumRes}'");
+        Assert(MathCalcHelper.TryEvaluate("(100 - 20) / 4 =", out string divRes, out _) && divRes == "20",
+            $"Expected '20', got '{divRes}'");
+        Assert(MathCalcHelper.TryEvaluate("50000 * 0.9 =", out string decRes, out _) && decRes == "45000",
+            $"Expected '45000', got '{decRes}'");
+        Console.WriteLine($"  [MathCalc Direct Test] '5 * 10 =' => '{calcRes}' ('{calcEq}'), '(100 - 20) / 4 =' => '{divRes}', '50000 * 0.9 =' => '{decRes}'");
 
         var existingKeywords = new[] { "qa", "wtt", "ai1" };
         string longCustomerQuery = "상담 중 안내해 드린 상세 내용은 고객님의 등록된 휴대폰 번호로도 알림톡 발송해 드렸습니다.";
@@ -120,6 +125,17 @@ public static class AiAndOcrIntegrationTests
                 $"RAG answer should be non-empty without '답장:' prefix, got '{ragAnswer}'");
             Assert(!ragAnswer.Contains("폴더"),
                 $"RAG answer should normalize alias '폴더' to official term '폴드', got '{ragAnswer}'");
+
+            // Ollama 통한 사칙연산 호출 및 순수 한->영 번역(톤앤매너 미적용) 직접 테스트
+            string aiMath = await OllamaService.Instance.GenerateCsAnswerAsync("5 * 10 =");
+            Console.WriteLine($"  [Ollama Math Calc] '5 * 10 =' => '{aiMath}'");
+            Assert(aiMath == "50", $"Expected '50' from GenerateCsAnswerAsync('5 * 10 ='), got '{aiMath}'");
+
+            string koSource = "주문하신 상품이 오늘 발송되었습니다.";
+            string enTranslated = await OllamaService.Instance.TranslateKoToEnAsync(koSource);
+            Console.WriteLine($"  [Ollama Ko->En Translation] '{koSource}' => '{enTranslated}'");
+            Assert(!string.IsNullOrWhiteSpace(enTranslated) && Regex.IsMatch(enTranslated, @"[A-Za-z]{3,}"),
+                $"Expected valid English translation, got '{enTranslated}'");
         }
         else
         {

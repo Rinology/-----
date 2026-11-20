@@ -275,7 +275,7 @@
                                     </StackPanel>
 
                                     <CheckBox x:Name="ChkEnableMathCalc" Content="🧮 사칙연산 자동 계산 기능 사용 (예: 5 * 10 = 입력 시 50 즉시 추천)" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
-                                    <CheckBox x:Name="ChkEnableTranslation" Content="🌐 한글 ➔ 영문 실시간 번역 및 시트 학습 기능 사용 (채택 시 구글 시트에 자동 학습)" Margin="8,8,0,2" IsChecked="False" FontWeight="SemiBold"/>
+                                    <CheckBox x:Name="ChkEnableTranslation" Content="🌐 한글 ➔ 영문 실시간 번역 기능 사용 (톤앤매너 미적용 순수 번역)" Margin="8,8,0,2" IsChecked="False" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

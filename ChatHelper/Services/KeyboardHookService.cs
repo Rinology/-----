@@ -548,7 +548,7 @@ public class KeyboardHookService : IDisposable
                 else if (cleanHangul.StartsWith("번역 ")) cleanHangul = cleanHangul[3..].Trim();
 
                 string aiAnswer = isTranslationMode
-                    ? await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, glossaryMatches, token)
+                    ? await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, token)
                     : await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
                 sw.Stop();
 
