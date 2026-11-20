@@ -196,14 +196,14 @@ public static class Win32Api
             return false;
 
         // 3. 표준 Win32 캐럿(Caret) 위치 시도 (메모장, 카카오톡 기본 입력창 등)
+        // ※ Chromium/Chrome 브라우저에서는 hwndCaret이 항상 IntPtr.Zero이며, rcCaret 더미 좌표가 상단 탭을 가리키므로 실제 hwndCaret이 있을 때만 적용
         var gui = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
-        if (GetGUIThreadInfo(tid, ref gui))
+        if (GetGUIThreadInfo(tid, ref gui) && gui.hwndCaret != IntPtr.Zero)
         {
-            IntPtr caretHwnd = gui.hwndCaret != IntPtr.Zero ? gui.hwndCaret : gui.hwndFocus;
-            if (caretHwnd != IntPtr.Zero && (gui.rcCaret.Left != 0 || gui.rcCaret.Top != 0 || gui.rcCaret.Bottom != 0))
+            if (gui.rcCaret.Left != 0 || gui.rcCaret.Top != 0 || gui.rcCaret.Bottom != 0)
             {
                 var pt = new POINT { X = gui.rcCaret.Left, Y = gui.rcCaret.Bottom };
-                if (ClientToScreen(caretHwnd, ref pt) && pt.X > 0 && pt.Y > 0)
+                if (ClientToScreen(gui.hwndCaret, ref pt) && pt.X > 0 && pt.Y > 0)
                 {
                     x = pt.X;
                     y = pt.Y;
@@ -220,13 +220,14 @@ public static class Win32Api
             if (mPt.X >= rcWin.Left && mPt.X <= rcWin.Right && mPt.Y >= rcWin.Top && mPt.Y <= rcWin.Bottom)
             {
                 x = mPt.X;
-                y = mPt.Y + 16;
+                // 채팅창 하단 입력창 영역에 마우스가 있으면 마우스 바로 위(45px 위)에 띄워 텍스트를 가리지 않음
+                y = mPt.Y > rcWin.Bottom - 180 ? mPt.Y - 45 : mPt.Y + 16;
                 return true;
             }
 
-            // 마우스가 창 밖에 있으면 창 하단 입력창 위치(바닥에서 80px 위)로 자연스럽게 배치
-            x = Math.Max(rcWin.Left + 50, 100);
-            y = Math.Max(rcWin.Bottom - 90, rcWin.Top + 100);
+            // 마우스가 창 밖에 있거나 상단에 있으면 Google Chat 하단 입력창 위치(바닥에서 95px 위)로 자연스럽게 배치
+            x = Math.Max(rcWin.Left + 80, 100);
+            y = Math.Max(rcWin.Bottom - 95, rcWin.Top + 100);
             return true;
         }
 

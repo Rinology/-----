@@ -19,7 +19,7 @@ public partial class MainWindow : Window
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
-    private readonly QuickSearchWindow _quickSearchWindow;
+    private QuickSearchWindow? _quickSearchWindow;
     private QuickAiWindow? _quickAiWindow;
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
@@ -48,7 +48,6 @@ public partial class MainWindow : Window
         _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);
-        _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
 
         if (!PerformInitialLogin())
         {
@@ -232,14 +231,6 @@ public partial class MainWindow : Window
         {
             _ = Task.Run(() => TryAutoUploadAiSelectionAsync(item));
         };
-
-        _quickSearchWindow.ItemSelected += (item, targetHwnd) =>
-        {
-            Task.Run(() =>
-            {
-                TextInjectionService.FastPasteText(item.Content, targetHwnd);
-            });
-        };
     }
 
     private void UpdateStatusUi()
@@ -279,18 +270,18 @@ public partial class MainWindow : Window
             _suggestionBar.Hide();
         }
 
-        LblSubStatus.Text = $"👤 계정: {userId} ({planInfo})   |   📋 템플릿: {_templateManager.Templates.Count}개   |   ⌨️ 완성키: {keyHint}";
+        LblSubStatus.Text = $"👤 {userId} ({planInfo})  |  ⌨️ {keyHint}";
 
         // 스프레드시트 동기화 및 AI 모드 실시간 상태 표시
-        LblSyncStatus.Text = $"  |  🔄 시트: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개 최신)";
+        LblSyncStatus.Text = $"  |  🔄 시트: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
         if (_configManager.Config.EnableLocalAi)
         {
-            LblAiStatus.Text = "  |  🤖 AI: ON (qwen2.5)";
+            LblAiStatus.Text = "🤖 AI: ON";
             LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
         }
         else
         {
-            LblAiStatus.Text = "  |  🤖 AI: OFF";
+            LblAiStatus.Text = "🤖 AI: OFF";
             LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#707070"));
         }
     }
@@ -409,6 +400,15 @@ public partial class MainWindow : Window
         if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
         {
             hwnd = _hookService.LastTargetHwnd;
+        }
+
+        if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
+        {
+            _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
+            _quickSearchWindow.ItemSelected += (item, target) =>
+            {
+                Task.Run(() => TextInjectionService.FastPasteText(item.Content, target));
+            };
         }
 
         _quickSearchWindow.ShowAtCursor(hwnd);
@@ -672,7 +672,7 @@ public partial class MainWindow : Window
         _hookService.Stop();
         _trayIconService?.Dispose();
         _suggestionBar.Close();
-        _quickSearchWindow.Close();
+        _quickSearchWindow?.Close();
         _quickAiWindow?.Close();
         _glossaryWindow?.Close();
         _controlPanelWindow?.Close();

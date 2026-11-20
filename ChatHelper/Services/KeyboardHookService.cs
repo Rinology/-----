@@ -109,7 +109,8 @@ public class KeyboardHookService : IDisposable
 
             // 한국어 한/영 전환키(Right Alt: 0xA5, VK_HANGUL: 0x15)는 단축키 조합키로 취급하지 않음
             bool isHangulKey = (vkCode == 0x15 || vkCode == 0xA5);
-            bool isLeftAltPressed = !isHangulKey && ((GetAsyncKeyState(0xA4) & 0x8000) != 0); // VK_LMENU = 0xA4
+            int flags = Marshal.ReadInt32(lParam + 8);
+            bool isLeftAltPressed = !isHangulKey && (((flags & 0x20) != 0) || ((GetAsyncKeyState(0xA4) & 0x8000) != 0));
             bool isCtrlPressed = (GetAsyncKeyState(Win32Api.VK_CONTROL) & 0x8000) != 0;
             bool isWinPressed = (GetAsyncKeyState(Win32Api.VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(Win32Api.VK_RWIN) & 0x8000) != 0;
             bool isShiftPressed = (GetAsyncKeyState(Win32Api.VK_SHIFT) & 0x8000) != 0;

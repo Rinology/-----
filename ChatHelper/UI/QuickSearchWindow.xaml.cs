@@ -35,23 +35,12 @@ public partial class QuickSearchWindow : Window
             }
         }
         catch { }
-
-        Deactivated += QuickSearchWindow_Deactivated;
     }
 
-    private void QuickSearchWindow_Deactivated(object? sender, EventArgs e)
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        // 사용자가 Alt+Q를 누르고 손을 뗄 때 발생하는 일시적 포커스 플리커(Focus Flicker)로 창이 닫히는 현상 방지 (450ms 유예)
-        if ((DateTime.UtcNow - _openedAt).TotalMilliseconds < 450)
-        {
-            return;
-        }
-
-        // 모달창이나 메시지박스가 열려있는 중이 아니라면 포커스 상실 시 닫기
-        if (!_isActionModalOpen && IsVisible)
-        {
-            Hide();
-        }
+        e.Cancel = true;
+        Hide();
     }
 
     public void ShowAtCursor(IntPtr targetHwnd)
