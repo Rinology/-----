@@ -278,43 +278,52 @@
 
                                     <CheckBox x:Name="ChkShowStatusWindow" Content="화면 우측 하단 및 작업표시줄에 실행 상태표시창 항상 보이기" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
                                     <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 우측 하단 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
-
-                                    <CheckBox x:Name="ChkAutoUploadAi" Content="🤖 AI 추천 답변 선택 시 자동으로 구글 스프레드시트에 정리 후 등록" Margin="8,10,0,2" IsChecked="False" FontWeight="SemiBold"/>
-                                    <TextBlock Text="  (체크 시 \+A 또는 클릭으로 AI 추천을 채택할 때마다 Ollama가 단축키·제목을 정리해 시트에 자동 추가합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 탭 4: 시트 연동 및 업로드 -->
-                <TabItem Header="☁️ 시트 연동 &amp; 라이선스" Padding="16,8">
+                <!-- 탭 4: 데이터 동기화 & 계정 -->
+                <TabItem Header="🔄 동기화 &amp; 계정" Padding="16,8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="16">
-                            <!-- 사용자 라이선스 -->
+                            <!-- 구글 스프레드시트 주기적 자동 동기화 설정 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="현재 로그온 사용자 계정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock x:Name="LblCurrentUserInfo" Text="로그인 정보 로드 중..." FontSize="13" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,10"/>
-                                    <Button Content="👤 다른 사용자로 다시 로그온..." Style="{DynamicResource ThemeButtonStyle}" MinWidth="200" Height="34" HorizontalAlignment="Left" Click="BtnRelogin_Click"/>
+                                    <TextBlock Text="1. 구글 스프레드시트 최신 정보 자동 동기화 주기" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="관리자가 구글 스프레드시트에서 수정한 단축키, 답변 문구, 용어집을 백그라운드에서 자동으로 다운로드하여 항상 최신 상태로 유지합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="자동 갱신 주기:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,12,0"/>
+                                        <ComboBox x:Name="CmbAutoSyncInterval" Width="200" Height="32" VerticalContentAlignment="Center" FontSize="13">
+                                            <ComboBoxItem Content="5분마다 자동 갱신" Tag="5"/>
+                                            <ComboBoxItem Content="10분마다 자동 갱신" Tag="10"/>
+                                            <ComboBoxItem Content="15분마다 자동 갱신 (권장)" Tag="15"/>
+                                            <ComboBoxItem Content="30분마다 자동 갱신" Tag="30"/>
+                                            <ComboBoxItem Content="60분(1시간)마다 갱신" Tag="60"/>
+                                            <ComboBoxItem Content="자동 갱신 사용 안 함 (수동)" Tag="0"/>
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <Border Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                                        <StackPanel>
+                                            <TextBlock Text="💡 무소음 &amp; Zero-Lag 보장" FontWeight="Bold" FontSize="12" Foreground="#374151" Margin="0,0,0,4"/>
+                                            <TextBlock Text="• 상담원이 고객과 대화 중일 때도 키보드 타이핑 렉이 전혀 발생하지 않도록 백그라운드 스레드에서 조용히 갱신됩니다." FontSize="11" Foreground="#6B7280" TextWrapping="Wrap"/>
+                                            <TextBlock Text="• 동기화 주기와 상관없이 아래 버튼을 누르면 언제든지 지금 즉시 최신 정보를 가져올 수 있습니다." FontSize="11" Foreground="#6B7280" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Button Content="🔄 지금 즉시 최신 정보 동기화 실행" Style="{DynamicResource ThemeButtonStyle}" MinWidth="230" Height="36" HorizontalAlignment="Left" Click="BtnSyncAll_Click"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- 구글 스프레드시트 배포 URL -->
+                            <!-- 사용자 라이선스 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="구글 스프레드시트 양방향 연동 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-
-                                    <TextBlock Text="1. 템플릿 다운로드 CSV 웹게시 링크:" FontSize="12" FontWeight="SemiBold" Margin="0,6,0,3"/>
-                                    <TextBox x:Name="TxtTemplateUrl" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" Margin="0,0,0,10"/>
-
-                                    <TextBlock Text="2. 유저 라이선스 CSV 웹게시 링크:" FontSize="12" FontWeight="SemiBold" Margin="0,6,0,3"/>
-                                    <TextBox x:Name="TxtUserUrl" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" Margin="0,0,0,10"/>
-
-                                    <TextBlock Text="3. 스프레드시트 신규 템플릿/자연어 업로드 웹앱 URL (Google Apps Script):" FontSize="12" FontWeight="SemiBold" Margin="0,6,0,3"/>
-                                    <TextBox x:Name="TxtUploadUrl" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" Margin="0,0,0,14"/>
-
-                                    <Button Content="🔄 구글 시트에서 전체 최신 동기화 실행" Style="{DynamicResource ThemeButtonStyle}" MinWidth="260" Height="36" HorizontalAlignment="Left" Click="BtnSyncAll_Click"/>
+                                    <TextBlock Text="2. 현재 로그온 사용자 계정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="LblCurrentUserInfo" Text="로그인 정보 로드 중..." FontSize="13" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,10"/>
+                                    <Button Content="👤 다른 사용자로 다시 로그온..." Style="{DynamicResource ThemeButtonStyle}" MinWidth="200" Height="34" HorizontalAlignment="Left" Click="BtnRelogin_Click"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

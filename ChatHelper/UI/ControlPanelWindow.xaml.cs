@@ -122,12 +122,20 @@ public partial class ControlPanelWindow : Window
         UpdateSlashOnlyLock();
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
-        ChkAutoUploadAi.IsChecked = cfg.AutoUploadAiSelection;
 
-        // 4. 시트 및 유저 정보
-        TxtTemplateUrl.Text = cfg.RemoteCsvUrl ?? "";
-        TxtUserUrl.Text = cfg.UserCsvUrl ?? "";
-        TxtUploadUrl.Text = cfg.SheetUploadUrl ?? "";
+        // 4. 자동 동기화 주기 및 유저 정보
+        int syncInterval = cfg.AutoSyncIntervalMinutes;
+        int comboIdx = syncInterval switch
+        {
+            5 => 0,
+            10 => 1,
+            15 => 2,
+            30 => 3,
+            60 => 4,
+            0 => 5,
+            _ => 2 // 기본값 15분
+        };
+        CmbAutoSyncInterval.SelectedIndex = comboIdx;
         UpdateUserInfoDisplay();
 
         // 5. 하단 상태표시줄
@@ -275,14 +283,10 @@ public partial class ControlPanelWindow : Window
         }
     }
 
-    // --- 시트 동기화 & 다시 로그온 ---
+    // --- 최신 정보 동기화 & 다시 로그온 ---
     private async void BtnSyncAll_Click(object sender, RoutedEventArgs e)
     {
-        LblStatusBar.Text = "구글 시트에서 전체 동기화 진행 중...";
-        _configManager.Config.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
-        _configManager.Config.UserCsvUrl = TxtUserUrl.Text.Trim();
-        _configManager.Config.SheetUploadUrl = TxtUploadUrl.Text.Trim();
-        _configManager.Save();
+        LblStatusBar.Text = "구글 시트에서 최신 정보 동기화 진행 중...";
 
         var tTask = _templateManager.SyncFromRemoteAsync();
         var uTask = _authService.SyncUserListFromRemoteAsync();
@@ -297,7 +301,7 @@ public partial class ControlPanelWindow : Window
         UpdateUserInfoDisplay();
 
         MessageBox.Show($"{tMsg}\n{uMsg}", "동기화 결과", MessageBoxButton.OK, MessageBoxImage.Information);
-        LblStatusBar.Text = "전체 동기화 완료.";
+        LblStatusBar.Text = "최신 정보 동기화 완료.";
     }
 
     private void BtnRelogin_Click(object sender, RoutedEventArgs e)
@@ -383,10 +387,13 @@ public partial class ControlPanelWindow : Window
         else cfg.StatusWindowOpacity = 1.0;
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
-        cfg.AutoUploadAiSelection = ChkAutoUploadAi.IsChecked == true;
-        cfg.RemoteCsvUrl = TxtTemplateUrl.Text.Trim();
-        cfg.UserCsvUrl = TxtUserUrl.Text.Trim();
-        cfg.SheetUploadUrl = TxtUploadUrl.Text.Trim();
+
+        // 자동 동기화 주기 저장
+        if (CmbAutoSyncInterval.SelectedItem is ComboBoxItem selectedSync &&
+            int.TryParse(selectedSync.Tag?.ToString(), out int minutes))
+        {
+            cfg.AutoSyncIntervalMinutes = minutes;
+        }
 
         _configManager.Save();
         SettingsChanged?.Invoke();

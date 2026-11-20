@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
+    private System.Threading.Timer? _periodicSyncTimer;
 
     public MainWindow()
     {
@@ -94,6 +95,7 @@ public partial class MainWindow : Window
 
         InitTrayService();
         _hookService.Start();
+        InitPeriodicSyncTimer();
 
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
         _ = Task.Run(async () =>
@@ -389,6 +391,7 @@ public partial class MainWindow : Window
             _controlPanelWindow.SettingsChanged += () =>
             {
                 UpdateStatusUi();
+                RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)
                     ShowStatusWindow();
                 else
@@ -424,8 +427,47 @@ public partial class MainWindow : Window
     private async Task SyncRemoteAsync()
     {
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
+        await _glossaryService.SyncFromRemoteAsync();
+        await OllamaService.Instance.SyncRemoteAiRulesAsync();
         UpdateStatusUi();
         _trayIconService?.ShowBalloon("구글 시트 동기화", msg);
+    }
+
+    /// <summary>
+    /// 구글 스프레드시트 최신 템플릿/용어집을 백그라운드에서 주기적으로 조용히 자동 다운로드(기본 15분)
+    /// 사용자의 타이핑 렉(Zero-Lag)에 전혀 영향을 주지 않고 안전하게 최신 정보 유지
+    /// </summary>
+    private void InitPeriodicSyncTimer()
+    {
+        int minutes = _configManager.Config.AutoSyncIntervalMinutes;
+        if (minutes <= 0) return; // 0이면 비활성화
+
+        var interval = TimeSpan.FromMinutes(minutes);
+        _periodicSyncTimer = new System.Threading.Timer(async _ =>
+        {
+            try
+            {
+                var (success, _) = await _templateManager.SyncFromRemoteAsync();
+                await _glossaryService.SyncFromRemoteAsync();
+                await OllamaService.Instance.SyncRemoteAiRulesAsync();
+
+                if (success)
+                {
+                    Dispatcher.BeginInvoke(UpdateStatusUi);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PeriodicSync] 주기적 갱신 실패: {ex.Message}");
+            }
+        }, null, interval, interval);
+    }
+
+    private void RestartPeriodicSyncTimer()
+    {
+        _periodicSyncTimer?.Dispose();
+        _periodicSyncTimer = null;
+        InitPeriodicSyncTimer();
     }
 
     private async Task TryAutoUploadAiSelectionAsync(TemplateItem item)
@@ -459,6 +501,7 @@ public partial class MainWindow : Window
 
     private void ExitApp()
     {
+        _periodicSyncTimer?.Dispose();
         _hookService.Stop();
         _trayIconService?.Dispose();
         _suggestionBar.Close();
