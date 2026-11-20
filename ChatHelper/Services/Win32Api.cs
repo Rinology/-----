@@ -30,6 +30,7 @@ public static class Win32Api
     public const int VK_SHIFT = 0x10;
     public const int VK_CONTROL = 0x11;
     public const int VK_MENU = 0x12; // ALT
+    public const int VK_HANGUL = 0x15;
     public const int VK_ESCAPE = 0x1B;
     public const int VK_SPACE = 0x20;
     public const int VK_HOME = 0x24;
@@ -37,9 +38,24 @@ public static class Win32Api
     public const int VK_UP = 0x26;
     public const int VK_RIGHT = 0x27;
     public const int VK_DOWN = 0x28;
+    public const int VK_0 = 0x30;
+    public const int VK_1 = 0x31;
+    public const int VK_9 = 0x39;
+    public const int VK_A = 0x41;
+    public const int VK_Q = 0x51;
     public const int VK_V = 0x56;
+    public const int VK_X = 0x58;
+    public const int VK_Z = 0x5A;
+    public const int VK_NUMPAD0 = 0x60;
+    public const int VK_NUMPAD9 = 0x69;
     public const int VK_LWIN = 0x5B;
     public const int VK_RWIN = 0x5C;
+    public const int VK_LMENU = 0xA4;
+    public const int VK_RMENU = 0xA5;
+    public const int VK_OEM_5 = 0xDC; // '\'
+    public const int VK_PROCESSKEY = 0xE5;
+    public const int SCAN_Q = 0x10;
+    public const int SCAN_X = 0x2D;
 
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint MAPVK_VK_TO_VSC = 0x00;

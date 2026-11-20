@@ -53,4 +53,12 @@ public static class AppConstants
     public const string NoticeSlashOnly = "※ '\\' 단독 즉시 실행 모드에서는 1번 항목이 즉시 치환되므로 추천 알약 형태가 [단일 알약 툴팁]으로 자동 고정됩니다.";
     public const string DefaultTriggerKey = "\\";
     public const string DefaultGlobalHotkey = "Alt+Q";
+
+    // 구글 스프레드시트 기본 식별자 및 URL 빌더
+    public const string DefaultPublishedSheetId = "2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6";
+    public const string DefaultTemplateGid = "1212205674";
+    public const string DefaultGlossaryGid = "661663576";
+
+    public static string BuildPublishedCsvUrl(string sheetId, string gid) =>
+        $"https://docs.google.com/spreadsheets/d/e/{sheetId}/pub?gid={gid}&single=true&output=csv";
 }

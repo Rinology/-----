@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Channels;
 using ChatHelper.Models;
 
 namespace ChatHelper.Services;
@@ -37,10 +38,16 @@ public class KeyboardHookService : IDisposable
 
     // 일정 시간(3.5초) 입력이 없으면 추천 알약을 자동으로 숨기는 타이머
     private readonly System.Threading.Timer _autoHideTimer;
-    // 자연어 입력 시 Ollama + 시트 의미 검색을 디바운스(450ms)로 실행하는 타이머
+    // 자연어 입력 시 Ollama + 시트 의미 검색을 디바운스(300ms)로 실행하는 타이머
     private readonly System.Threading.Timer _aiDebounceTimer;
     private CancellationTokenSource? _aiCts;
     private string _pendingAiRaw = string.Empty;
+
+    // WH_KEYBOARD_LL 훅 콜백 지연을 0.1ms 미만으로 유지하기 위한 백그라운드 키 이벤트 채널
+    private readonly Channel<(int VkCode, bool IsShift, IntPtr Hwnd)> _keyChannel =
+        Channel.CreateUnbounded<(int, bool, IntPtr)>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly CancellationTokenSource _workerCts = new();
+    private volatile bool _hasCandidates = false;
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -53,6 +60,7 @@ public class KeyboardHookService : IDisposable
         _suggestionEngine = new SuggestionEngine(templateManager, null, glossaryService);
         _autoHideTimer = new System.Threading.Timer(OnAutoHideTimerElapsed, null, Timeout.Infinite, Timeout.Infinite);
         _aiDebounceTimer = new System.Threading.Timer(OnAiDebounceElapsed, null, Timeout.Infinite, Timeout.Infinite);
+        _ = Task.Run(ProcessKeyChannelAsync);
     }
 
     private void OnAutoHideTimerElapsed(object? state)
@@ -97,8 +105,8 @@ public class KeyboardHookService : IDisposable
             int vkCode = Marshal.ReadInt32(lParam);
             int scanCode = Marshal.ReadInt32(lParam + 4);
 
-            // Chrome, Google Chat, Edge 등 브라우저의 한글 IME 조합 중(0xE5: VK_PROCESSKEY)일 때 물리 키코드로 완벽 복원
-            if (vkCode == 0xE5)
+            // Chrome, Google Chat, Edge 등 브라우저의 한글 IME 조합 중(VK_PROCESSKEY)일 때 물리 키코드로 복원
+            if (vkCode == Win32Api.VK_PROCESSKEY)
             {
                 int mapped = Win32Api.MapVirtualKey((uint)scanCode, Win32Api.MAPVK_VSC_TO_VK_EX);
                 if (mapped > 0)
@@ -107,16 +115,16 @@ public class KeyboardHookService : IDisposable
                 }
             }
 
-            // 한국어 한/영 전환키(Right Alt: 0xA5, VK_HANGUL: 0x15)는 단축키 조합키로 취급하지 않음
-            bool isHangulKey = (vkCode == 0x15 || vkCode == 0xA5);
+            // 한국어 한/영 전환키(Right Alt: VK_RMENU, VK_HANGUL)는 단축키 조합키로 취급하지 않음
+            bool isHangulKey = (vkCode == Win32Api.VK_HANGUL || vkCode == Win32Api.VK_RMENU);
             int flags = Marshal.ReadInt32(lParam + 8);
-            bool isLeftAltPressed = !isHangulKey && (((flags & 0x20) != 0) || ((GetAsyncKeyState(0xA4) & 0x8000) != 0));
+            bool isLeftAltPressed = !isHangulKey && (((flags & 0x20) != 0) || ((GetAsyncKeyState(Win32Api.VK_LMENU) & 0x8000) != 0));
             bool isCtrlPressed = (GetAsyncKeyState(Win32Api.VK_CONTROL) & 0x8000) != 0;
             bool isWinPressed = (GetAsyncKeyState(Win32Api.VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(Win32Api.VK_RWIN) & 0x8000) != 0;
             bool isShiftPressed = (GetAsyncKeyState(Win32Api.VK_SHIFT) & 0x8000) != 0;
 
             // Alt + Q 수동 검색창 호출 (왼쪽 Alt + Q)
-            if (isLeftAltPressed && !isCtrlPressed && (vkCode == 0x51 || scanCode == 0x10))
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_Q || scanCode == Win32Api.SCAN_Q))
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 GlobalHotkeyTriggered?.Invoke(fgHwnd);
@@ -124,7 +132,7 @@ public class KeyboardHookService : IDisposable
             }
 
             // Alt + X 로컬 AI 상담 비서 호출 (왼쪽 Alt + X)
-            if (isLeftAltPressed && !isCtrlPressed && (vkCode == 0x58 || scanCode == 0x2D))
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_X || scanCode == Win32Api.SCAN_X))
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 AiHotkeyTriggered?.Invoke(fgHwnd);
@@ -137,136 +145,153 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // Ctrl, 왼쪽 Alt, Win 조합 단축키(예: Ctrl+C, Ctrl+V, Alt+Tab 등) 입력 시 버퍼 초기화 및 무시
-            // ※ 한/영 전환키(Right Alt)는 절대 버퍼를 초기화하지 않아야 구글채팅, 카카오톡, 메모장에서 완벽 작동함!
+            // Ctrl, 왼쪽 Alt, Win 조합 단축키 입력 시 백그라운드 버퍼 초기화 요청
             if (isCtrlPressed || isLeftAltPressed || isWinPressed)
             {
-                lock (_lock)
+                if (_hasCandidates)
                 {
-                    if (_buffer.Length > 0 || _currentCandidates.Count > 0)
-                    {
-                        _buffer.Clear();
-                        ClearCandidates();
-                    }
+                    _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
                 }
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            if (ProcessKeyDown(vkCode, isShiftPressed))
+            // 후보가 떠 있을 때의 완성 트리거(\, Tab, Shift+Space, 1~9, A)만 훅 스레드에서 즉시 가로채기
+            if (_hasCandidates && TryHandleCompletionTrigger(vkCode, isShiftPressed))
             {
-                return (IntPtr)1; // 키 가로채기 (Eat)
+                return (IntPtr)1;
+            }
+
+            // 일반 키 입력은 채널로 즉시 위임해 OS 훅 콜백 지연(<0.1ms) 최소화
+            if ((vkCode >= Win32Api.VK_A && vkCode <= Win32Api.VK_Z) ||
+                (vkCode >= Win32Api.VK_0 && vkCode <= Win32Api.VK_9) ||
+                (vkCode >= Win32Api.VK_NUMPAD0 && vkCode <= Win32Api.VK_NUMPAD9) ||
+                vkCode is Win32Api.VK_OEM_5 or Win32Api.VK_BACK or Win32Api.VK_SPACE
+                or Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
+                or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
+            {
+                _keyChannel.Writer.TryWrite((vkCode, isShiftPressed, Win32Api.GetForegroundWindow()));
             }
         }
 
         return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    private bool ProcessKeyDown(int vkCode, bool isShiftPressed)
+    private bool TryHandleCompletionTrigger(int vkCode, bool isShiftPressed)
     {
         lock (_lock)
         {
-            IntPtr currentHwnd = Win32Api.GetForegroundWindow();
-
-            // 활성 창이 바뀌었으면 이전 입력 버퍼 초기화
-            if (_lastTargetHwnd != IntPtr.Zero && _lastTargetHwnd != currentHwnd)
-            {
-                _buffer.Clear();
-                ClearCandidates();
-            }
-            _lastTargetHwnd = currentHwnd;
+            if (_currentCandidates.Count == 0)
+                return false;
 
             string mode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
-            bool isSlashHeld = (GetAsyncKeyState(0xDC) & 0x8000) != 0;
+            bool isSlashHeld = (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0;
 
-            // 1. 추천 칩이 떠 있을 때의 완성 트리거 처리
-            if (_currentCandidates.Count > 0)
+            if (mode == "ShiftSpace" && isShiftPressed && vkCode == Win32Api.VK_SPACE)
             {
-                // 모드 B: Shift + Space 완성
-                if (mode == "ShiftSpace" && isShiftPressed && vkCode == Win32Api.VK_SPACE)
+                CompleteSelection(_currentCandidates[0], _currentMatchedLen);
+                return true;
+            }
+
+            if (vkCode == Win32Api.VK_OEM_5)
+            {
+                if (mode == "SlashOnly")
                 {
                     CompleteSelection(_currentCandidates[0], _currentMatchedLen);
                     return true;
                 }
 
-                // '\' (0xDC) 키가 눌렸을 때
-                if (vkCode == 0xDC)
-                {
-                    if (mode == "SlashOnly")
-                    {
-                        // '\' 단독 누름 시 즉시 1번 후보 완성
-                        CompleteSelection(_currentCandidates[0], _currentMatchedLen);
-                        return true;
-                    }
+                _triggerArmed = true;
+                _autoHideTimer.Change(3500, Timeout.Infinite);
+                return true;
+            }
 
-                    // SlashTab 모드: 화면에 '\'가 쳐지지 않게 가로채고 완성 준비 상태(_triggerArmed)로 전환
-                    _triggerArmed = true;
-                    _autoHideTimer.Change(3500, Timeout.Infinite);
+            if (vkCode == Win32Api.VK_TAB)
+            {
+                if (isSlashHeld || _triggerArmed)
+                {
+                    CompleteSelection(_currentCandidates[0], _currentMatchedLen);
                     return true;
                 }
 
-                // Tab 키가 눌렸을 때
-                if (vkCode == Win32Api.VK_TAB)
-                {
-                    if (isSlashHeld || _triggerArmed)
-                    {
-                        CompleteSelection(_currentCandidates[0], _currentMatchedLen);
-                        return true;
-                    }
-                    else
-                    {
-                        // 일반 Tab 키는 100% 통과시키고 추천 칩만 닫음
-                        _buffer.Clear();
-                        ClearCandidates();
-                        return false;
-                    }
-                }
-
-                // 1~9 숫자 키 선택 (\ 누른 직후 1~9 또는 \ 누른 채 1~9)
-                if (_configManager.Config.EnableNumberSelection && (isSlashHeld || _triggerArmed) && vkCode >= 0x31 && vkCode <= 0x39)
-                {
-                    int index = vkCode - 0x31;
-                    if (index < _currentCandidates.Count)
-                    {
-                        CompleteSelection(_currentCandidates[index], _currentMatchedLen);
-                        return true;
-                    }
-                }
-
-                // \ + A : AI 추천 항목 즉시 선택 (Tab/숫자 외 전용 키)
-                if ((isSlashHeld || _triggerArmed) && vkCode == 0x41)
-                {
-                    var aiCandidate = _currentCandidates.FirstOrDefault(c => c.Category == "AI생성");
-                    if (aiCandidate != null)
-                    {
-                        CompleteSelection(aiCandidate, _currentMatchedLen);
-                        return true;
-                    }
-                }
-            }
-
-            _triggerArmed = false;
-
-            // 2. 백스페이스
-            if (vkCode == Win32Api.VK_BACK)
-            {
-                if (_buffer.Length > 0)
-                {
-                    _buffer.Length--;
-                }
-                EvaluateCandidates();
-                return false;
-            }
-
-            // 3. 엔터, ESC, 방향키 -> 단어/문장 종료로 간주하여 버퍼 및 알약 초기화
-            if (vkCode is Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
-                or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
-            {
                 _buffer.Clear();
                 ClearCandidates();
                 return false;
             }
 
-            // 스페이스: Shift+Space 모드가 아니고 이미 입력 중인 버퍼가 있으면 자연어 구문("화난 고객 달래주기") 지원
+            if (_configManager.Config.EnableNumberSelection && (isSlashHeld || _triggerArmed) &&
+                vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)
+            {
+                int index = vkCode - Win32Api.VK_1;
+                if (index < _currentCandidates.Count)
+                {
+                    CompleteSelection(_currentCandidates[index], _currentMatchedLen);
+                    return true;
+                }
+            }
+
+            if ((isSlashHeld || _triggerArmed) && vkCode == Win32Api.VK_A)
+            {
+                var aiCandidate = _currentCandidates.FirstOrDefault(c => c.Category == "AI생성");
+                if (aiCandidate != null)
+                {
+                    CompleteSelection(aiCandidate, _currentMatchedLen);
+                    return true;
+                }
+            }
+
+            _triggerArmed = false;
+            return false;
+        }
+    }
+
+    private async Task ProcessKeyChannelAsync()
+    {
+        try
+        {
+            await foreach (var (vkCode, isShiftPressed, currentHwnd) in _keyChannel.Reader.ReadAllAsync(_workerCts.Token))
+            {
+                ProcessBufferedKeyDown(vkCode, isShiftPressed, currentHwnd);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            AppLogger.Error("KeyboardHookService", "키 이벤트 워커 예외", ex);
+        }
+    }
+
+    private void ProcessBufferedKeyDown(int vkCode, bool isShiftPressed, IntPtr currentHwnd)
+    {
+        lock (_lock)
+        {
+            if (currentHwnd != IntPtr.Zero)
+            {
+                if (_lastTargetHwnd != IntPtr.Zero && _lastTargetHwnd != currentHwnd)
+                {
+                    _buffer.Clear();
+                    ClearCandidates();
+                }
+                _lastTargetHwnd = currentHwnd;
+            }
+
+            _triggerArmed = false;
+
+            if (vkCode == Win32Api.VK_BACK)
+            {
+                if (_buffer.Length > 0)
+                    _buffer.Length--;
+                EvaluateCandidates();
+                return;
+            }
+
+            if (vkCode is Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
+                or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
+            {
+                _buffer.Clear();
+                ClearCandidates();
+                return;
+            }
+
             if (vkCode == Win32Api.VK_SPACE)
             {
                 if (_buffer.Length >= 2)
@@ -281,50 +306,43 @@ public class KeyboardHookService : IDisposable
                     _buffer.Clear();
                     ClearCandidates();
                 }
-                return false;
+                return;
             }
 
-            // 4. 일반 문자 입력 (영문 A-Z, 숫자 0-9, 기호 '\' 및 '₩')
             char? inputChar = null;
-            if (vkCode >= 0x41 && vkCode <= 0x5A) // A-Z
+            if (vkCode >= Win32Api.VK_A && vkCode <= Win32Api.VK_Z)
             {
                 inputChar = isShiftPressed ? char.ToUpper((char)vkCode) : char.ToLower((char)vkCode);
             }
-            else if (vkCode >= 0x30 && vkCode <= 0x39 && !isShiftPressed) // 숫자 0-9 (키보드 상단)
+            else if (vkCode >= Win32Api.VK_0 && vkCode <= Win32Api.VK_9 && !isShiftPressed)
             {
-                inputChar = (char)('0' + (vkCode - 0x30));
+                inputChar = (char)('0' + (vkCode - Win32Api.VK_0));
             }
-            else if (vkCode >= 0x60 && vkCode <= 0x69) // 숫자 0-9 (키패드)
+            else if (vkCode >= Win32Api.VK_NUMPAD0 && vkCode <= Win32Api.VK_NUMPAD9)
             {
-                inputChar = (char)('0' + (vkCode - 0x60));
+                inputChar = (char)('0' + (vkCode - Win32Api.VK_NUMPAD0));
             }
-            else if (vkCode == 0xDC) // '\' 또는 '₩'
+            else if (vkCode == Win32Api.VK_OEM_5)
             {
                 inputChar = '\\';
             }
 
             if (inputChar.HasValue)
             {
-                // 현재 창이 실제 입력 가능한 창인지 먼저 확인 (자기 자신 창이나 바탕화면이면 무시)
                 if (!Win32Api.TryGetValidInputPosition(out _, out _, out _))
                 {
                     _buffer.Clear();
                     ClearCandidates();
-                    return false;
+                    return;
                 }
 
                 _buffer.Append(inputChar.Value);
                 if (_buffer.Length > 30)
-                {
                     _buffer.Remove(0, _buffer.Length - 30);
-                }
 
                 EvaluateCandidates();
-                return false;
             }
         }
-
-        return false;
     }
 
     private void EvaluateCandidates()
@@ -393,6 +411,7 @@ public class KeyboardHookService : IDisposable
         _currentCandidates = list;
         _currentMatchedLen = matchedLen;
         _isNaturalLanguageMode = isNaturalLanguage;
+        _hasCandidates = list.Count > 0;
         _autoHideTimer.Change(5000, Timeout.Infinite);
         CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
     }
@@ -506,6 +525,7 @@ public class KeyboardHookService : IDisposable
             _aiCts?.Cancel();
         }
         _currentCandidates.Clear();
+        _hasCandidates = false;
         _currentMatchedLen = 0;
         _triggerArmed = false;
         RequestCloseCandidates?.Invoke();
@@ -513,6 +533,8 @@ public class KeyboardHookService : IDisposable
 
     public void Dispose()
     {
+        _workerCts.Cancel();
+        _keyChannel.Writer.TryComplete();
         _autoHideTimer.Dispose();
         _aiDebounceTimer.Dispose();
         _aiCts?.Cancel();

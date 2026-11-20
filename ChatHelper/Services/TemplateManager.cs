@@ -1,16 +1,18 @@
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 
 namespace ChatHelper.Services;
 
 public class TemplateManager
 {
-    public const string DefaultTemplateSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6/pub?gid=1212205674&single=true&output=csv";
+    public static string DefaultTemplateSheetUrl =>
+        AppConstants.BuildPublishedCsvUrl(AppConstants.DefaultPublishedSheetId, AppConstants.DefaultTemplateGid);
 
     private readonly ConfigManager _configManager;
-    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient _httpClient = HttpService.ExternalClient;
 
     public List<TemplateItem> Templates { get; private set; } = new();
 
@@ -28,17 +30,6 @@ public class TemplateManager
             csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
         }
 
-        // 로컬 캐시 파일이 없으면 구글 스프레드시트에서 동기화 시도
-        if (!File.Exists(csvPath))
-        {
-            try
-            {
-                var task = SyncFromRemoteAsync();
-                task.Wait(TimeSpan.FromSeconds(6));
-            }
-            catch { }
-        }
-
         if (File.Exists(csvPath))
         {
             try
@@ -48,7 +39,7 @@ public class TemplateManager
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[TemplateManager] 로컬 파일 로드 에러: {ex.Message}");
+                AppLogger.Warn("TemplateManager", "로컬 템플릿 캐시 로드 에러", ex);
             }
         }
 
@@ -238,24 +229,29 @@ public class TemplateManager
         }
 
         var q = query.Trim().ToLower();
+        bool isChoseong = HangulAssembler.IsChoseongQuery(q);
+        string qNoSpace = q.Replace(" ", "");
+
         return queryable.Where(t =>
-            (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.ToLower().Contains(q)) ||
-            (!string.IsNullOrEmpty(t.ContentKeyword) && t.ContentKeyword.ToLower().Contains(q)) ||
-            (!string.IsNullOrEmpty(t.Title) && t.Title.ToLower().Contains(q)) ||
-            (!string.IsNullOrEmpty(t.Content) && t.Content.ToLower().Contains(q)) ||
-            (!string.IsNullOrEmpty(t.Category) && t.Category.ToLower().Contains(q))
-        ).ToList();
+        {
+            if (isChoseong)
+            {
+                string kwCho = HangulAssembler.ExtractChoseong(t.Keyword).Replace(" ", "").ToLower();
+                string ckwCho = HangulAssembler.ExtractChoseong(t.ContentKeyword).Replace(" ", "").ToLower();
+                string titleCho = HangulAssembler.ExtractChoseong(t.Title).Replace(" ", "").ToLower();
+                if (kwCho.Contains(qNoSpace) || ckwCho.Contains(qNoSpace) || titleCho.Contains(qNoSpace))
+                    return true;
+            }
+
+            return (!string.IsNullOrEmpty(t.Keyword) && t.Keyword.ToLower().Contains(q)) ||
+                   (!string.IsNullOrEmpty(t.ContentKeyword) && t.ContentKeyword.ToLower().Contains(q)) ||
+                   (!string.IsNullOrEmpty(t.Title) && t.Title.ToLower().Contains(q)) ||
+                   (!string.IsNullOrEmpty(t.Content) && t.Content.ToLower().Contains(q)) ||
+                   (!string.IsNullOrEmpty(t.Category) && t.Category.ToLower().Contains(q));
+        }).ToList();
     }
 
-    private static string EscapeCsvField(string? value)
-    {
-        var v = value ?? string.Empty;
-        if (v.Contains(',') || v.Contains('"') || v.Contains('\n') || v.Contains('\r'))
-        {
-            return $"\"{v.Replace("\"", "\"\"")}\"";
-        }
-        return v;
-    }
+    private static string EscapeCsvField(string? value) => CsvHelperService.EscapeField(value);
 
     public async Task<(bool Success, string Message)> UploadTemplateToRemoteSheetAsync(TemplateItem item, string? note = null)
     {
@@ -293,63 +289,6 @@ public class TemplateManager
         return list;
     }
 
-    public static List<List<string>> ParseCsvRecords(string csvText)
-    {
-        var records = new List<List<string>>();
-        var currentRecord = new List<string>();
-        var currentField = new StringBuilder();
-        bool inQuotes = false;
-
-        for (int i = 0; i < csvText.Length; i++)
-        {
-            char c = csvText[i];
-            if (c == '\"')
-            {
-                if (inQuotes && i + 1 < csvText.Length && csvText[i + 1] == '\"')
-                {
-                    currentField.Append('\"');
-                    i++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                currentRecord.Add(currentField.ToString());
-                currentField.Clear();
-            }
-            else if ((c == '\r' || c == '\n') && !inQuotes)
-            {
-                if (c == '\r' && i + 1 < csvText.Length && csvText[i + 1] == '\n')
-                {
-                    i++;
-                }
-                currentRecord.Add(currentField.ToString());
-                currentField.Clear();
-
-                if (currentRecord.Any(f => !string.IsNullOrWhiteSpace(f)))
-                {
-                    records.Add(currentRecord);
-                }
-                currentRecord = new List<string>();
-            }
-            else
-            {
-                currentField.Append(c);
-            }
-        }
-
-        if (currentField.Length > 0 || currentRecord.Count > 0)
-        {
-            currentRecord.Add(currentField.ToString());
-            if (currentRecord.Any(f => !string.IsNullOrWhiteSpace(f)))
-            {
-                records.Add(currentRecord);
-            }
-        }
-
-        return records;
-    }
+    public static List<List<string>> ParseCsvRecords(string csvText) =>
+        CsvHelperService.ParseRecords(csvText);
 }

@@ -179,4 +179,48 @@ public static class HangulAssembler
         Flush();
         return sb.ToString();
     }
+
+    /// <summary>
+    /// 문자열에서 한글 음절의 초성을 추출합니다. (예: "반품 안내" -> "ㅂㅍ ㅇㄴ")
+    /// </summary>
+    public static string ExtractChoseong(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        var sb = new StringBuilder(input.Length);
+        foreach (char c in input)
+        {
+            if (c >= 0xAC00 && c <= 0xD7A3)
+            {
+                int choIdx = (c - 0xAC00) / (21 * 28);
+                sb.Append(Choseong[choIdx]);
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 검색어가 초성 자음(예: "ㅂㅍ")으로만 구성되어 있는지 확인합니다.
+    /// </summary>
+    public static bool IsChoseongQuery(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return false;
+        bool hasChoseong = false;
+        foreach (char c in query.Trim())
+        {
+            if (c == ' ') continue;
+            if (System.Array.IndexOf(Choseong, c) >= 0)
+            {
+                hasChoseong = true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return hasChoseong;
+    }
 }

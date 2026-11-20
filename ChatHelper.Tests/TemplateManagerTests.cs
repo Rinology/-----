@@ -78,6 +78,15 @@ public static class TemplateManagerTests
             // 3. 키워드 검색
             var searchResults = templateManager.Search("배송");
             Assert(searchResults.Count == 2, $"Search '배송' should find 2 items (교환 배송비 + 배송 일정), got {searchResults.Count}");
+
+            // 4. 초성 검색 (ㅎㅂ -> 환불, ㅎㅂㅈㅊ -> 환불 절차 안내)
+            Assert(HangulAssembler.IsChoseongQuery("ㅎㅂ"), "ㅎㅂ should be recognized as choseong query");
+            var choseongResults = templateManager.Search("ㅎㅂ");
+            Assert(choseongResults.Any(r => r.Keyword == "환불"),
+                $"Choseong search 'ㅎㅂ' should include '환불', got {choseongResults.Count}");
+            var exactChoResults = templateManager.Search("ㅎㅂㅈㅊ");
+            Assert(exactChoResults.Count == 1 && exactChoResults[0].Keyword == "환불",
+                $"Choseong search 'ㅎㅂㅈㅊ' should find 1 item '환불', got {exactChoResults.Count}");
         }
         finally
         {

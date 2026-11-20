@@ -38,10 +38,7 @@ public class OllamaService : IDisposable
         var configuredEndpoint = EnvService.Get("LOCAL_LLM_ENDPOINT", "http://localhost:11434");
         _baseUrl = NormalizeBaseUrl(configuredEndpoint);
         _modelName = EnvService.Get("LOCAL_LLM_MODEL", DefaultModel);
-        _httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(30)
-        };
+        _httpClient = HttpService.LocalLlmClient;
         LoadSystemRules();
     }
 
@@ -590,7 +587,9 @@ public class OllamaService : IDisposable
                 _ollamaProcess.Dispose();
             }
         }
-        catch { }
-        _httpClient.Dispose();
+        catch (Exception ex)
+        {
+            AppLogger.Warn("OllamaService", "Ollama 프로세스 종료 중 예외", ex);
+        }
     }
 }

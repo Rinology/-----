@@ -8,7 +8,7 @@ namespace ChatHelper.Services;
 public class AuthService
 {
     private readonly ConfigManager _configManager;
-    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    private readonly HttpClient _httpClient = HttpService.ExternalClient;
     private readonly object _userLock = new();
 
     public const string DefaultSheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTuIQPMJyX7V7ET37FjOe-mNcWtURoLt8wblf3tUVVZ0il4lzG2DbHw1GyTqOTkZLQDAgEKY39eHUuO/pub?gid=1989475712&single=true&output=csv";
@@ -49,7 +49,7 @@ public class AuthService
 
     public void ParseUserCsv(string csvContent)
     {
-        var records = TemplateManager.ParseCsvRecords(csvContent);
+        var records = CsvHelperService.ParseRecords(csvContent);
         if (records.Count <= 1) return;
 
         var header = records[0];

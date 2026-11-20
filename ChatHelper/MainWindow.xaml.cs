@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
+    private bool _isOfflineMode = false;
     private System.Threading.Timer? _periodicSyncTimer;
     private System.Windows.Threading.DispatcherTimer? _tickerTimer;
     private System.Windows.Threading.DispatcherTimer? _noticeTimer;
@@ -113,14 +114,20 @@ public partial class MainWindow : Window
             await _glossaryService.SyncFromRemoteAsync();
             await OllamaService.Instance.SyncRemoteAiRulesAsync();
             _ = OllamaService.Instance.WarmUpAsync();
-            if (success)
+            _isOfflineMode = !success;
+            Dispatcher.BeginInvoke(() =>
             {
-                Dispatcher.BeginInvoke(() =>
+                UpdateStatusUi();
+                if (success)
                 {
-                    UpdateStatusUi();
                     ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
-                });
-            }
+                }
+                else
+                {
+                    AppLogger.Warn("MainWindow", "초기 시트 동기화 실패 -> 오프라인(로컬 캐시) 모드 전환");
+                    ShowNoticeBadge("⚠️ 오프라인 (로컬 캐시)", "#800000");
+                }
+            });
         });
 
         if (!_configManager.Config.ShowStatusWindow)
@@ -255,17 +262,19 @@ public partial class MainWindow : Window
         if (isEnabled)
         {
             TxtTitleBar.Text = AppConstants.TitleStatusRunning;
-            StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00B000"));
-            LblRunningStatus.Text = AppConstants.StatusRunningText;
+            StatusDot.Fill = _isOfflineMode ? ThemeColors.StatusAmber : ThemeColors.StatusGreen;
+            LblRunningStatus.Text = _isOfflineMode
+                ? "⚠️ 오프라인 (로컬 캐시 사용 중)"
+                : AppConstants.StatusRunningText;
             LblRunningStatus.Foreground = (Brush)FindResource("ThemeText");
             BtnTogglePause.Content = "⏸️ 일시정지";
         }
         else
         {
             TxtTitleBar.Text = AppConstants.TitleStatusPaused;
-            StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D08000"));
+            StatusDot.Fill = ThemeColors.StatusAmber;
             LblRunningStatus.Text = AppConstants.StatusPausedText;
-            LblRunningStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#800000"));
+            LblRunningStatus.Foreground = ThemeColors.StatusDarkRed;
             BtnTogglePause.Content = "▶️ 다시켜기";
             _suggestionBar.Hide();
         }

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 
 namespace ChatHelper.Services;
@@ -16,11 +17,11 @@ namespace ChatHelper.Services;
 /// </summary>
 public class GlossaryService
 {
-    public const string DefaultGlossarySheetUrl =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6/pub?gid=661663576&single=true&output=csv";
+    public static string DefaultGlossarySheetUrl =>
+        AppConstants.BuildPublishedCsvUrl(AppConstants.DefaultPublishedSheetId, AppConstants.DefaultGlossaryGid);
 
     private readonly ConfigManager _configManager;
-    private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(12) };
+    private readonly HttpClient _httpClient = HttpService.ExternalClient;
     private readonly string _localCachePath;
 
     public List<GlossaryItem> Terms { get; private set; } = new();
@@ -53,7 +54,7 @@ public class GlossaryService
         var list = new List<GlossaryItem>();
         try
         {
-            var records = TemplateManager.ParseCsvRecords(csvText);
+            var records = CsvHelperService.ParseRecords(csvText);
             if (records.Count <= 1)
             {
                 Terms = list;
@@ -271,11 +272,5 @@ public class GlossaryService
         catch { }
     }
 
-    private static string Esc(string? s)
-    {
-        var v = s ?? "";
-        return (v.Contains(',') || v.Contains('"') || v.Contains('\n') || v.Contains('\r'))
-            ? $"\"{v.Replace("\"", "\"\"")}\""
-            : v;
-    }
+    private static string Esc(string? s) => CsvHelperService.EscapeField(s);
 }

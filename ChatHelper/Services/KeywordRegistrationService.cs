@@ -19,7 +19,7 @@ public class KeywordRegistrationService
     public KeywordRegistrationService(ConfigManager? configManager = null, HttpClient? httpClient = null)
     {
         _configManager = configManager;
-        _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        _httpClient = httpClient ?? HttpService.ExternalClient;
     }
 
     public string ResolveWebhookUrl()
