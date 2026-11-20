@@ -7,9 +7,12 @@ namespace ChatHelper.Services;
 public static class Win32Api
 {
     public const int WH_KEYBOARD_LL = 13;
+    public const int WH_MOUSE_LL = 14;
     public const int WM_KEYDOWN = 0x0100;
     public const int WM_KEYUP = 0x0101;
     public const int WM_SYSKEYDOWN = 0x0104;
+    public const int WM_LBUTTONDOWN = 0x0201;
+    public const int WM_RBUTTONDOWN = 0x0204;
     public const int WM_HOTKEY = 0x0312;
 
     public const uint MOD_ALT = 0x0001;
@@ -185,7 +188,7 @@ public static class Win32Api
     [DllImport("user32.dll")]
     public static extern bool DestroyMenu(IntPtr hMenu);
 
-    private static readonly uint CurrentProcessId = (uint)Process.GetCurrentProcess().Id;
+    public static readonly uint CurrentProcessId = (uint)Process.GetCurrentProcess().Id;
 
     /// <summary>
     /// 현재 포커스된 창이 유효한 외부 채팅/문서 입력 창인지 확인하고 위치를 구함.
@@ -285,4 +288,56 @@ public static class Win32Api
             if (attachedFg) AttachThreadInput(curTid, fgTid, false);
         }
     }
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT Point);
+
+    public const uint INPUT_KEYBOARD = 1;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUT_UNION
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+        [FieldOffset(0)] public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT
+    {
+        public uint type;
+        public INPUT_UNION u;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 }

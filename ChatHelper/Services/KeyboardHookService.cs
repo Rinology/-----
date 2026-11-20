@@ -16,6 +16,8 @@ public class KeyboardHookService : IDisposable
 
     private IntPtr _hookId = IntPtr.Zero;
     private Win32Api.HookProc? _hookProc;
+    private IntPtr _mouseHookId = IntPtr.Zero;
+    private Win32Api.HookProc? _mouseHookProc;
 
     private readonly StringBuilder _buffer = new();
     private readonly object _lock = new();
@@ -82,11 +84,13 @@ public class KeyboardHookService : IDisposable
         if (_hookId != IntPtr.Zero) return;
 
         _hookProc = HookCallback;
+        _mouseHookProc = MouseHookCallback;
         using var curProcess = Process.GetCurrentProcess();
         using var curModule = curProcess.MainModule;
         var hMod = Win32Api.GetModuleHandle(curModule?.ModuleName);
         _hookId = Win32Api.SetWindowsHookEx(Win32Api.WH_KEYBOARD_LL, _hookProc, hMod, 0);
-        Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. ID: {_hookId}");
+        _mouseHookId = Win32Api.SetWindowsHookEx(Win32Api.WH_MOUSE_LL, _mouseHookProc, hMod, 0);
+        Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. KB={_hookId}, Mouse={_mouseHookId}");
     }
 
     public void Stop()
@@ -96,8 +100,32 @@ public class KeyboardHookService : IDisposable
         {
             Win32Api.UnhookWindowsHookEx(_hookId);
             _hookId = IntPtr.Zero;
-            Debug.WriteLine("[KeyboardHook] 훅 해제 완료.");
         }
+        if (_mouseHookId != IntPtr.Zero)
+        {
+            Win32Api.UnhookWindowsHookEx(_mouseHookId);
+            _mouseHookId = IntPtr.Zero;
+        }
+    }
+
+    private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && wParam == (IntPtr)Win32Api.WM_LBUTTONDOWN && !_isReplacing)
+        {
+            // 마우스로 외부 창(다른 대화방/입력칸)을 클릭하면 이전 입력 버퍼 초기화 (SuggestionBar 자체 클릭은 예외)
+            int x = Marshal.ReadInt32(lParam);
+            int y = Marshal.ReadInt32(lParam + 4);
+            IntPtr clickedHwnd = Win32Api.WindowFromPoint(new Win32Api.POINT { X = x, Y = y });
+            if (clickedHwnd != IntPtr.Zero)
+            {
+                Win32Api.GetWindowThreadProcessId(clickedHwnd, out uint clickedPid);
+                if (clickedPid != Win32Api.CurrentProcessId)
+                {
+                    _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
+                }
+            }
+        }
+        return Win32Api.CallNextHookEx(_mouseHookId, nCode, wParam, lParam);
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -155,6 +183,15 @@ public class KeyboardHookService : IDisposable
                     _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
                 }
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
+            }
+
+            // 빠른 타이핑 직후 트리거 키(\, Tab, Space)가 들어왔을 때 채널에 대기 중인 앞 글자들을 즉시 플러시
+            if (IsPotentialTriggerKey(vkCode) && _keyChannel.Reader.TryPeek(out _))
+            {
+                while (_keyChannel.Reader.TryRead(out var pending))
+                {
+                    ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd);
+                }
             }
 
             // 후보가 떠 있을 때의 완성 트리거(\, Tab, Shift+Space, 1~9, A)만 훅 스레드에서 즉시 가로채기
