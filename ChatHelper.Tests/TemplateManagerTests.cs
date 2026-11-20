@@ -119,11 +119,15 @@ public static class TemplateManagerTests
 
             var templateManager = new TemplateManager(configManager);
 
-            // 트리거 키 + 키워드 매칭 테스트 ("\qv" 입력 시 백스페이스 대상 길이인 'qv'.Length = 2)
+            // 트리거 키 + 키워드 매칭 테스트 ("\qv" 및 "/qv" 입력 시 앞의 '\' 또는 '/' 포함 총 3글자가 치환 대상)
             var candidates = templateManager.FindMatchingCandidates("\\qv", out int matchedLen);
             Assert(candidates.Count >= 1, "Should find candidates starting with qv");
             Assert(candidates[0].Keyword == "qv", "First candidate should be 'qv'");
-            Assert(matchedLen == 2, $"Matched length should be 2 ('qv' to be erased), got {matchedLen}");
+            Assert(matchedLen == 3, $"Matched length should be 3 ('\\qv' to be erased), got {matchedLen}");
+
+            var slashCandidates = templateManager.FindMatchingCandidates("앞글자/qv", out int slashMatchedLen);
+            Assert(slashCandidates.Count >= 1 && slashCandidates[0].Keyword == "qv" && slashMatchedLen == 3,
+                $"Should match '/qv' even after prefix text with matchedLen=3, got {slashMatchedLen}");
         }
         finally
         {

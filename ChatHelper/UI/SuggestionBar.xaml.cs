@@ -15,8 +15,77 @@ public partial class SuggestionBar : Window
     private List<TemplateItem> _candidates = new();
     private int _matchedLen = 0;
     private IntPtr _targetHwnd = IntPtr.Zero;
+    private string _recognizedToken = string.Empty;
 
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
+
+    public void SetRecognizedToken(string token)
+    {
+        _recognizedToken = token ?? string.Empty;
+    }
+
+    public void ShowStatusNotice(string recognizedToken, string statusMode)
+    {
+        if (_configManager.Config.DisplayMode == "ManualOnly" || !_configManager.Config.IsEnabled)
+        {
+            Hide();
+            return;
+        }
+
+        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+        {
+            Hide();
+            return;
+        }
+
+        _recognizedToken = recognizedToken ?? string.Empty;
+        ItemsPanel.Children.Clear();
+        ItemsPanel.Visibility = Visibility.Collapsed;
+        TopAiRowPanel.Children.Clear();
+        TopAiRowPanel.Visibility = Visibility.Collapsed;
+        BottomAiRowPanel.Children.Clear();
+        BottomAiRowPanel.Visibility = Visibility.Collapsed;
+
+        ApplyRecognitionBanner(statusMode, _recognizedToken, _recognizedToken.Length);
+        RecognitionHeaderBorder.Margin = new Thickness(0);
+        RecognitionHeaderBorder.BorderThickness = new Thickness(0);
+
+        UpdateLayout();
+        Reposition(caretX, caretY);
+        Show();
+    }
+
+    private void ApplyRecognitionBanner(string statusMode, string token, int matchedLen)
+    {
+        RecognitionHeaderBorder.Visibility = Visibility.Visible;
+        RecognitionHeaderBorder.Margin = new Thickness(0, 0, 0, 4);
+        RecognitionHeaderBorder.BorderThickness = new Thickness(0, 0, 0, 1);
+
+        if (statusMode == "UNKNOWN")
+        {
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#991B1B"));
+            TxtRecognitionHeader.Text = $"❓ [알아듣지 못함] 인식된 입력: \"{token}\" (일치하는 키워드 없음)";
+        }
+        else if (statusMode == "WAITING")
+        {
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E"));
+            TxtRecognitionHeader.Text = string.IsNullOrWhiteSpace(token)
+                ? "⏳ [대기중] 커서 입력 대기 중..."
+                : $"⏳ [대기중] 입력 인식 중: \"{token}\"";
+        }
+        else
+        {
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E0F2FE"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
+            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#075985"));
+            string displayToken = string.IsNullOrWhiteSpace(token) ? $"{matchedLen}글자" : $"\"{token}\" ({matchedLen}글자 치환)";
+            TxtRecognitionHeader.Text = $"🔎 인식 구간: {displayToken}";
+        }
+    }
 
     public SuggestionBar(ConfigManager configManager)
     {
@@ -52,6 +121,8 @@ public partial class SuggestionBar : Window
         _matchedLen = matchedLen;
         _targetHwnd = targetHwnd;
 
+        ApplyRecognitionBanner("MATCH", _recognizedToken, matchedLen);
+
         var screenWidthForWrap = SystemParameters.PrimaryScreenWidth;
         ItemsPanel.MaxWidth = Math.Min(780, Math.Max(420, screenWidthForWrap * 0.56));
         ItemsPanel.Children.Clear();
@@ -83,8 +154,8 @@ public partial class SuggestionBar : Window
 
         MainBorder.Padding = mainPadding;
 
-        var sheetItems = candidates.Where(c => c.Category != "AI생성").ToList();
-        var aiItem = candidates.FirstOrDefault(c => c.Category == "AI생성");
+        var sheetItems = candidates.Where(c => c.Category != "AI생성" && c.Category != "AI번역").ToList();
+        var aiItem = candidates.FirstOrDefault(c => c.Category == "AI생성") ?? candidates.FirstOrDefault(c => c.Category == "AI번역");
 
         // '\' 단독 즉시 실행 모드이거나 InlinePill 모드인 경우 단일 알약으로 고정 (AI 추천은 별도 아래 줄에 표시)
         if (completeMode == "SlashOnly" || mode == "InlinePill")
@@ -262,14 +333,14 @@ public partial class SuggestionBar : Window
     public void UpdateAiCandidate(TemplateItem aiItem)
     {
         if (aiItem == null) return;
-        if (!_candidates.Any(c => c.Category == "AI생성"))
+        int existingIdx = _candidates.FindIndex(c => c.Category == aiItem.Category);
+        if (existingIdx >= 0)
         {
-            _candidates.Add(aiItem);
+            _candidates[existingIdx] = aiItem;
         }
         else
         {
-            int idx = _candidates.FindIndex(c => c.Category == "AI생성");
-            if (idx >= 0) _candidates[idx] = aiItem;
+            _candidates.Add(aiItem);
         }
 
         RenderAiRow(aiItem);
@@ -281,7 +352,7 @@ public partial class SuggestionBar : Window
         Show();
     }
 
-    private void RenderAiRow(TemplateItem aiItem)
+    private void RenderAiRow(TemplateItem _)
     {
         var targetPanel = (_configManager.Config.AiPlacement == "Top") ? TopAiRowPanel : BottomAiRowPanel;
         var otherPanel = (_configManager.Config.AiPlacement == "Top") ? BottomAiRowPanel : TopAiRowPanel;
@@ -290,6 +361,12 @@ public partial class SuggestionBar : Window
         otherPanel.Visibility = Visibility.Collapsed;
 
         targetPanel.Children.Clear();
+        var aiItems = _candidates.Where(c => c.Category == "AI생성" || c.Category == "AI번역").ToList();
+        if (aiItems.Count == 0)
+        {
+            targetPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
         targetPanel.Visibility = Visibility.Visible;
 
         var trigger = _configManager.Config.TriggerKey ?? "\\";
@@ -306,48 +383,61 @@ public partial class SuggestionBar : Window
         double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
         double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
         Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
-        int maxPreviewLen = scale switch { 1 => 35, 3 => 85, _ => 65 };
+        int maxPreviewLen = scale switch { 1 => 35, 3 => 75, _ => 55 };
 
-        var sheetItems = _candidates.Where(c => c.Category != "AI생성").ToList();
-        string aiKeyHint = sheetItems.Count == 0 ? tabKeyHint : $"{trigger}+A";
+        var sheetItems = _candidates.Where(c => c.Category != "AI생성" && c.Category != "AI번역").ToList();
 
-        var aiBadge = new Border
+        foreach (var item in aiItems)
         {
-            Background = (Brush)new BrushConverter().ConvertFromString("#1D4ED8")!,
-            BorderBrush = Brushes.Black,
-            BorderThickness = new Thickness(1),
-            Padding = badgePadding,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        aiBadge.Child = new TextBlock
-        {
-            Text = aiKeyHint,
-            Foreground = Brushes.White,
-            FontSize = badgeFontSize,
-            FontWeight = FontWeights.Bold,
-            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
-        };
-        targetPanel.Children.Add(aiBadge);
+            bool isTrans = item.Category == "AI번역";
+            string keyHint = (sheetItems.Count == 0 && item == aiItems[0])
+                ? tabKeyHint
+                : (isTrans ? $"{trigger}+E" : $"{trigger}+A");
 
-        var aiPreview = aiItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
-        if (aiPreview.Length > maxPreviewLen) aiPreview = aiPreview[..maxPreviewLen] + "...";
+            string badgeHex = isTrans ? "#047857" : "#1D4ED8";
+            string bgHex = isTrans ? "#ECFDF5" : "#EFF6FF";
+            string prefixLabel = isTrans ? "🌐 영문 번역" : "🤖 AI 추천";
 
-        var aiBtn = new Button
-        {
-            Content = $"🤖 AI 추천: \"{aiPreview}\"",
-            Foreground = Brushes.Black,
-            Background = (Brush)new BrushConverter().ConvertFromString("#EFF6FF")!,
-            BorderBrush = (Brush)new BrushConverter().ConvertFromString("#1D4ED8")!,
-            BorderThickness = new Thickness(1),
-            Padding = badgePadding,
-            Cursor = Cursors.Hand,
-            FontSize = contentFontSize - 1,
-            FontWeight = FontWeights.SemiBold,
-            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
-            Focusable = false
-        };
-        aiBtn.Click += (s, e) => SelectItem(aiItem);
-        targetPanel.Children.Add(aiBtn);
+            var aiBadge = new Border
+            {
+                Background = (Brush)new BrushConverter().ConvertFromString(badgeHex)!,
+                BorderBrush = Brushes.Black,
+                BorderThickness = new Thickness(1),
+                Padding = badgePadding,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            aiBadge.Child = new TextBlock
+            {
+                Text = keyHint,
+                Foreground = Brushes.White,
+                FontSize = badgeFontSize,
+                FontWeight = FontWeights.Bold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+            };
+            targetPanel.Children.Add(aiBadge);
+
+            var aiPreview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
+            if (aiPreview.Length > maxPreviewLen) aiPreview = aiPreview[..maxPreviewLen] + "...";
+
+            var aiBtn = new Button
+            {
+                Content = $"{prefixLabel}: \"{aiPreview}\"",
+                Foreground = Brushes.Black,
+                Background = (Brush)new BrushConverter().ConvertFromString(bgHex)!,
+                BorderBrush = (Brush)new BrushConverter().ConvertFromString(badgeHex)!,
+                BorderThickness = new Thickness(1),
+                Padding = badgePadding,
+                Margin = new Thickness(0, 0, 10, 0),
+                Cursor = Cursors.Hand,
+                FontSize = contentFontSize - 1,
+                FontWeight = FontWeights.SemiBold,
+                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                Focusable = false
+            };
+            var captured = item;
+            aiBtn.Click += (s, e) => SelectItem(captured);
+            targetPanel.Children.Add(aiBtn);
+        }
     }
 
     private void Reposition(double caretX, double caretY)

@@ -29,10 +29,12 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
+    public event Action<string, string>? RecognitionStateChanged;
 
     public IntPtr LastTargetHwnd => _lastTargetHwnd;
     public bool IsNaturalLanguageMode => _isNaturalLanguageMode;
     public bool HasActiveCandidates => _hasCandidates;
+    public string LastRecognizedToken { get; private set; } = string.Empty;
     private List<TemplateItem> _currentCandidates = new();
     private int _currentMatchedLen = 0;
     private bool _isNaturalLanguageMode = false;
@@ -224,6 +226,7 @@ public class KeyboardHookService : IDisposable
         vkCode == Win32Api.VK_TAB ||
         vkCode == Win32Api.VK_SPACE ||
         vkCode == Win32Api.VK_A ||
+        vkCode == Win32Api.VK_E ||
         (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9);
 
     private int GetAutoHideTimeoutMs() =>
@@ -290,6 +293,16 @@ public class KeyboardHookService : IDisposable
                 if (aiCandidate != null)
                 {
                     CompleteSelection(aiCandidate, _currentMatchedLen);
+                    return true;
+                }
+            }
+
+            if ((isSlashHeld || _triggerArmed) && vkCode == Win32Api.VK_E)
+            {
+                var transCandidate = _currentCandidates.FirstOrDefault(c => c.Category == "AI번역");
+                if (transCandidate != null)
+                {
+                    CompleteSelection(transCandidate, _currentMatchedLen);
                     return true;
                 }
             }
@@ -405,6 +418,13 @@ public class KeyboardHookService : IDisposable
                     return;
                 }
 
+                // '\' 또는 '/' 단축어 시작 기호를 입력한 경우(수식 입력 중이 아닐 때) 이전 잔여 버퍼를 비워 \dz, /dz 즉시 인식 보장
+                if (inputChar.Value == '\\' ||
+                    (inputChar.Value == '/' && !MathCalcHelper.LooksLikePartialMath(_buffer.ToString())))
+                {
+                    _buffer.Clear();
+                }
+
                 _buffer.Append(inputChar.Value);
                 if (_buffer.Length > 30)
                     _buffer.Remove(0, _buffer.Length - 30);
@@ -417,8 +437,19 @@ public class KeyboardHookService : IDisposable
     private void EvaluateCandidates()
     {
         var raw = _buffer.ToString();
-        if (string.IsNullOrWhiteSpace(raw) || raw.Trim().Length < 2)
+        if (string.IsNullOrWhiteSpace(raw))
         {
+            LastRecognizedToken = string.Empty;
+            RecognitionStateChanged?.Invoke(string.Empty, "WAITING");
+            ClearCandidates();
+            return;
+        }
+
+        if (raw.Trim().Length < 2)
+        {
+            string partial = HangulAssembler.ConvertQwertyToHangul(raw.Trim());
+            LastRecognizedToken = partial;
+            RecognitionStateChanged?.Invoke(partial, "WAITING");
             ClearCandidates();
             return;
         }
@@ -427,6 +458,8 @@ public class KeyboardHookService : IDisposable
         if (_configManager.Config.EnableMathCalc &&
             MathCalcHelper.TryEvaluate(raw, out string calcVal, out string calcEq))
         {
+            LastRecognizedToken = raw.Trim();
+            RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
             var mathList = new List<TemplateItem>
             {
                 new TemplateItem
@@ -450,22 +483,26 @@ public class KeyboardHookService : IDisposable
             return;
         }
 
-        // 1. 영문 단축키 즉시 매칭 (예: qa, wtt)
+        // 1. 영문 단축키 즉시 매칭 (예: qa, \dz, /dz, ed)
         var list = _templateManager.FindMatchingCandidates(raw, out int matchedLen);
         if (list.Count > 0)
         {
+            LastRecognizedToken = raw.Trim();
+            RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
             ShowCandidateList(list, matchedLen, isNaturalLanguage: false);
             ScheduleBackgroundAi(raw, "");
             return;
         }
 
         // 2. 한글 조합 변환 후 한글 단축키 즉시 매칭 (예: 반품, 환불)
-        string hangul = HangulAssembler.ConvertQwertyToHangul(raw).Trim();
+        string hangul = HangulAssembler.ConvertQwertyToHangul(raw).Trim().TrimStart('\\', '/');
         if (!string.IsNullOrWhiteSpace(hangul) && hangul.Length >= 2)
         {
             var hangulList = _templateManager.FindMatchingCandidates(hangul, out int hMatchedLen);
             if (hangulList.Count > 0)
             {
+                LastRecognizedToken = hangul;
+                RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
                 ShowCandidateList(hangulList, hMatchedLen, isNaturalLanguage: true);
                 ScheduleBackgroundAi(raw, hangul);
                 return;
@@ -475,18 +512,49 @@ public class KeyboardHookService : IDisposable
             var fuzzyPills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 5);
             if (fuzzyPills.Count > 0)
             {
+                LastRecognizedToken = hangul;
+                RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
                 ShowCandidateList(fuzzyPills, hangul.Length, isNaturalLanguage: true);
-            }
-            else
-            {
-                ClearCandidates(cancelAi: false);
+                ScheduleBackgroundAi(raw, hangul);
+                return;
             }
 
+            // 매칭된 템플릿이 없고 자모 나열(예: ㅁㄴㅇㄹ, ㅋㅋㅋ)이거나 AI가 꺼져 있으면 [알아듣지 못함] 알림 표시
+            LastRecognizedToken = hangul;
+            if (IsUnrecognizedGibberish(hangul) || !_configManager.Config.EnableLocalAi)
+            {
+                ClearCandidates(cancelAi: true);
+                RecognitionStateChanged?.Invoke(hangul, "UNKNOWN");
+                _autoHideTimer.Change(2500, Timeout.Infinite);
+                return;
+            }
+
+            ClearCandidates(cancelAi: false);
+            RecognitionStateChanged?.Invoke(hangul, "WAITING");
             ScheduleBackgroundAi(raw, hangul);
             return;
         }
 
-        ClearCandidates();
+        LastRecognizedToken = raw.Trim();
+        ClearCandidates(cancelAi: true);
+        RecognitionStateChanged?.Invoke(LastRecognizedToken, "UNKNOWN");
+        _autoHideTimer.Change(2500, Timeout.Infinite);
+    }
+
+    private static bool IsUnrecognizedGibberish(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        // 완성형 한글 음절(가~힣)이나 영문/숫자가 하나도 없고 단자음/단모음(ㄱ~ㅎ, ㅏ~ㅣ)만으로 이루어진 경우
+        bool hasSyllable = false;
+        foreach (char c in text)
+        {
+            if (c >= 0xAC00 && c <= 0xD7A3)
+            {
+                hasSyllable = true;
+                break;
+            }
+        }
+        return !hasSyllable;
     }
 
     private void ScheduleBackgroundAi(string raw, string hangul)
@@ -540,50 +608,69 @@ public class KeyboardHookService : IDisposable
                 if (!await OllamaService.Instance.IsServerRespondingAsync())
                     return;
 
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                bool isTranslationMode = _configManager.Config.EnableKoToEnTranslation ||
-                                         hangul.StartsWith("영문 ") || hangul.StartsWith("번역 ");
+                bool wantTranslation = _configManager.Config.EnableKoToEnTranslation ||
+                                       hangul.StartsWith("영문 ") || hangul.StartsWith("번역 ");
+                bool wantCsAi = _configManager.Config.EnableLocalAi &&
+                                !hangul.StartsWith("영문 ") && !hangul.StartsWith("번역 ");
+
                 string cleanHangul = hangul;
                 if (cleanHangul.StartsWith("영문 ")) cleanHangul = cleanHangul[3..].Trim();
                 else if (cleanHangul.StartsWith("번역 ")) cleanHangul = cleanHangul[3..].Trim();
 
-                string aiAnswer = isTranslationMode
-                    ? await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, token)
-                    : await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
-                sw.Stop();
-
-                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(aiAnswer)) return;
-
-                var aiItem = new TemplateItem
+                // 1) AI 추천 답변 (한국어 CS) 생성
+                if (wantCsAi)
                 {
-                    Keyword = cleanHangul,
-                    ContentKeyword = isTranslationMode ? $"영문번역,{cleanHangul}" : hangul,
-                    Title = isTranslationMode ? $"🌐 영문 번역 ({cleanHangul})" : "🤖 AI 추천 답변",
-                    Content = aiAnswer,
-                    Category = "AI생성"
-                };
-
-                lock (_lock)
-                {
-                    if (_buffer.ToString() != targetRaw) return;
-
-                    // 현재 후보 목록에 AI 추천 추가
-                    if (!_currentCandidates.Any(c => c.Category == "AI생성"))
+                    string csAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
+                    if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(csAnswer))
                     {
-                        _currentCandidates.Add(aiItem);
-                    }
-                    else
-                    {
-                        int idx = _currentCandidates.FindIndex(c => c.Category == "AI생성");
-                        if (idx >= 0) _currentCandidates[idx] = aiItem;
+                        var csItem = new TemplateItem
+                        {
+                            Keyword = hangul,
+                            ContentKeyword = hangul,
+                            Title = "🤖 AI 추천 답변",
+                            Content = csAnswer,
+                            Category = "AI생성"
+                        };
+                        AddOrUpdateDynamicCandidate(targetRaw, csItem);
+                        AiCandidateReady?.Invoke(csItem, hangul.Length, targetHwnd);
                     }
                 }
 
-                // AI 후보 준비 완료 알림
-                AiCandidateReady?.Invoke(aiItem, hangul.Length, targetHwnd);
+                // 2) 영문 번역 동시 생성 (AI 답변 추천과 영문 번역을 동시에 켜도 둘 다 함께 표시!)
+                if (wantTranslation && !token.IsCancellationRequested)
+                {
+                    string enAnswer = await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, token);
+                    if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(enAnswer))
+                    {
+                        var transItem = new TemplateItem
+                        {
+                            Keyword = cleanHangul,
+                            ContentKeyword = $"영문번역,{cleanHangul}",
+                            Title = $"🌐 영문 번역 ({cleanHangul})",
+                            Content = enAnswer,
+                            Category = "AI번역"
+                        };
+                        AddOrUpdateDynamicCandidate(targetRaw, transItem);
+                        AiCandidateReady?.Invoke(transItem, hangul.Length, targetHwnd);
+                    }
+                }
             }
             catch { }
         }, token);
+    }
+
+    private void AddOrUpdateDynamicCandidate(string expectedRaw, TemplateItem item)
+    {
+        lock (_lock)
+        {
+            if (_buffer.ToString() != expectedRaw) return;
+            int idx = _currentCandidates.FindIndex(c => c.Category == item.Category);
+            if (idx >= 0)
+                _currentCandidates[idx] = item;
+            else
+                _currentCandidates.Add(item);
+            _hasCandidates = _currentCandidates.Count > 0;
+        }
     }
 
     private void CompleteSelection(TemplateItem item, int deleteCount)

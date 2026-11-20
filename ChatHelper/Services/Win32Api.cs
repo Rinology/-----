@@ -47,6 +47,7 @@ public static class Win32Api
     public const int VK_8 = 0x38;
     public const int VK_9 = 0x39;
     public const int VK_A = 0x41;
+    public const int VK_E = 0x45;
     public const int VK_Q = 0x51;
     public const int VK_V = 0x56;
     public const int VK_X = 0x58;

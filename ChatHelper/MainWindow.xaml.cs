@@ -110,11 +110,13 @@ public partial class MainWindow : Window
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
         _ = Task.Run(async () =>
         {
-            var (success, _) = await _templateManager.SyncFromRemoteAsync();
+            var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
             await _glossaryService.SyncFromRemoteAsync();
             await OllamaService.Instance.SyncRemoteAiRulesAsync();
             _ = OllamaService.Instance.WarmUpAsync();
-            _isOfflineMode = !success;
+            // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
+            _isOfflineMode = !success && _templateManager.Templates.Count == 0;
+            if (success) _lastSyncTime = DateTime.Now;
             Dispatcher.BeginInvoke(() =>
             {
                 UpdateStatusUi();
@@ -124,8 +126,7 @@ public partial class MainWindow : Window
                 }
                 else
                 {
-                    AppLogger.Warn("MainWindow", "초기 시트 동기화 실패 -> 오프라인(로컬 캐시) 모드 전환");
-                    ShowNoticeBadge("⚠️ 오프라인 (로컬 캐시)", "#800000");
+                    AppLogger.Warn("MainWindow", $"초기 시트 동기화 실패 ({syncMsg}) -> 로컬 캐시({_templateManager.Templates.Count}개) 사용");
                 }
             });
         });
@@ -186,7 +187,35 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 if (_hookService.HasActiveCandidates)
+                {
+                    _suggestionBar.SetRecognizedToken(_hookService.LastRecognizedToken);
                     _suggestionBar.ShowCandidates(candidates, matchedLen, targetHwnd);
+                }
+            });
+        };
+
+        _hookService.RecognitionStateChanged += (token, statusMode) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _suggestionBar.SetRecognizedToken(token);
+                if (!_configManager.Config.IsEnabled) return;
+
+                if (statusMode == "UNKNOWN")
+                {
+                    LblRunningStatus.Text = $"❓ [알아듣지 못함] 인식됨: \"{token}\"";
+                    _suggestionBar.ShowStatusNotice(token, "UNKNOWN");
+                }
+                else if (statusMode == "WAITING")
+                {
+                    LblRunningStatus.Text = string.IsNullOrWhiteSpace(token)
+                        ? "자동완성 작동 중 [⏳ 대기중]"
+                        : $"⏳ [대기중] 입력 감지: \"{token}\"";
+                }
+                else if (statusMode == "MATCH")
+                {
+                    LblRunningStatus.Text = $"🔎 인식됨: \"{token}\"";
+                }
             });
         };
 
@@ -589,6 +618,7 @@ public partial class MainWindow : Window
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         await _glossaryService.SyncFromRemoteAsync();
         await OllamaService.Instance.SyncRemoteAiRulesAsync();
+        _isOfflineMode = !success && _templateManager.Templates.Count == 0;
         _lastSyncTime = DateTime.Now;
         UpdateStatusUi();
         if (success)
@@ -618,6 +648,7 @@ public partial class MainWindow : Window
 
                 if (success)
                 {
+                    _isOfflineMode = false;
                     _lastSyncTime = DateTime.Now;
                     Dispatcher.BeginInvoke(() =>
                     {

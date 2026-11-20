@@ -172,34 +172,44 @@ public class TemplateManager
             url = DefaultTemplateSheetUrl;
         }
 
-        try
+        for (int attempt = 1; attempt <= 2; attempt++)
         {
-            var response = await _httpClient.GetStringAsync(url);
-            if (string.IsNullOrWhiteSpace(response))
-            {
-                return (false, "구글 스프레드시트 응답이 비어있습니다.");
-            }
-
-            var count = ParseTemplatesFromCsv(response);
-
-            // 로컬 캐시 파일 보관
             try
             {
-                var csvPath = _configManager.Config.CsvFilePath;
-                if (!Path.IsPathRooted(csvPath))
+                var response = await _httpClient.GetStringAsync(url);
+                if (string.IsNullOrWhiteSpace(response))
                 {
-                    csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
+                    return (false, "구글 스프레드시트 응답이 비어있습니다.");
                 }
-                await File.WriteAllTextAsync(csvPath, response, Encoding.UTF8);
-            }
-            catch { }
 
-            return (true, $"동기화 성공! {count}개 템플릿을 불러왔습니다.");
+                var count = ParseTemplatesFromCsv(response);
+
+                // 로컬 캐시 파일 보관
+                try
+                {
+                    var csvPath = _configManager.Config.CsvFilePath;
+                    if (!Path.IsPathRooted(csvPath))
+                    {
+                        csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
+                    }
+                    await File.WriteAllTextAsync(csvPath, response, Encoding.UTF8);
+                }
+                catch { }
+
+                return (true, $"동기화 성공! {count}개 템플릿을 불러왔습니다.");
+            }
+            catch (Exception ex)
+            {
+                if (attempt == 2)
+                {
+                    AppLogger.Warn("TemplateManager", $"시트 동기화 실패 ({url})", ex);
+                    return (false, $"동기화 실패: {ex.Message}");
+                }
+                await Task.Delay(800);
+            }
         }
-        catch (Exception ex)
-        {
-            return (false, $"동기화 실패: {ex.Message}");
-        }
+
+        return (false, "동기화 실패");
     }
 
     public List<string> GetCategories()
@@ -266,11 +276,20 @@ public class TemplateManager
             return new List<TemplateItem>();
 
         var token = rawToken.Trim().ToLower();
+        int prefixLen = 0;
 
+        // '\dz', '/dz', 또는 문장 중간에 입력된 '\dz', '/dz' 모두 정확히 추출
+        int lastSlashIdx = token.LastIndexOfAny(new[] { '\\', '/' });
         var trigger = _configManager.Config.TriggerKey ?? "\\";
-        if (!string.IsNullOrEmpty(trigger) && token.StartsWith(trigger))
+        if (lastSlashIdx >= 0)
+        {
+            token = token[(lastSlashIdx + 1)..];
+            prefixLen = 1;
+        }
+        else if (!string.IsNullOrEmpty(trigger) && token.StartsWith(trigger))
         {
             token = token[trigger.Length..];
+            prefixLen = trigger.Length;
         }
 
         if (string.IsNullOrEmpty(token) || token.Length < 2)
@@ -283,7 +302,8 @@ public class TemplateManager
 
         if (list.Count > 0)
         {
-            matchedLen = token.Length;
+            // 앞에 입력한 '\' 또는 '/' 기호까지 함께 지워지도록 prefixLen 합산
+            matchedLen = token.Length + prefixLen;
         }
 
         return list;

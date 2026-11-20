@@ -21,6 +21,9 @@
             <DropShadowEffect BlurRadius="0" Direction="315" ShadowDepth="2" Opacity="0.45"/>
         </Border.Effect>
         <StackPanel Orientation="Vertical">
+            <Border x:Name="RecognitionHeaderBorder" Background="#E5E7EB" BorderBrush="#9CA3AF" BorderThickness="0,0,0,1" Padding="6,2" Margin="0,0,0,4" Visibility="Collapsed">
+                <TextBlock x:Name="TxtRecognitionHeader" Text="🔎 인식됨: " FontSize="11" FontWeight="Bold" Foreground="#1F2937" FontFamily="Tahoma, Gulim, Segoe UI"/>
+            </Border>
             <StackPanel x:Name="TopAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,5" Visibility="Collapsed">
                 <!-- 🤖 AI 추천 상단 배치 라인 -->
             </StackPanel>
