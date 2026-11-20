@@ -215,7 +215,7 @@ public class OllamaService : IDisposable
     /// </summary>
     public async Task<bool> SyncRemoteAiRulesAsync(CancellationToken cancellationToken = default)
     {
-        var url = EnvService.Get("AI_RULES_SHEET_URL");
+        var url = DataSourceResolver.AiRulesUrl;
         if (string.IsNullOrWhiteSpace(url))
             url = DefaultAiRulesSheetUrl;
 

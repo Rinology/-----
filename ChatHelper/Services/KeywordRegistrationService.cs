@@ -24,11 +24,9 @@ public class KeywordRegistrationService
 
     public string ResolveWebhookUrl()
     {
-        var envUrl = EnvService.Get("SHEET_WRITE_WEBHOOK_URL");
-        if (!string.IsNullOrWhiteSpace(envUrl) && !envUrl.Contains("YOUR_DEPLOYMENT_ID", StringComparison.OrdinalIgnoreCase))
-        {
-            return envUrl.Trim();
-        }
+        // 활성 프로필 → .env 순
+        var resolved = DataSourceResolver.WebhookUrl;
+        if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
 
         var cfgUrl = _configManager?.Config.SheetUploadUrl?.Trim();
         if (!string.IsNullOrWhiteSpace(cfgUrl))
@@ -78,7 +76,10 @@ public class KeywordRegistrationService
             contentKeyword,
             title,
             content,
-            category
+            category,
+            target = "template",
+            sheetName = DataSourceResolver.TemplateSheetName,
+            spreadsheetUrl = DataSourceResolver.SpreadsheetUrl
         };
 
         try

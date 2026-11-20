@@ -40,6 +40,7 @@ public partial class ControlPanelWindow : Window
         catch { }
 
         LoadData();
+        LoadProfiles();
         _isInitializing = false;
     }
 

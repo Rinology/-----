@@ -106,7 +106,7 @@ public class GlossaryService
 
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync(CancellationToken cancellationToken = default)
     {
-        var url = EnvService.Get("GLOSSARY_SHEET_URL");
+        var url = DataSourceResolver.GlossaryUrl;
         if (string.IsNullOrWhiteSpace(url))
             url = DefaultGlossarySheetUrl;
 
@@ -203,7 +203,9 @@ public class GlossaryService
 
         var payload = new
         {
-            sheetName = "용어집",
+            sheetName = DataSourceResolver.GlossarySheetName,
+            target = "glossary",
+            spreadsheetUrl = DataSourceResolver.SpreadsheetUrl,
             action = "append",
             term = item.Term.Trim(),
             aliases = item.Aliases?.Trim() ?? "",
@@ -229,7 +231,9 @@ public class GlossaryService
 
         var payload = new
         {
-            sheetName = "용어집",
+            sheetName = DataSourceResolver.GlossarySheetName,
+            target = "glossary",
+            spreadsheetUrl = DataSourceResolver.SpreadsheetUrl,
             action = "delete",
             term = term.Trim()
         };

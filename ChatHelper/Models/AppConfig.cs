@@ -58,6 +58,10 @@ public class AppConfig
     // 추천 알약 자동 숨김 시간 (초 단위, 3 ~ 20초, 기본 12초)
     public int AutoHideSeconds { get; set; } = 12;
 
+    // 데이터 소스 프로필 (상황/사용자별 키워드·톤앤매너·용어집 스프레드시트 전환). 비어 있으면 .env 기본값 사용
+    public List<DataSourceProfile> DataSourceProfiles { get; set; } = new();
+    public string ActiveDataSourceProfile { get; set; } = "";
+
     // 로컬 AI 사칙연산 계산 및 한->영 번역/학습 기능 ON/OFF
     public bool EnableMathCalc { get; set; } = true;
     public bool EnableKoToEnTranslation { get; set; } = false;

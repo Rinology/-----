@@ -162,7 +162,7 @@ public class TemplateManager
 
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync()
     {
-        var url = EnvService.Get("TEMPLATE_SHEET_URL");
+        var url = DataSourceResolver.TemplateUrl;
         if (string.IsNullOrWhiteSpace(url))
         {
             url = _configManager.Config.RemoteCsvUrl?.Trim();

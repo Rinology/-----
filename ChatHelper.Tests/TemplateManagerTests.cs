@@ -176,6 +176,16 @@ public static class TemplateManagerTests
             Assert(HangulAssembler.ConvertQwertyToHangul("qothddksso") == "배송안내",
                 $"Expected '배송안내', got '{HangulAssembler.ConvertQwertyToHangul("qothddksso")}'");
 
+            // Windows 한국어 IME 음절 확정/조합 상태별 Backspace 재현 테스트 ("가로형 " -> Backspace 2회 -> "형" 재입력 => "가로형")
+            var imeBuf = new HangulAssembler.HangulImeBuffer();
+            foreach (char c in "rkfhgud ") imeBuf.Append(c); // "가로형 "
+            Assert(imeBuf.GetHangulText() == "가로형 ", $"Expected '가로형 ', got '{imeBuf.GetHangulText()}'");
+            imeBuf.Backspace(); // 공백 삭제
+            imeBuf.Backspace(); // 확정된 '형' 음절 전체(gud)가 1번의 Backspace로 삭제되어야 함!
+            Assert(imeBuf.GetHangulText() == "가로", $"Expected '가로' after 2 backspaces, got '{imeBuf.GetHangulText()}'");
+            foreach (char c in "gud") imeBuf.Append(c); // '형' 재입력
+            Assert(imeBuf.GetHangulText() == "가로형", $"Expected '가로형' (no duplicate '가로형 형'), got '{imeBuf.GetHangulText()}'");
+
             var glossary = new GlossaryService(configManager, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "test_glossary.csv"));
             glossary.ParseGlossaryCsv("term,aliases,description,guide,category\n폴드,\"폴더, fold\",퀄리스포츠 접이식 전기자전거 모델입니다.,폴드 표기 유지,제품\n");
             var matchedTerms = glossary.FindRelevantTerms("폴더 추천해줘");

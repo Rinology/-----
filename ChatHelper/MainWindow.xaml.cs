@@ -59,6 +59,12 @@ public partial class MainWindow : Window
         InitEvents();
         UpdateStatusUi();
 
+        // 데이터 소스 프로필 전환/수정 시 키워드·용어집·톤앤매너 즉시 재동기화
+        DataSourceResolver.ProfileChanged += () => Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            try { await SyncRemoteAsync(); } catch (Exception ex) { AppLogger.Warn("MainWindow", "프로필 전환 동기화 실패", ex); }
+        }));
+
         ThemeManager.ThemeChanged += () =>
         {
             Dispatcher.BeginInvoke(UpdateStatusUi);
@@ -314,7 +320,8 @@ public partial class MainWindow : Window
         LblSubStatus.Text = $"👤 {userId} ({planInfo})  |  ⌨️ {keyHint}";
 
         // 스프레드시트 동기화 및 AI 모드 실시간 상태 표시
-        LblSyncStatus.Text = $"  |  🔄 시트: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
+        string profTag = DataSourceResolver.Active != null ? $" [{DataSourceResolver.ActiveName}]" : "";
+        LblSyncStatus.Text = $"  |  🔄 시트{profTag}: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
         if (_configManager.Config.EnableLocalAi)
         {
             LblAiStatus.Text = "🤖 AI: ON";

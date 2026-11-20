@@ -36,12 +36,15 @@ public static class Win32Api
     public const int VK_HANGUL = 0x15;
     public const int VK_ESCAPE = 0x1B;
     public const int VK_SPACE = 0x20;
+    public const int VK_PRIOR = 0x21; // PageUp
+    public const int VK_NEXT = 0x22;  // PageDown
     public const int VK_END = 0x23;
     public const int VK_HOME = 0x24;
     public const int VK_LEFT = 0x25;
     public const int VK_UP = 0x26;
     public const int VK_RIGHT = 0x27;
     public const int VK_DOWN = 0x28;
+    public const int VK_DELETE = 0x2E;
     public const int VK_0 = 0x30;
     public const int VK_1 = 0x31;
     public const int VK_8 = 0x38;

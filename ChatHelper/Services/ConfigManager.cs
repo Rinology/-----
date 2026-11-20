@@ -33,6 +33,7 @@ public class ConfigManager
     {
         _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
         _config = LoadInternal();
+        DataSourceResolver.Config = this;
     }
 
     public AppConfig Load()

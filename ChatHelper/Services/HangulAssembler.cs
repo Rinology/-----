@@ -223,4 +223,122 @@ public static class HangulAssembler
         }
         return hasChoseong;
     }
+
+    /// <summary>
+    /// Windows 한국어 2벌식 IME의 실제 조합(Composing) vs 확정(Committed) 상태와 Backspace 동작을 1:1로 재현하는 버퍼.
+    /// - 조합 중인 마지막 음절은 Backspace 시 자모 1개씩 삭제
+    /// - 이미 확정된 음절(다음 글자로 넘어갔거나 Space 이후)은 Backspace 1회에 음절 전체(자모 2~4개)가 한 번에 삭제됨
+    /// </summary>
+    public class HangulImeBuffer
+    {
+        private readonly List<(string Hangul, string Raw)> _committed = new();
+        private readonly List<char> _composingRaw = new();
+
+        public int Length => GetRawText().Length;
+
+        public void Clear()
+        {
+            _committed.Clear();
+            _composingRaw.Clear();
+        }
+
+        public void CommitCurrent()
+        {
+            if (_composingRaw.Count == 0) return;
+            string raw = new string(_composingRaw.ToArray());
+            string hangul = ConvertQwertyToHangul(raw);
+            _committed.Add((hangul, raw));
+            _composingRaw.Clear();
+        }
+
+        public void Append(char rawCh)
+        {
+            if (!KeyToJamo.ContainsKey(rawCh))
+            {
+                CommitCurrent();
+                string s = rawCh.ToString();
+                _committed.Add((s, s));
+                TrimToMax(25);
+                return;
+            }
+
+            _composingRaw.Add(rawCh);
+            string compRaw = new string(_composingRaw.ToArray());
+            string compHangul = ConvertQwertyToHangul(compRaw);
+
+            // 조합 결과가 2음절 이상이 되면 앞 음절들은 확정(Commit)하고 마지막 음절의 원시 키만 조합 버퍼에 유지
+            if (compHangul.Length > 1)
+            {
+                // 뒤에서부터 마지막 1음절만 남는 분리 지점 탐색
+                int splitIdx = _composingRaw.Count - 1;
+                for (int k = 1; k < _composingRaw.Count; k++)
+                {
+                    string prefixHangul = ConvertQwertyToHangul(compRaw[..k]);
+                    string suffixHangul = ConvertQwertyToHangul(compRaw[k..]);
+                    if (prefixHangul + suffixHangul == compHangul && suffixHangul.Length == 1)
+                    {
+                        splitIdx = k;
+                        break;
+                    }
+                }
+
+                string committedRaw = compRaw[..splitIdx];
+                string committedHangul = ConvertQwertyToHangul(committedRaw);
+                for (int i = 0; i < committedHangul.Length; i++)
+                {
+                    string hChar = committedHangul[i].ToString();
+                    string rPart = (i == committedHangul.Length - 1) ? committedRaw : hChar;
+                    _committed.Add((hChar, rPart));
+                }
+
+                var remaining = compRaw[splitIdx..];
+                _composingRaw.Clear();
+                _composingRaw.AddRange(remaining);
+            }
+
+            TrimToMax(25);
+        }
+
+        public void Backspace()
+        {
+            if (_composingRaw.Count > 0)
+            {
+                // 조합 중인 글자는 자모 1개만 삭제
+                _composingRaw.RemoveAt(_composingRaw.Count - 1);
+            }
+            else if (_committed.Count > 0)
+            {
+                // 이미 확정된 글자는 Windows IME와 동일하게 음절 1개 통째로 삭제
+                _committed.RemoveAt(_committed.Count - 1);
+            }
+        }
+
+        public string GetHangulText()
+        {
+            var sb = new StringBuilder();
+            foreach (var (h, _) in _committed)
+                sb.Append(h);
+            if (_composingRaw.Count > 0)
+                sb.Append(ConvertQwertyToHangul(new string(_composingRaw.ToArray())));
+            return sb.ToString();
+        }
+
+        public string GetRawText()
+        {
+            var sb = new StringBuilder();
+            foreach (var (_, r) in _committed)
+                sb.Append(r);
+            foreach (char c in _composingRaw)
+                sb.Append(c);
+            return sb.ToString();
+        }
+
+        private void TrimToMax(int maxUnits)
+        {
+            while (_committed.Count > maxUnits)
+            {
+                _committed.RemoveAt(0);
+            }
+        }
+    }
 }

@@ -90,4 +90,10 @@ public static class EnvService
 
         return defaultValue;
     }
+
+    public static IReadOnlyList<string> GetAllKeys()
+    {
+        if (!_isLoaded) Load();
+        return _envVars.Keys.ToList();
+    }
 }

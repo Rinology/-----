@@ -19,7 +19,7 @@ public class KeyboardHookService : IDisposable
     private IntPtr _mouseHookId = IntPtr.Zero;
     private Win32Api.HookProc? _mouseHookProc;
 
-    private readonly StringBuilder _buffer = new();
+    private readonly HangulAssembler.HangulImeBuffer _buffer = new();
     private readonly object _lock = new();
 
     public event Action<List<TemplateItem>, int, IntPtr>? CandidatesUpdated;
@@ -210,8 +210,9 @@ public class KeyboardHookService : IDisposable
                 vkCode is Win32Api.VK_MULTIPLY or Win32Api.VK_ADD or Win32Api.VK_SUBTRACT
                 or Win32Api.VK_DECIMAL or Win32Api.VK_DIVIDE
                 or Win32Api.VK_OEM_PLUS or Win32Api.VK_OEM_MINUS or Win32Api.VK_OEM_PERIOD or Win32Api.VK_OEM_2
-                or Win32Api.VK_OEM_5 or Win32Api.VK_BACK or Win32Api.VK_SPACE
+                or Win32Api.VK_OEM_5 or Win32Api.VK_BACK or Win32Api.VK_DELETE or Win32Api.VK_SPACE
                 or Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
+                or Win32Api.VK_HOME or Win32Api.VK_END or Win32Api.VK_PRIOR or Win32Api.VK_NEXT
                 or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
             {
                 _keyChannel.Writer.TryWrite((vkCode, isShiftPressed, Win32Api.GetForegroundWindow()));
@@ -346,13 +347,13 @@ public class KeyboardHookService : IDisposable
 
             if (vkCode == Win32Api.VK_BACK)
             {
-                if (_buffer.Length > 0)
-                    _buffer.Length--;
+                _buffer.Backspace();
                 EvaluateCandidates();
                 return;
             }
 
-            if (vkCode is Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
+            if (vkCode is Win32Api.VK_RETURN or Win32Api.VK_ESCAPE or Win32Api.VK_DELETE
+                or Win32Api.VK_HOME or Win32Api.VK_END or Win32Api.VK_PRIOR or Win32Api.VK_NEXT
                 or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
             {
                 _buffer.Clear();
@@ -362,7 +363,7 @@ public class KeyboardHookService : IDisposable
 
             if (vkCode == Win32Api.VK_SPACE)
             {
-                string curBuf = _buffer.ToString();
+                string curBuf = _buffer.GetRawText();
                 bool isMathBuf = _configManager.Config.EnableMathCalc && MathCalcHelper.LooksLikePartialMath(curBuf);
 
                 // 수식("5 * 10 =") 입력 중이거나 1회 띄어쓰기 자연어 구문("배송 안내")은 유지,
@@ -420,15 +421,12 @@ public class KeyboardHookService : IDisposable
 
                 // '\' 또는 '/' 단축어 시작 기호를 입력한 경우(수식 입력 중이 아닐 때) 이전 잔여 버퍼를 비워 \dz, /dz 즉시 인식 보장
                 if (inputChar.Value == '\\' ||
-                    (inputChar.Value == '/' && !MathCalcHelper.LooksLikePartialMath(_buffer.ToString())))
+                    (inputChar.Value == '/' && !MathCalcHelper.LooksLikePartialMath(_buffer.GetRawText())))
                 {
                     _buffer.Clear();
                 }
 
                 _buffer.Append(inputChar.Value);
-                if (_buffer.Length > 30)
-                    _buffer.Remove(0, _buffer.Length - 30);
-
                 EvaluateCandidates();
             }
         }
@@ -436,7 +434,8 @@ public class KeyboardHookService : IDisposable
 
     private void EvaluateCandidates()
     {
-        var raw = _buffer.ToString();
+        var raw = _buffer.GetRawText();
+        var hangulFull = _buffer.GetHangulText();
         if (string.IsNullOrWhiteSpace(raw))
         {
             LastRecognizedToken = string.Empty;
@@ -447,7 +446,7 @@ public class KeyboardHookService : IDisposable
 
         if (raw.Trim().Length < 2)
         {
-            string partial = HangulAssembler.ConvertQwertyToHangul(raw.Trim());
+            string partial = hangulFull.Trim();
             LastRecognizedToken = partial;
             RecognitionStateChanged?.Invoke(partial, "WAITING");
             ClearCandidates();
@@ -495,7 +494,7 @@ public class KeyboardHookService : IDisposable
         }
 
         // 2. 한글 조합 변환 후 한글 단축키 즉시 매칭 (예: 반품, 환불)
-        string hangul = HangulAssembler.ConvertQwertyToHangul(raw).Trim().TrimStart('\\', '/');
+        string hangul = hangulFull.Trim().TrimStart('\\', '/');
         if (!string.IsNullOrWhiteSpace(hangul) && hangul.Length >= 2)
         {
             var hangulList = _templateManager.FindMatchingCandidates(hangul, out int hMatchedLen);
@@ -583,16 +582,17 @@ public class KeyboardHookService : IDisposable
     private void OnAiDebounceElapsed(object? state)
     {
         string targetRaw;
+        string hangul;
         IntPtr targetHwnd;
         lock (_lock)
         {
             targetRaw = _pendingAiRaw;
-            if (string.IsNullOrWhiteSpace(targetRaw) || _buffer.ToString() != targetRaw)
+            if (string.IsNullOrWhiteSpace(targetRaw) || _buffer.GetRawText() != targetRaw)
                 return;
+            hangul = _buffer.GetHangulText().Trim().TrimStart('\\', '/');
             targetHwnd = _lastTargetHwnd;
         }
 
-        string hangul = HangulAssembler.ConvertQwertyToHangul(targetRaw).Trim();
         if (hangul.Length < 2) return;
 
         var glossaryMatches = _glossaryService?.FindRelevantTerms(hangul, maxResults: 5);
@@ -663,7 +663,7 @@ public class KeyboardHookService : IDisposable
     {
         lock (_lock)
         {
-            if (_buffer.ToString() != expectedRaw) return;
+            if (_buffer.GetRawText() != expectedRaw) return;
             int idx = _currentCandidates.FindIndex(c => c.Category == item.Category);
             if (idx >= 0)
                 _currentCandidates[idx] = item;
