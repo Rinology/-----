@@ -201,11 +201,14 @@ public class KeyboardHookService : IDisposable
                 return (IntPtr)1;
             }
 
-            // 일반 키 입력은 채널로 즉시 위임해 OS 훅 콜백 지연(<0.1ms) 최소화
+            // 일반 키 입력(문자, 숫자, 사칙연산 기호 포함)은 채널로 즉시 위임해 OS 훅 콜백 지연(<0.1ms) 최소화
             if ((vkCode >= Win32Api.VK_A && vkCode <= Win32Api.VK_Z) ||
                 (vkCode >= Win32Api.VK_0 && vkCode <= Win32Api.VK_9) ||
                 (vkCode >= Win32Api.VK_NUMPAD0 && vkCode <= Win32Api.VK_NUMPAD9) ||
-                vkCode is Win32Api.VK_OEM_5 or Win32Api.VK_BACK or Win32Api.VK_SPACE
+                vkCode is Win32Api.VK_MULTIPLY or Win32Api.VK_ADD or Win32Api.VK_SUBTRACT
+                or Win32Api.VK_DECIMAL or Win32Api.VK_DIVIDE
+                or Win32Api.VK_OEM_PLUS or Win32Api.VK_OEM_MINUS or Win32Api.VK_OEM_PERIOD or Win32Api.VK_OEM_2
+                or Win32Api.VK_OEM_5 or Win32Api.VK_BACK or Win32Api.VK_SPACE
                 or Win32Api.VK_RETURN or Win32Api.VK_ESCAPE
                 or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
             {
@@ -346,9 +349,13 @@ public class KeyboardHookService : IDisposable
 
             if (vkCode == Win32Api.VK_SPACE)
             {
-                // 최대 1개의 띄어쓰기까지만 자연어 구문("배송 안내", "화난 고객")으로 유지하고,
-                // 그 이상 문장이 길어지면 일반 채팅으로 간주해 버퍼/알약을 즉시 닫음 (알약 계속 떠있음 방지)
-                if (_buffer.Length >= 2 && _buffer.Length <= 15 && !_buffer.ToString().Contains(' '))
+                string curBuf = _buffer.ToString();
+                bool isMathBuf = _configManager.Config.EnableMathCalc && MathCalcHelper.LooksLikePartialMath(curBuf);
+
+                // 수식("5 * 10 =") 입력 중이거나 1회 띄어쓰기 자연어 구문("배송 안내")은 유지,
+                // 그 외 일반 긴 문장은 버퍼/알약을 즉시 닫음
+                if ((isMathBuf && _buffer.Length <= 25) ||
+                    (_buffer.Length >= 2 && _buffer.Length <= 15 && !curBuf.Contains(' ')))
                 {
                     _buffer.Append(' ');
                     EvaluateCandidates();
@@ -366,6 +373,10 @@ public class KeyboardHookService : IDisposable
             {
                 inputChar = isShiftPressed ? char.ToUpper((char)vkCode) : char.ToLower((char)vkCode);
             }
+            else if (vkCode == Win32Api.VK_8 && isShiftPressed)
+            {
+                inputChar = '*';
+            }
             else if (vkCode >= Win32Api.VK_0 && vkCode <= Win32Api.VK_9 && !isShiftPressed)
             {
                 inputChar = (char)('0' + (vkCode - Win32Api.VK_0));
@@ -374,6 +385,12 @@ public class KeyboardHookService : IDisposable
             {
                 inputChar = (char)('0' + (vkCode - Win32Api.VK_NUMPAD0));
             }
+            else if (vkCode == Win32Api.VK_MULTIPLY) inputChar = '*';
+            else if (vkCode == Win32Api.VK_ADD) inputChar = '+';
+            else if (vkCode == Win32Api.VK_SUBTRACT || (vkCode == Win32Api.VK_OEM_MINUS && !isShiftPressed)) inputChar = '-';
+            else if (vkCode == Win32Api.VK_DIVIDE || (vkCode == Win32Api.VK_OEM_2 && !isShiftPressed)) inputChar = '/';
+            else if (vkCode == Win32Api.VK_DECIMAL || (vkCode == Win32Api.VK_OEM_PERIOD && !isShiftPressed)) inputChar = '.';
+            else if (vkCode == Win32Api.VK_OEM_PLUS) inputChar = isShiftPressed ? '+' : '=';
             else if (vkCode == Win32Api.VK_OEM_5)
             {
                 inputChar = '\\';
@@ -403,6 +420,33 @@ public class KeyboardHookService : IDisposable
         if (string.IsNullOrWhiteSpace(raw) || raw.Trim().Length < 2)
         {
             ClearCandidates();
+            return;
+        }
+
+        // 0. 사칙연산 자동 계산 기능 (ON일 때, 예: "5 * 10 =" -> "50")
+        if (_configManager.Config.EnableMathCalc &&
+            MathCalcHelper.TryEvaluate(raw, out string calcVal, out string calcEq))
+        {
+            var mathList = new List<TemplateItem>
+            {
+                new TemplateItem
+                {
+                    Keyword = raw.Trim(),
+                    ContentKeyword = "사칙연산",
+                    Title = $"🧮 계산 결과: {calcVal}",
+                    Content = calcVal,
+                    Category = "계산"
+                },
+                new TemplateItem
+                {
+                    Keyword = raw.Trim(),
+                    ContentKeyword = "사칙연산",
+                    Title = $"🧮 수식 포함: {calcEq}",
+                    Content = calcEq,
+                    Category = "계산"
+                }
+            };
+            ShowCandidateList(mathList, raw.Length, isNaturalLanguage: true);
             return;
         }
 
@@ -497,16 +541,24 @@ public class KeyboardHookService : IDisposable
                     return;
 
                 var sw = System.Diagnostics.Stopwatch.StartNew();
-                string aiAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
+                bool isTranslationMode = _configManager.Config.EnableKoToEnTranslation ||
+                                         hangul.StartsWith("영문 ") || hangul.StartsWith("번역 ");
+                string cleanHangul = hangul;
+                if (cleanHangul.StartsWith("영문 ")) cleanHangul = cleanHangul[3..].Trim();
+                else if (cleanHangul.StartsWith("번역 ")) cleanHangul = cleanHangul[3..].Trim();
+
+                string aiAnswer = isTranslationMode
+                    ? await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, glossaryMatches, token)
+                    : await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
                 sw.Stop();
 
                 if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(aiAnswer)) return;
 
                 var aiItem = new TemplateItem
                 {
-                    Keyword = hangul,
-                    ContentKeyword = hangul,
-                    Title = "🤖 AI 추천 답변",
+                    Keyword = cleanHangul,
+                    ContentKeyword = isTranslationMode ? $"영문번역,{cleanHangul}" : hangul,
+                    Title = isTranslationMode ? $"🌐 영문 번역 ({cleanHangul})" : "🤖 AI 추천 답변",
                     Content = aiAnswer,
                     Category = "AI생성"
                 };

@@ -204,48 +204,129 @@ public class OllamaService : IDisposable
         catch { }
     }
 
+    public static string DefaultAiRulesSheetUrl =>
+        ChatHelper.Constants.AppConstants.BuildPublishedCsvUrl(
+            ChatHelper.Constants.AppConstants.DefaultPublishedSheetId,
+            ChatHelper.Constants.AppConstants.DefaultAiRulesGid);
+
     /// <summary>
-    /// Google Spreadsheet(AI_RULES_SHEET_URL)에서 톤앤매너/규칙을 동적으로 불러와 시스템 프롬프트에 반영
-    /// 컬럼 예시: key, value (또는 rule, content)
+    /// Google Spreadsheet(AI_RULES_SHEET_URL, 3번 시트 '톤앤매너')에서 DB 테이블 형식의 규칙을 불러와 시스템 프롬프트에 반영.
+    /// 권장 컬럼: type, title, input_condition, rule_or_output, enabled
     /// </summary>
     public async Task<bool> SyncRemoteAiRulesAsync(CancellationToken cancellationToken = default)
     {
         var url = EnvService.Get("AI_RULES_SHEET_URL");
         if (string.IsNullOrWhiteSpace(url))
-            return false;
+            url = DefaultAiRulesSheetUrl;
 
         try
         {
             string csv = await _httpClient.GetStringAsync(url, cancellationToken);
-            var records = TemplateManager.ParseCsvRecords(csv);
-            if (records.Count <= 1) return false;
+            return ParseAiRulesFromCsv(csv);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("OllamaService", "톤앤매너 시트 동기화 실패", ex);
+            return false;
+        }
+    }
 
-            var sb = new StringBuilder();
-            for (int i = 1; i < records.Count; i++)
+    public bool ParseAiRulesFromCsv(string csv)
+    {
+        var records = CsvHelperService.ParseRecords(csv);
+        if (records.Count <= 1) return false;
+
+        var header = records[0];
+        int typeIdx = 0, titleIdx = 1, condIdx = 2, outIdx = 3, enabledIdx = 4;
+
+        for (int i = 0; i < header.Count; i++)
+        {
+            var h = header[i].Trim().ToLowerInvariant();
+            if (h is "type" or "구분" or "분류") typeIdx = i;
+            else if (h is "title" or "제목" or "항목" or "key") titleIdx = i;
+            else if (h.Contains("cond") || h.Contains("input") || h.Contains("조건") || h.Contains("문의")) condIdx = i;
+            else if (h.Contains("output") || h.Contains("rule") || h.Contains("value") || h.Contains("내용") || h.Contains("답변")) outIdx = i;
+            else if (h.Contains("enable") || h.Contains("사용") || h.Contains("활성")) enabledIdx = i;
+        }
+
+        // 2열(key, value) 단순 형식 호환
+        bool isTwoColumn = header.Count == 2;
+
+        var roleSb = new StringBuilder();
+        var ruleSb = new StringBuilder();
+        var exampleSb = new StringBuilder();
+
+        for (int i = 1; i < records.Count; i++)
+        {
+            var cols = records[i];
+            if (cols.Count < 2) continue;
+
+            if (!isTwoColumn && enabledIdx < cols.Count)
             {
-                var cols = records[i];
-                if (cols.Count < 2) continue;
-                string key = cols[0].Trim().ToLowerInvariant();
-                string val = cols[1].Trim();
-                if (string.IsNullOrWhiteSpace(val)) continue;
+                string en = cols[enabledIdx].Trim().ToUpperInvariant();
+                if (en is "N" or "FALSE" or "0" or "OFF")
+                    continue;
+            }
 
-                if (key == "temperature" && double.TryParse(val, System.Globalization.CultureInfo.InvariantCulture, out double temp))
+            string type = typeIdx < cols.Count ? cols[typeIdx].Trim().ToUpperInvariant() : "RULE";
+            string title = titleIdx < cols.Count ? cols[titleIdx].Trim() : "";
+            string cond = (!isTwoColumn && condIdx < cols.Count) ? cols[condIdx].Trim() : "";
+            string val = isTwoColumn ? cols[1].Trim() : (outIdx < cols.Count ? cols[outIdx].Trim() : "");
+
+            if (string.IsNullOrWhiteSpace(val)) continue;
+            // 시트에 헤더 행(type, title, ...)이 중복으로 들어간 경우 자동 스킵
+            if (type == "TYPE" && title.Equals("title", StringComparison.OrdinalIgnoreCase)) continue;
+
+            if (type is "PARAM" or "PARAMETER" || title.Equals("temperature", StringComparison.OrdinalIgnoreCase))
+            {
+                if (double.TryParse(val, System.Globalization.CultureInfo.InvariantCulture, out double temp))
                 {
                     _temperature = Math.Clamp(temp, 0.0, 1.0);
                 }
-                else
-                {
-                    sb.AppendLine($"- [{cols[0].Trim()}] {val}");
-                }
             }
-
-            if (sb.Length > 0)
+            else if (type is "ROLE" or "역할")
             {
-                _systemPrompt = sb.ToString().Trim();
-                return true;
+                roleSb.AppendLine(val);
+            }
+            else if (type is "EXAMPLE" or "예시")
+            {
+                if (!string.IsNullOrWhiteSpace(cond))
+                    exampleSb.AppendLine($"- 문의/조건: {cond} => 모범답장: {val}");
+                else
+                    exampleSb.AppendLine($"- [{title}] {val}");
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(cond))
+                    ruleSb.AppendLine($"- [{title}] (조건: {cond}) {val}");
+                else if (!string.IsNullOrWhiteSpace(title))
+                    ruleSb.AppendLine($"- [{title}] {val}");
+                else
+                    ruleSb.AppendLine($"- {val}");
             }
         }
-        catch { }
+
+        var finalSb = new StringBuilder();
+        if (roleSb.Length > 0)
+            finalSb.AppendLine(roleSb.ToString().Trim());
+
+        if (ruleSb.Length > 0)
+        {
+            finalSb.AppendLine("\n[핵심 톤앤매너 및 규칙]");
+            finalSb.AppendLine(ruleSb.ToString().Trim());
+        }
+
+        if (exampleSb.Length > 0)
+        {
+            finalSb.AppendLine("\n[모범 답변 예시]");
+            finalSb.AppendLine(exampleSb.ToString().Trim());
+        }
+
+        if (finalSb.Length > 0)
+        {
+            _systemPrompt = finalSb.ToString().Trim();
+            return true;
+        }
 
         return false;
     }
@@ -262,6 +343,12 @@ public class OllamaService : IDisposable
         CancellationToken cancellationToken = default)
     {
         await EnsureRunningAsync();
+
+        // 사칙연산 수식(예: "5 * 10 =")이 들어온 경우 정확한 계산 결과를 즉시 반환
+        if (MathCalcHelper.TryEvaluate(customerMessage, out string calcVal, out _))
+        {
+            return calcVal;
+        }
 
         var promptSb = new StringBuilder();
         if (glossaryMatches != null && glossaryMatches.Count > 0)
@@ -349,6 +436,67 @@ public class OllamaService : IDisposable
         }
 
         return "답변을 생성하지 못했습니다.";
+    }
+
+    /// <summary>
+    /// 한글 문장을 자연스러운 비즈니스 영문으로 번역 (로컬 Ollama 활용)
+    /// </summary>
+    public async Task<string> TranslateKoToEnAsync(
+        string koreanText,
+        IReadOnlyList<GlossaryItem>? glossaryMatches = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(koreanText))
+            return string.Empty;
+
+        await EnsureRunningAsync();
+
+        var promptSb = new StringBuilder();
+        if (glossaryMatches != null && glossaryMatches.Count > 0)
+        {
+            promptSb.AppendLine("[Company Glossary Reference]");
+            foreach (var g in glossaryMatches)
+            {
+                promptSb.AppendLine($"- {g.Term}: {g.Description}");
+            }
+            promptSb.AppendLine();
+        }
+
+        promptSb.AppendLine($"Translate the following Korean text into natural, polite business English. Output ONLY the English translation without any quotes or explanation:\n{koreanText.Trim()}");
+
+        var requestBody = new
+        {
+            model = _modelName,
+            messages = new[]
+            {
+                new { role = "system", content = "You are a professional Korean-to-English business translator. Output only the translated English sentence without quotes or extra commentary." },
+                new { role = "user", content = promptSb.ToString() }
+            },
+            stream = false,
+            options = new
+            {
+                temperature = 0.1,
+                num_predict = 80,
+                num_ctx = 1024
+            },
+            keep_alive = "10m"
+        };
+
+        string jsonPayload = JsonSerializer.Serialize(requestBody);
+        using var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+        using var response = await _httpClient.PostAsync($"{_baseUrl}/api/chat", content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        string responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var doc = JsonDocument.Parse(responseJson);
+        if (doc.RootElement.TryGetProperty("message", out var msgEl) &&
+            msgEl.TryGetProperty("content", out var contentEl))
+        {
+            string translated = contentEl.GetString()?.Trim() ?? string.Empty;
+            return translated.Trim('"', '\'');
+        }
+
+        return string.Empty;
     }
 
     /// <summary>

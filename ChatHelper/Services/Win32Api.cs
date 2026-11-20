@@ -44,6 +44,7 @@ public static class Win32Api
     public const int VK_DOWN = 0x28;
     public const int VK_0 = 0x30;
     public const int VK_1 = 0x31;
+    public const int VK_8 = 0x38;
     public const int VK_9 = 0x39;
     public const int VK_A = 0x41;
     public const int VK_Q = 0x51;
@@ -52,11 +53,20 @@ public static class Win32Api
     public const int VK_Z = 0x5A;
     public const int VK_NUMPAD0 = 0x60;
     public const int VK_NUMPAD9 = 0x69;
+    public const int VK_MULTIPLY = 0x6A;
+    public const int VK_ADD = 0x6B;
+    public const int VK_SUBTRACT = 0x6D;
+    public const int VK_DECIMAL = 0x6E;
+    public const int VK_DIVIDE = 0x6F;
     public const int VK_LWIN = 0x5B;
     public const int VK_RWIN = 0x5C;
     public const int VK_LMENU = 0xA4;
     public const int VK_RMENU = 0xA5;
-    public const int VK_OEM_5 = 0xDC; // '\'
+    public const int VK_OEM_PLUS = 0xBB;   // '=' or '+'
+    public const int VK_OEM_MINUS = 0xBD;  // '-'
+    public const int VK_OEM_PERIOD = 0xBE; // '.'
+    public const int VK_OEM_2 = 0xBF;      // '/'
+    public const int VK_OEM_5 = 0xDC;      // '\'
     public const int VK_PROCESSKEY = 0xE5;
     public const int SCAN_Q = 0x10;
     public const int SCAN_X = 0x2D;

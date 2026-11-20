@@ -122,6 +122,8 @@ public partial class ControlPanelWindow : Window
         UpdateSlashOnlyLock();
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
+        ChkEnableMathCalc.IsChecked = cfg.EnableMathCalc;
+        ChkEnableTranslation.IsChecked = cfg.EnableKoToEnTranslation;
 
         int hideSec = Math.Clamp(cfg.AutoHideSeconds, AppConstants.MinAutoHideSeconds, AppConstants.MaxAutoHideSeconds);
         foreach (System.Windows.Controls.ComboBoxItem item in CmbAutoHideSeconds.Items)
@@ -407,6 +409,8 @@ public partial class ControlPanelWindow : Window
         else cfg.StatusWindowOpacity = 1.0;
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
+        cfg.EnableMathCalc = ChkEnableMathCalc.IsChecked == true;
+        cfg.EnableKoToEnTranslation = ChkEnableTranslation.IsChecked == true;
         if (CmbAutoHideSeconds.SelectedItem is System.Windows.Controls.ComboBoxItem hideItem &&
             int.TryParse(hideItem.Tag?.ToString(), out int hideSec))
         {

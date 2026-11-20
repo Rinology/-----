@@ -68,6 +68,22 @@ public static class AiAndOcrIntegrationTests
 
     private static async Task Test_Ollama_And_SheetStructuring()
     {
+        // 3번 시트(톤앤매너) DB 테이블 형식 CSV 파싱 검증 (중복 헤더 행 포함)
+        string sampleRulesCsv =
+            "type,title,input_condition,rule_or_output,enabled\n" +
+            "type,title,input_condition,rule_or_output,enabled\n" +
+            "ROLE,기본 역할,모든 메시지 공통,너는 친절한 CS 답변 비서야.,Y\n" +
+            "RULE,답변 길이,모든 답변,1~2문장으로 답해.,Y\n" +
+            "EXAMPLE,배송 문의,배송 언제 와요?,출고 준비 중입니다.,Y\n" +
+            "PARAM,temperature,일관성,0.15,Y\n";
+        Assert(OllamaService.Instance.ParseAiRulesFromCsv(sampleRulesCsv), "ParseAiRulesFromCsv should succeed on 5-column DB CSV");
+
+        // 사칙연산 계산기 검증 ("5 * 10 =" -> "50")
+        Assert(MathCalcHelper.TryEvaluate("5 * 10 =", out string calcRes, out string calcEq) && calcRes == "50" && calcEq == "5 * 10 = 50",
+            $"Expected '50' and '5 * 10 = 50', got '{calcRes}' / '{calcEq}'");
+        Assert(MathCalcHelper.TryEvaluate("12000 + 3000", out string sumRes, out _) && sumRes == "15000",
+            $"Expected '15000', got '{sumRes}'");
+
         var existingKeywords = new[] { "qa", "wtt", "ai1" };
         string longCustomerQuery = "상담 중 안내해 드린 상세 내용은 고객님의 등록된 휴대폰 번호로도 알림톡 발송해 드렸습니다.";
         string sampleAnswer = "확인 부탁드립니다! 안내해 드린 상세 내용은 고객님의 휴대폰 번호로 알림톡 발송 완료되었습니다.";

@@ -61,6 +61,7 @@ public static class AppConstants
     public const string DefaultPublishedSheetId = "2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6";
     public const string DefaultTemplateGid = "1212205674";
     public const string DefaultGlossaryGid = "661663576";
+    public const string DefaultAiRulesGid = "0";
 
     public static string BuildPublishedCsvUrl(string sheetId, string gid) =>
         $"https://docs.google.com/spreadsheets/d/e/{sheetId}/pub?gid={gid}&single=true&output=csv";
