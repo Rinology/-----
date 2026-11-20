@@ -25,6 +25,7 @@ public partial class QuickSearchWindow : Window
         InitializeComponent();
         _templateManager = templateManager;
         _configManager = configManager;
+        BuildQuickSymbolBar();
 
         try
         {
@@ -114,6 +115,49 @@ public partial class QuickSearchWindow : Window
                 Keyboard.Focus(TxtSearch);
             }
         });
+    }
+
+    private static readonly string[] QuickSymbols =
+        { "→", "➔", "▶", "■", "□", "●", "★", "☆", "※", "✔", "✅", "📌", "📦", "📞", "😊", "🙏" };
+
+    private void BuildQuickSymbolBar()
+    {
+        foreach (var sym in QuickSymbols)
+        {
+            var btn = new Button
+            {
+                Content = sym,
+                Width = 28,
+                Height = 24,
+                Margin = new Thickness(0, 0, 3, 0),
+                Padding = new Thickness(0),
+                FontSize = 12.5,
+                FontWeight = FontWeights.Bold,
+                FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol, Tahoma, Gulim"),
+                Cursor = Cursors.Hand,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
+                Foreground = Brushes.Black,
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080")),
+                BorderThickness = new Thickness(1),
+                Focusable = false,
+                ToolTip = $"클릭 시 '{sym}' 즉시 대화창 입력"
+            };
+
+            string captured = sym;
+            btn.Click += (s, e) =>
+            {
+                Hide();
+                ItemSelected?.Invoke(new TemplateItem
+                {
+                    Keyword = captured,
+                    Title = captured,
+                    Content = captured,
+                    Category = "특수기호"
+                }, _targetHwnd);
+            };
+
+            QuickSymbolPanel.Children.Add(btn);
+        }
     }
 
     private void BuildCategoryChips()
