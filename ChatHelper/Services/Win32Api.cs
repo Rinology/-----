@@ -254,4 +254,35 @@ public static class Win32Api
         y = mPt.Y + 16;
         return true;
     }
+
+    /// <summary>
+    /// 백그라운드 앱에서도 대상 창으로 키보드 포커스를 100% 강제 전환합니다 (Chrome, 카톡, 메모장 등 공통).
+    /// </summary>
+    public static void ForceForegroundWindow(IntPtr targetHwnd)
+    {
+        if (targetHwnd == IntPtr.Zero) return;
+
+        IntPtr fgHwnd = GetForegroundWindow();
+        uint curTid = GetCurrentThreadId();
+        uint fgTid = fgHwnd != IntPtr.Zero ? GetWindowThreadProcessId(fgHwnd, out _) : 0;
+        uint targetTid = GetWindowThreadProcessId(targetHwnd, out _);
+
+        bool attachedFg = false;
+        bool attachedTarget = false;
+        try
+        {
+            if (fgTid != 0 && fgTid != curTid)
+                attachedFg = AttachThreadInput(curTid, fgTid, true);
+            if (targetTid != 0 && targetTid != curTid && targetTid != fgTid)
+                attachedTarget = AttachThreadInput(curTid, targetTid, true);
+
+            SetForegroundWindow(targetHwnd);
+            BringWindowToTop(targetHwnd);
+        }
+        finally
+        {
+            if (attachedTarget) AttachThreadInput(curTid, targetTid, false);
+            if (attachedFg) AttachThreadInput(curTid, fgTid, false);
+        }
+    }
 }

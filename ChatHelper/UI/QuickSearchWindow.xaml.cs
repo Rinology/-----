@@ -98,12 +98,22 @@ public partial class QuickSearchWindow : Window
         Show();
         WindowState = WindowState.Normal;
 
-        // 외부 창으로부터 포커스 강제 탈취
+        // 외부 창(Chrome/카톡/메모장)으로부터 AttachThreadInput 기반 강제 포커스 전환 -> 즉시 Tab/입력 가능
         var helper = new WindowInteropHelper(this);
-        Win32Api.SetForegroundWindow(helper.Handle);
+        Win32Api.ForceForegroundWindow(helper.Handle);
         Activate();
         TxtSearch.Focus();
         Keyboard.Focus(TxtSearch);
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+        {
+            if (IsVisible)
+            {
+                Win32Api.ForceForegroundWindow(helper.Handle);
+                Activate();
+                TxtSearch.Focus();
+                Keyboard.Focus(TxtSearch);
+            }
+        });
     }
 
     private void BuildCategoryChips()
@@ -227,14 +237,16 @@ public partial class QuickSearchWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        var actualKey = (e.Key == Key.System) ? e.SystemKey : e.Key;
+
+        if (actualKey == Key.Escape)
         {
             Hide();
             e.Handled = true;
         }
-        else if (e.Key == Key.Tab)
+        else if (actualKey == Key.Tab)
         {
-            // Tab 키: 다음 카테고리 칩으로 이동! / Shift+Tab: 이전 카테고리로 이동!
+            // Tab 키: 다음 카테고리 칩으로 이동! / Shift+Tab: 이전 카테고리로 이동! (Alt+Q 직후 Alt 잔존 시 SystemKey도 처리)
             bool isShift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             CycleCategory(!isShift);
             e.Handled = true;

@@ -50,35 +50,26 @@ public static class TextInjectionService
                 thread.Join();
             }
 
-            // 2. 대상 창으로 확실한 강제 포커스 복원 (AttachThreadInput 기법)
+            // 2. 대상 창으로 확실한 강제 포커스 복원 (공통 ForceForegroundWindow)
             if (targetHwnd != IntPtr.Zero)
             {
-                uint curTid = Win32Api.GetCurrentThreadId();
-                uint targetTid = Win32Api.GetWindowThreadProcessId(targetHwnd, out _);
-                if (curTid != 0 && targetTid != 0 && curTid != targetTid)
-                {
-                    Win32Api.AttachThreadInput(curTid, targetTid, true);
-                    Win32Api.SetForegroundWindow(targetHwnd);
-                    Win32Api.BringWindowToTop(targetHwnd);
-                    Win32Api.AttachThreadInput(curTid, targetTid, false);
-                }
-                else
-                {
-                    Win32Api.SetForegroundWindow(targetHwnd);
-                }
+                Win32Api.ForceForegroundWindow(targetHwnd);
 
                 // Chrome 및 웹 브라우저가 포커스 및 웹 캐럿을 완전히 회복할 시간 보장
                 Thread.Sleep(90);
             }
 
-            // 3. Ctrl + V 키 이벤트 전송
-            Win32Api.keybd_event(Win32Api.VK_CONTROL, 0, 0, UIntPtr.Zero);
+            // 3. Ctrl + V 키 이벤트 전송 (스캔코드 포함으로 카톡/구글채팅/메모장 모두 안정 동작)
+            byte ctrlScan = (byte)Win32Api.MapVirtualKey((uint)Win32Api.VK_CONTROL, Win32Api.MAPVK_VK_TO_VSC);
+            byte vScan = (byte)Win32Api.MapVirtualKey((uint)Win32Api.VK_V, Win32Api.MAPVK_VK_TO_VSC);
+
+            Win32Api.keybd_event(Win32Api.VK_CONTROL, ctrlScan, 0, UIntPtr.Zero);
             Thread.Sleep(15);
-            Win32Api.keybd_event(Win32Api.VK_V, 0, 0, UIntPtr.Zero);
+            Win32Api.keybd_event(Win32Api.VK_V, vScan, 0, UIntPtr.Zero);
             Thread.Sleep(20);
-            Win32Api.keybd_event(Win32Api.VK_V, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Win32Api.keybd_event(Win32Api.VK_V, vScan, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
             Thread.Sleep(15);
-            Win32Api.keybd_event(Win32Api.VK_CONTROL, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Win32Api.keybd_event(Win32Api.VK_CONTROL, ctrlScan, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
             Thread.Sleep(30);
         }
         catch (Exception ex)
@@ -87,24 +78,8 @@ public static class TextInjectionService
         }
     }
 
-    private static void FocusTargetWindow(IntPtr targetHwnd)
-    {
-        if (targetHwnd == IntPtr.Zero) return;
-
-        uint curTid = Win32Api.GetCurrentThreadId();
-        uint targetTid = Win32Api.GetWindowThreadProcessId(targetHwnd, out _);
-        if (curTid != 0 && targetTid != 0 && curTid != targetTid)
-        {
-            Win32Api.AttachThreadInput(curTid, targetTid, true);
-            Win32Api.SetForegroundWindow(targetHwnd);
-            Win32Api.BringWindowToTop(targetHwnd);
-            Win32Api.AttachThreadInput(curTid, targetTid, false);
-        }
-        else
-        {
-            Win32Api.SetForegroundWindow(targetHwnd);
-        }
-    }
+    private static void FocusTargetWindow(IntPtr targetHwnd) =>
+        Win32Api.ForceForegroundWindow(targetHwnd);
 
     private static void SendKey(int vk, bool extended = false)
     {

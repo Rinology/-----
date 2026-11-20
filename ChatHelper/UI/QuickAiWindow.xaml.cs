@@ -41,6 +41,8 @@ public partial class QuickAiWindow : Window
     {
         _targetHwnd = targetHwnd;
         Show();
+        var helper = new System.Windows.Interop.WindowInteropHelper(this);
+        Win32Api.ForceForegroundWindow(helper.Handle);
         Activate();
 
         TxtStatus.Text = "클립보드 확인 중...";
