@@ -123,6 +123,16 @@ public partial class ControlPanelWindow : Window
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
 
+        int hideSec = Math.Clamp(cfg.AutoHideSeconds, AppConstants.MinAutoHideSeconds, AppConstants.MaxAutoHideSeconds);
+        foreach (System.Windows.Controls.ComboBoxItem item in CmbAutoHideSeconds.Items)
+        {
+            if (int.TryParse(item.Tag?.ToString(), out int tagSec) && tagSec == hideSec)
+            {
+                CmbAutoHideSeconds.SelectedItem = item;
+                break;
+            }
+        }
+
         // 4. 자동 동기화 주기 및 유저 정보
         int syncInterval = cfg.AutoSyncIntervalMinutes;
         int comboIdx = syncInterval switch
@@ -397,6 +407,11 @@ public partial class ControlPanelWindow : Window
         else cfg.StatusWindowOpacity = 1.0;
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
+        if (CmbAutoHideSeconds.SelectedItem is System.Windows.Controls.ComboBoxItem hideItem &&
+            int.TryParse(hideItem.Tag?.ToString(), out int hideSec))
+        {
+            cfg.AutoHideSeconds = Math.Clamp(hideSec, AppConstants.MinAutoHideSeconds, AppConstants.MaxAutoHideSeconds);
+        }
 
         // 자동 동기화 주기 저장
         if (CmbAutoSyncInterval.SelectedItem is ComboBoxItem selectedSync &&

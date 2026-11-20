@@ -262,6 +262,17 @@
 
                                     <CheckBox x:Name="ChkShowStatusWindow" Content="화면 우측 하단 및 작업표시줄에 실행 상태표시창 항상 보이기" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
                                     <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 우측 하단 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="8,10,0,0">
+                                        <TextBlock Text="추천 알약 자동 숨김 시간:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                                        <ComboBox x:Name="CmbAutoHideSeconds" Width="130" Height="28" VerticalContentAlignment="Center">
+                                            <ComboBoxItem Content="5초" Tag="5"/>
+                                            <ComboBoxItem Content="8초" Tag="8"/>
+                                            <ComboBoxItem Content="12초 (기본)" Tag="12" IsSelected="True"/>
+                                            <ComboBoxItem Content="15초" Tag="15"/>
+                                            <ComboBoxItem Content="20초 (최대)" Tag="20"/>
+                                        </ComboBox>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

@@ -54,4 +54,7 @@ public class AppConfig
 
     // 구글 스프레드시트 주기적 자동 동기화 (분 단위, 기본 15분, 0이면 비활성화)
     public int AutoSyncIntervalMinutes { get; set; } = 15;
+
+    // 추천 알약 자동 숨김 시간 (초 단위, 3 ~ 20초, 기본 12초)
+    public int AutoHideSeconds { get; set; } = 12;
 }

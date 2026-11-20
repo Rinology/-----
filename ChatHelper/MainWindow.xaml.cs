@@ -183,15 +183,16 @@ public partial class MainWindow : Window
     {
         _hookService.CandidatesUpdated += (candidates, matchedLen, targetHwnd) =>
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
-                _suggestionBar.ShowCandidates(candidates, matchedLen, targetHwnd);
+                if (_hookService.HasActiveCandidates)
+                    _suggestionBar.ShowCandidates(candidates, matchedLen, targetHwnd);
             });
         };
 
         _hookService.RequestCloseCandidates += () =>
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 _suggestionBar.Hide();
             });
@@ -199,27 +200,29 @@ public partial class MainWindow : Window
 
         _hookService.GlobalHotkeyTriggered += (targetHwnd) =>
         {
-            Dispatcher.Invoke(() => OpenQuickSearch(targetHwnd));
+            Dispatcher.BeginInvoke(() => OpenQuickSearch(targetHwnd));
         };
 
         _hookService.AiHotkeyTriggered += (targetHwnd) =>
         {
-            Dispatcher.Invoke(() => OpenQuickAi(targetHwnd));
+            Dispatcher.BeginInvoke(() => OpenQuickAi(targetHwnd));
         };
 
         _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
-                _suggestionBar.UpdateAiCandidate(aiItem);
+                if (_hookService.HasActiveCandidates)
+                    _suggestionBar.UpdateAiCandidate(aiItem);
             });
         };
 
         _hookService.AiGeneratingStarted += (promptHint) =>
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
-                _suggestionBar.ShowAiGeneratingPlaceholder(promptHint);
+                if (_hookService.HasActiveCandidates)
+                    _suggestionBar.ShowAiGeneratingPlaceholder(promptHint);
             });
         };
 

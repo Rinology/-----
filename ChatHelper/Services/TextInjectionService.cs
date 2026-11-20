@@ -87,44 +87,60 @@ public static class TextInjectionService
         }
     }
 
-    public static void ReplaceText(int deleteCount, string newText, IntPtr targetHwnd, bool useShiftHome = false)
+    private static void FocusTargetWindow(IntPtr targetHwnd)
     {
-        if (targetHwnd != IntPtr.Zero && Win32Api.GetForegroundWindow() != targetHwnd)
+        if (targetHwnd == IntPtr.Zero) return;
+
+        uint curTid = Win32Api.GetCurrentThreadId();
+        uint targetTid = Win32Api.GetWindowThreadProcessId(targetHwnd, out _);
+        if (curTid != 0 && targetTid != 0 && curTid != targetTid)
+        {
+            Win32Api.AttachThreadInput(curTid, targetTid, true);
+            Win32Api.SetForegroundWindow(targetHwnd);
+            Win32Api.BringWindowToTop(targetHwnd);
+            Win32Api.AttachThreadInput(curTid, targetTid, false);
+        }
+        else
         {
             Win32Api.SetForegroundWindow(targetHwnd);
-            Thread.Sleep(20);
         }
+    }
+
+    public static void ReplaceText(int deleteCount, string newText, IntPtr targetHwnd, bool useShiftHome = false)
+    {
+        FocusTargetWindow(targetHwnd);
+        Thread.Sleep(35);
 
         if (deleteCount > 0 || useShiftHome)
         {
-            // 한글 IME 조합 중인 마지막 글자가 Backspace 여러 번을 소모해 앞 글자가 남는 현상 방지:
-            // Right Arrow(0x27)로 조합을 먼저 확정
+            // Chrome/웹 한글 IME 조합 중인 마지막 글자가 Backspace 또는 Ctrl+V 이후 끝에 남는 현상 방지:
+            // 포커스 복원 후 Right Arrow로 조합을 먼저 완전히 확정하고 충분히 대기
             Win32Api.keybd_event(Win32Api.VK_RIGHT, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(10);
+            Thread.Sleep(15);
             Win32Api.keybd_event(Win32Api.VK_RIGHT, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
-            Thread.Sleep(20);
+            Thread.Sleep(45);
 
             if (useShiftHome)
             {
                 // Shift + Home 으로 현재 줄 전체 선택 후 Backspace (한글 IME 잔존 글자 원천 차단)
                 Win32Api.keybd_event(Win32Api.VK_SHIFT, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(10);
-                Win32Api.keybd_event(Win32Api.VK_HOME, 0, 0, UIntPtr.Zero);
                 Thread.Sleep(15);
-                Win32Api.keybd_event(Win32Api.VK_HOME, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(10);
-                Win32Api.keybd_event(Win32Api.VK_SHIFT, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Win32Api.keybd_event(Win32Api.VK_HOME, 0, 0, UIntPtr.Zero);
                 Thread.Sleep(20);
+                Win32Api.keybd_event(Win32Api.VK_HOME, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(15);
+                Win32Api.keybd_event(Win32Api.VK_SHIFT, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(30);
 
                 Win32Api.keybd_event(Win32Api.VK_BACK, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(10);
+                Thread.Sleep(15);
                 Win32Api.keybd_event(Win32Api.VK_BACK, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(20);
+                Thread.Sleep(45);
             }
             else
             {
                 SendBackspaces(deleteCount);
-                Thread.Sleep(20);
+                Thread.Sleep(45);
             }
         }
 

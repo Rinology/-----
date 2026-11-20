@@ -34,7 +34,10 @@ public static class AppConstants
     public const int PillOffsetNormal = 35;
     public const int PillOffsetFar = 65;
 
-    public const int AutoHideTimeoutMs = 3500;
+    public const int AutoHideTimeoutMs = 12000;
+    public const int MinAutoHideSeconds = 3;
+    public const int MaxAutoHideSeconds = 20;
+    public const int DefaultAutoHideSeconds = 12;
     public const int NetworkTimeoutSeconds = 8;
 
     // UI 메시지 및 타이틀

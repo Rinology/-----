@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
+using ChatHelper.Constants;
 using ChatHelper.Models;
 
 namespace ChatHelper.Services;
@@ -29,6 +30,7 @@ public class KeyboardHookService : IDisposable
 
     public IntPtr LastTargetHwnd => _lastTargetHwnd;
     public bool IsNaturalLanguageMode => _isNaturalLanguageMode;
+    public bool HasActiveCandidates => _hasCandidates;
     private List<TemplateItem> _currentCandidates = new();
     private int _currentMatchedLen = 0;
     private bool _isNaturalLanguageMode = false;
@@ -156,7 +158,8 @@ public class KeyboardHookService : IDisposable
             }
 
             // 후보가 떠 있을 때의 완성 트리거(\, Tab, Shift+Space, 1~9, A)만 훅 스레드에서 즉시 가로채기
-            if (_hasCandidates && TryHandleCompletionTrigger(vkCode, isShiftPressed))
+            // (트리거 키가 아닌 일반 키는 _lock 경합 없이 바로 통과시켜 타이핑 렉 원천 차단)
+            if (_hasCandidates && IsPotentialTriggerKey(vkCode) && TryHandleCompletionTrigger(vkCode, isShiftPressed))
             {
                 return (IntPtr)1;
             }
@@ -175,6 +178,18 @@ public class KeyboardHookService : IDisposable
 
         return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
+
+    private static bool IsPotentialTriggerKey(int vkCode) =>
+        vkCode == Win32Api.VK_OEM_5 ||
+        vkCode == Win32Api.VK_TAB ||
+        vkCode == Win32Api.VK_SPACE ||
+        vkCode == Win32Api.VK_A ||
+        (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9);
+
+    private int GetAutoHideTimeoutMs() =>
+        Math.Clamp(_configManager.Config.AutoHideSeconds,
+            AppConstants.MinAutoHideSeconds,
+            AppConstants.MaxAutoHideSeconds) * 1000;
 
     private bool TryHandleCompletionTrigger(int vkCode, bool isShiftPressed)
     {
@@ -201,7 +216,7 @@ public class KeyboardHookService : IDisposable
                 }
 
                 _triggerArmed = true;
-                _autoHideTimer.Change(3500, Timeout.Infinite);
+                _autoHideTimer.Change(GetAutoHideTimeoutMs(), Timeout.Infinite);
                 return true;
             }
 
@@ -294,11 +309,11 @@ public class KeyboardHookService : IDisposable
 
             if (vkCode == Win32Api.VK_SPACE)
             {
-                if (_buffer.Length >= 2)
+                // 최대 1개의 띄어쓰기까지만 자연어 구문("배송 안내", "화난 고객")으로 유지하고,
+                // 그 이상 문장이 길어지면 일반 채팅으로 간주해 버퍼/알약을 즉시 닫음 (알약 계속 떠있음 방지)
+                if (_buffer.Length >= 2 && _buffer.Length <= 15 && !_buffer.ToString().Contains(' '))
                 {
                     _buffer.Append(' ');
-                    if (_buffer.Length > 30)
-                        _buffer.Remove(0, _buffer.Length - 30);
                     EvaluateCandidates();
                 }
                 else
@@ -412,7 +427,7 @@ public class KeyboardHookService : IDisposable
         _currentMatchedLen = matchedLen;
         _isNaturalLanguageMode = isNaturalLanguage;
         _hasCandidates = list.Count > 0;
-        _autoHideTimer.Change(5000, Timeout.Infinite);
+        _autoHideTimer.Change(GetAutoHideTimeoutMs(), Timeout.Infinite);
         CandidatesUpdated?.Invoke(list, matchedLen, _lastTargetHwnd);
     }
 
