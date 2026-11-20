@@ -24,6 +24,9 @@ public partial class MainWindow : Window
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
     private System.Threading.Timer? _periodicSyncTimer;
+    private System.Windows.Threading.DispatcherTimer? _tickerTimer;
+    private DateTime _lastSyncTime = DateTime.Now;
+    private readonly Random _rand = new();
 
     public MainWindow()
     {
@@ -96,6 +99,7 @@ public partial class MainWindow : Window
         InitTrayService();
         _hookService.Start();
         InitPeriodicSyncTimer();
+        InitRollingTicker();
 
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
         _ = Task.Run(async () =>
@@ -152,7 +156,7 @@ public partial class MainWindow : Window
 
         _trayIconService.OpenStatusWindowRequested += ShowStatusWindow;
         _trayIconService.OpenControlPanelRequested += OpenControlPanel;
-        _trayIconService.OpenQuickSearchRequested += OpenQuickSearch;
+        _trayIconService.OpenQuickSearchRequested += () => OpenQuickSearch(null);
         _trayIconService.ReloadTemplatesRequested += ReloadTemplates;
         _trayIconService.SyncRemoteRequested += async () => await SyncRemoteAsync();
         _trayIconService.ReloginRequested += Relogin;
@@ -177,14 +181,22 @@ public partial class MainWindow : Window
             });
         };
 
-        _hookService.GlobalHotkeyTriggered += () =>
+        _hookService.GlobalHotkeyTriggered += (targetHwnd) =>
         {
-            Dispatcher.Invoke(OpenQuickSearch);
+            Dispatcher.Invoke(() => OpenQuickSearch(targetHwnd));
         };
 
         _hookService.AiHotkeyTriggered += (targetHwnd) =>
         {
             Dispatcher.Invoke(() => OpenQuickAi(targetHwnd));
+        };
+
+        _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _suggestionBar.UpdateAiCandidate(aiItem);
+            });
         };
 
         _suggestionBar.ItemSelected += (item, matchedLen, targetHwnd) =>
@@ -250,6 +262,19 @@ public partial class MainWindow : Window
         }
 
         LblSubStatus.Text = $"👤 계정: {userId} ({planInfo})   |   📋 템플릿: {_templateManager.Templates.Count}개   |   ⌨️ 완성키: {keyHint}";
+
+        // 스프레드시트 동기화 및 AI 모드 실시간 상태 표시
+        LblSyncStatus.Text = $"  |  🔄 시트: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개 최신)";
+        if (_configManager.Config.EnableLocalAi)
+        {
+            LblAiStatus.Text = "  |  🤖 AI: ON (qwen2.5)";
+            LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
+        }
+        else
+        {
+            LblAiStatus.Text = "  |  🤖 AI: OFF";
+            LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#707070"));
+        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -352,11 +377,52 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenQuickSearch()
+    private void OpenQuickSearch() => OpenQuickSearch(null);
+
+    private void OpenQuickSearch(IntPtr? targetHwnd)
     {
         _suggestionBar.Hide();
-        IntPtr hwnd = Win32Api.GetForegroundWindow();
+        IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
+            ? targetHwnd.Value
+            : Win32Api.GetForegroundWindow();
+
+        uint myPid = (uint)Process.GetCurrentProcess().Id;
+        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
+        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
+        {
+            hwnd = _hookService.LastTargetHwnd;
+        }
+
         _quickSearchWindow.ShowAtCursor(hwnd);
+    }
+
+    private void InitRollingTicker()
+    {
+        _tickerTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(4)
+        };
+        _tickerTimer.Tick += (s, e) => UpdateRollingTicker();
+        _tickerTimer.Start();
+        UpdateRollingTicker();
+    }
+
+    private void UpdateRollingTicker()
+    {
+        var templates = _templateManager.Templates;
+        if (templates.Count == 0)
+        {
+            TxtRollingTicker.Text = "등록된 템플릿이 없습니다.";
+            return;
+        }
+
+        int idx = _rand.Next(templates.Count);
+        var item = templates[idx];
+        string preview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
+        if (preview.Length > 55) preview = preview[..55] + "...";
+
+        string trigger = _configManager.Config.TriggerKey ?? "\\";
+        TxtRollingTicker.Text = $"{trigger}{item.Keyword}  ➔  [{item.Title}] \"{preview}\"";
     }
 
     private void OpenQuickAi(IntPtr? targetHwnd = null)
@@ -429,6 +495,7 @@ public partial class MainWindow : Window
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         await _glossaryService.SyncFromRemoteAsync();
         await OllamaService.Instance.SyncRemoteAiRulesAsync();
+        _lastSyncTime = DateTime.Now;
         UpdateStatusUi();
         _trayIconService?.ShowBalloon("구글 시트 동기화", msg);
     }
@@ -453,6 +520,7 @@ public partial class MainWindow : Window
 
                 if (success)
                 {
+                    _lastSyncTime = DateTime.Now;
                     Dispatcher.BeginInvoke(UpdateStatusUi);
                 }
             }
@@ -501,6 +569,7 @@ public partial class MainWindow : Window
 
     private void ExitApp()
     {
+        _tickerTimer?.Stop();
         _periodicSyncTimer?.Dispose();
         _hookService.Stop();
         _trayIconService?.Dispose();

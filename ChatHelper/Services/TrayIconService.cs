@@ -114,7 +114,7 @@ public class TrayIconService : IDisposable
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
             uCallbackMessage = WM_TRAYICON,
             hIcon = GetAppIconHandle(),
-            szTip = "ChatHelper Millennium Edition (실행 중 - 클릭하여 열기)"
+            szTip = "ChatHelper (실행 중 - 클릭하여 열기)"
         };
 
         _isCreated = Shell_NotifyIcon(NIM_ADD, ref data);

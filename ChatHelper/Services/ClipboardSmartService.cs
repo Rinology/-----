@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
@@ -9,7 +8,7 @@ using System.Windows.Media.Imaging;
 namespace ChatHelper.Services;
 
 /// <summary>
-/// 윈도우 11 캡처 도구(Win+Shift+S)의 PNG/DIB 포맷과 텍스트를 0.05초 만에 완벽 감지하는 스마트 클립보드 서비스
+/// 윈도우 10/11 캡처 도구(Win+Shift+S)의 PNG/DIB 포맷과 텍스트를 0.05초 만에 완벽 감지하는 스마트 클립보드 서비스
 /// </summary>
 public static class ClipboardSmartService
 {
@@ -24,22 +23,38 @@ public static class ClipboardSmartService
         string directText = string.Empty;
         BitmapSource? imageSource = null;
 
-        // 캡처 도구의 클립보드 쓰기 지연/락에 대비해 최대 5회(약 250ms) 재시도
+        // 캡처 도구의 클립보드 쓰기 지연/락에 대비해 최대 5회(약 300ms) 재시도
         for (int attempt = 0; attempt < 5; attempt++)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            try
             {
-                try
+                if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
                 {
-                    IDataObject? dataObj = Clipboard.GetDataObject();
-                    if (dataObj != null)
+                    await Application.Current.Dispatcher.InvokeAsync(ReadClipboard);
+                }
+                else
+                {
+                    ReadClipboard();
+                }
+
+                void ReadClipboard()
+                {
+                    // 1. 표준 WPF Image 검사
+                    if (Clipboard.ContainsImage())
                     {
-                        // 1. 윈도우 캡처 도구의 고유 이미지 포맷(PNG 스트림) 우선 검사
-                        if (dataObj.GetDataPresent("PNG", true))
+                        imageSource = Clipboard.GetImage();
+                    }
+
+                    // 2. 윈도우 캡처 도구(Win+Shift+S) PNG 스트림 검사
+                    if (imageSource == null)
+                    {
+                        IDataObject? dataObj = Clipboard.GetDataObject();
+                        if (dataObj != null && dataObj.GetDataPresent("PNG", true))
                         {
                             var pngData = dataObj.GetData("PNG");
                             if (pngData is MemoryStream ms)
                             {
+                                if (ms.CanSeek) ms.Position = 0;
                                 var decoder = new PngBitmapDecoder(ms, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
                                 if (decoder.Frames.Count > 0)
                                 {
@@ -56,45 +71,29 @@ public static class ClipboardSmartService
                                 }
                             }
                         }
+                    }
 
-                        // 2. 표준 WPF BitmapImage 검사
-                        if (imageSource == null && Clipboard.ContainsImage())
-                        {
-                            imageSource = Clipboard.GetImage();
-                        }
-
-                        // 3. DeviceIndependentBitmap (DIB) 검사
-                        if (imageSource == null && dataObj.GetDataPresent(DataFormats.Dib))
-                        {
-                            // DIB 스트림 또는 비트맵 시도
-                            if (dataObj.GetData(DataFormats.Bitmap) is BitmapSource bs)
-                            {
-                                imageSource = bs;
-                            }
-                        }
-
-                        // 4. 복사된 텍스트 검사
-                        if (imageSource == null && Clipboard.ContainsText())
-                        {
-                            directText = Clipboard.GetText()?.Trim() ?? string.Empty;
-                        }
+                    // 3. 복사된 텍스트 검사
+                    if (imageSource == null && Clipboard.ContainsText())
+                    {
+                        directText = Clipboard.GetText()?.Trim() ?? string.Empty;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[ClipboardSmartService] Attempt {attempt} failed: {ex.Message}");
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ClipboardSmartService] Attempt {attempt} failed: {ex.Message}");
+            }
 
             if (imageSource != null || !string.IsNullOrWhiteSpace(directText))
             {
                 break;
             }
 
-            await Task.Delay(50);
+            await Task.Delay(60);
         }
 
-        // 이미지가 있으면 Windows OCR로 0.01초 텍스트 추출
+        // 이미지가 있으면 Windows OCR로 0.05초 텍스트 추출 (알파 정규화 자동 적용)
         if (imageSource != null)
         {
             string ocrText = await OcrService.RecognizeTextAsync(imageSource);

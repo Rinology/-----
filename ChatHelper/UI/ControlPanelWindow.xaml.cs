@@ -138,7 +138,17 @@ public partial class ControlPanelWindow : Window
         CmbAutoSyncInterval.SelectedIndex = comboIdx;
         UpdateUserInfoDisplay();
 
-        // 5. 하단 상태표시줄
+        // 5. 로컬 AI 설정 로드
+        ChkEnableLocalAi.IsChecked = cfg.EnableLocalAi;
+        if (cfg.AiPlacement == "Top")
+            RadioAiPosTop.IsChecked = true;
+        else
+            RadioAiPosBottom.IsChecked = true;
+
+        ChkAutoGenerateAltX.IsChecked = cfg.AutoGenerateOnAltX;
+        CheckOllamaStatusAsync();
+
+        // 6. 하단 상태표시줄
         LblStatusBar.Text = $"템플릿: {_templatesObs.Count}개 로드됨 | 로그인: {cfg.CurrentUserId}";
     }
 
@@ -395,9 +405,57 @@ public partial class ControlPanelWindow : Window
             cfg.AutoSyncIntervalMinutes = minutes;
         }
 
+        // 로컬 AI 설정 저장
+        cfg.EnableLocalAi = ChkEnableLocalAi.IsChecked == true;
+        cfg.AiPlacement = (RadioAiPosTop.IsChecked == true) ? "Top" : "Bottom";
+        cfg.AutoGenerateOnAltX = ChkAutoGenerateAltX.IsChecked == true;
+
         _configManager.Save();
         SettingsChanged?.Invoke();
         Close();
+    }
+
+    private async void BtnTestOllama_Click(object sender, RoutedEventArgs e)
+    {
+        TxtOllamaStatus.Text = "Ollama 서버 연결 확인 중...";
+        TxtOllamaStatus.Foreground = Brushes.Navy;
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        bool isOk = await OllamaService.Instance.IsServerRespondingAsync();
+        sw.Stop();
+
+        if (isOk)
+        {
+            TxtOllamaStatus.Text = $"✔ 정상 연결됨 (응답 시간: {sw.ElapsedMilliseconds}ms)";
+            TxtOllamaStatus.Foreground = Brushes.DarkGreen;
+        }
+        else
+        {
+            TxtOllamaStatus.Text = "❌ 연결 실패 (Ollama가 실행 중인지 확인하세요)";
+            TxtOllamaStatus.Foreground = Brushes.Red;
+        }
+    }
+
+    private async void CheckOllamaStatusAsync()
+    {
+        try
+        {
+            bool isOk = await OllamaService.Instance.IsServerRespondingAsync();
+            Dispatcher.Invoke(() =>
+            {
+                if (isOk)
+                {
+                    TxtOllamaStatus.Text = "✔ Ollama 실행 중 (정상 연결)";
+                    TxtOllamaStatus.Foreground = Brushes.DarkGreen;
+                }
+                else
+                {
+                    TxtOllamaStatus.Text = "⚠️ 미실행 (Ollama 실행 필요)";
+                    TxtOllamaStatus.Foreground = Brushes.DarkRed;
+                }
+            });
+        }
+        catch { }
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

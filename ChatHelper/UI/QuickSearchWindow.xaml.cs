@@ -16,6 +16,7 @@ public partial class QuickSearchWindow : Window
     private IntPtr _targetHwnd = IntPtr.Zero;
     private string _selectedCategory = "전체";
     private bool _isActionModalOpen = false;
+    private DateTime _openedAt = DateTime.MinValue;
 
     public event Action<TemplateItem, IntPtr>? ItemSelected;
 
@@ -40,6 +41,12 @@ public partial class QuickSearchWindow : Window
 
     private void QuickSearchWindow_Deactivated(object? sender, EventArgs e)
     {
+        // 사용자가 Alt+Q를 누르고 손을 뗄 때 발생하는 일시적 포커스 플리커(Focus Flicker)로 창이 닫히는 현상 방지 (450ms 유예)
+        if ((DateTime.UtcNow - _openedAt).TotalMilliseconds < 450)
+        {
+            return;
+        }
+
         // 모달창이나 메시지박스가 열려있는 중이 아니라면 포커스 상실 시 닫기
         if (!_isActionModalOpen && IsVisible)
         {
@@ -49,6 +56,7 @@ public partial class QuickSearchWindow : Window
 
     public void ShowAtCursor(IntPtr targetHwnd)
     {
+        _openedAt = DateTime.UtcNow;
         _targetHwnd = targetHwnd;
 
         // 1. 텍스트 입력 캐럿(Caret) 위치 확인 (알약 뜨는 위치 근처)

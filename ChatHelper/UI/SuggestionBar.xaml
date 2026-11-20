@@ -21,11 +21,14 @@
             <DropShadowEffect BlurRadius="0" Direction="315" ShadowDepth="2" Opacity="0.45"/>
         </Border.Effect>
         <StackPanel Orientation="Vertical">
+            <StackPanel x:Name="TopAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,5" Visibility="Collapsed">
+                <!-- 🤖 AI 추천 상단 배치 라인 -->
+            </StackPanel>
             <StackPanel x:Name="ItemsPanel" Orientation="Horizontal" VerticalAlignment="Center">
                 <!-- 시트 추천 칩 아이템들이 동적으로 여기에 추가됨 -->
             </StackPanel>
-            <StackPanel x:Name="AiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,5,0,0" Visibility="Collapsed">
-                <!-- 🤖 AI 추천 전용 별도 라인 -->
+            <StackPanel x:Name="BottomAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,5,0,0" Visibility="Collapsed">
+                <!-- 🤖 AI 추천 하단 배치 라인 -->
             </StackPanel>
         </StackPanel>
     </Border>

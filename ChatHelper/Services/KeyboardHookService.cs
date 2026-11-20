@@ -19,8 +19,9 @@ public class KeyboardHookService : IDisposable
     private readonly object _lock = new();
 
     public event Action<List<TemplateItem>, int, IntPtr>? CandidatesUpdated;
+    public event Action<TemplateItem, int, IntPtr>? AiCandidateReady;
     public event Action? RequestCloseCandidates;
-    public event Action? GlobalHotkeyTriggered;
+    public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
 
@@ -105,20 +106,22 @@ public class KeyboardHookService : IDisposable
                 }
             }
 
-            bool isAltPressed = (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0;
+            int flags = Marshal.ReadInt32(lParam + 8);
+            bool isAltPressed = (flags & 0x20) != 0 || (GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0 || wParam == (IntPtr)Win32Api.WM_SYSKEYDOWN;
             bool isCtrlPressed = (GetAsyncKeyState(Win32Api.VK_CONTROL) & 0x8000) != 0;
             bool isWinPressed = (GetAsyncKeyState(Win32Api.VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(Win32Api.VK_RWIN) & 0x8000) != 0;
             bool isShiftPressed = (GetAsyncKeyState(Win32Api.VK_SHIFT) & 0x8000) != 0;
 
-            // Alt + Q 수동 검색창 호출
-            if (isAltPressed && !isCtrlPressed && vkCode == 0x51)
+            // Alt + Q 수동 검색창 호출 (Q vkCode 0x51 또는 scanCode 0x10)
+            if (isAltPressed && !isCtrlPressed && (vkCode == 0x51 || scanCode == 0x10))
             {
-                GlobalHotkeyTriggered?.Invoke();
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                GlobalHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
 
-            // Alt + X 로컬 AI 상담 비서 호출
-            if (isAltPressed && !isCtrlPressed && vkCode == 0x58)
+            // Alt + X 로컬 AI 상담 비서 호출 (X vkCode 0x58 또는 scanCode 0x2D)
+            if (isAltPressed && !isCtrlPressed && (vkCode == 0x58 || scanCode == 0x2D))
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 AiHotkeyTriggered?.Invoke(fgHwnd);
@@ -316,9 +319,8 @@ public class KeyboardHookService : IDisposable
         var list = _templateManager.FindMatchingCandidates(raw, out int matchedLen);
         if (list.Count > 0)
         {
-            _aiDebounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            _aiCts?.Cancel();
             ShowCandidateList(list, matchedLen, isNaturalLanguage: false);
+            ScheduleBackgroundAi(raw, "");
             return;
         }
 
@@ -329,13 +331,12 @@ public class KeyboardHookService : IDisposable
             var hangulList = _templateManager.FindMatchingCandidates(hangul, out int hMatchedLen);
             if (hangulList.Count > 0)
             {
-                _aiDebounceTimer.Change(Timeout.Infinite, Timeout.Infinite);
-                _aiCts?.Cancel();
                 ShowCandidateList(hangulList, hMatchedLen, isNaturalLanguage: true);
+                ScheduleBackgroundAi(raw, hangul);
                 return;
             }
 
-            // 3. 자연어 의도(예: "인사말생성", "배송안내", "화난 고객 달래주기") -> 로컬 퍼지 즉시 + 450ms 디바운스 Ollama 추천
+            // 3. 자연어 의도 -> 로컬 퍼지 즉시 매칭
             var fuzzyPills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 5);
             if (fuzzyPills.Count > 0)
             {
@@ -346,12 +347,20 @@ public class KeyboardHookService : IDisposable
                 ClearCandidates(cancelAi: false);
             }
 
-            _pendingAiRaw = raw;
-            _aiDebounceTimer.Change(300, Timeout.Infinite);
+            ScheduleBackgroundAi(raw, hangul);
             return;
         }
 
         ClearCandidates();
+    }
+
+    private void ScheduleBackgroundAi(string raw, string hangul)
+    {
+        if (!_configManager.Config.EnableLocalAi)
+            return;
+
+        _pendingAiRaw = raw;
+        _aiDebounceTimer.Change(350, Timeout.Infinite);
     }
 
     private void ShowCandidateList(List<TemplateItem> list, int matchedLen, bool isNaturalLanguage)
@@ -378,15 +387,7 @@ public class KeyboardHookService : IDisposable
         string hangul = HangulAssembler.ConvertQwertyToHangul(targetRaw).Trim();
         if (hangul.Length < 2) return;
 
-        // 일반 단타 채팅 오작동 방지: 시트/용어집에 관련 항목이 있거나, 생성/안내/추천 등 의도 키워드 포함 또는 4글자 이상일 때 Ollama 실행
         var glossaryMatches = _glossaryService?.FindRelevantTerms(hangul, maxResults: 5);
-        bool hasIntent = hangul.Contains("생성") || hangul.Contains("작성") || hangul.Contains("추천")
-                      || hangul.Contains("안내") || hangul.Contains("만들") || hangul.Contains("답변")
-                      || hangul.Contains("달래") || (glossaryMatches != null && glossaryMatches.Count > 0)
-                      || hangul.Length >= 4;
-        var quickPills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 3);
-        if (!hasIntent && quickPills.Count == 0)
-            return;
 
         _aiCts?.Cancel();
         _aiCts = new CancellationTokenSource();
@@ -396,54 +397,44 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
-                // 시트 추천은 즉시(<1ms) 로컬 검색을 사용하고, Ollama는 답변 생성 1회만 호출해 지연 최소화
-                var pills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 5);
-                string inferredKw = pills.FirstOrDefault()?.ContentKeyword ?? hangul;
+                if (!await OllamaService.Instance.IsServerRespondingAsync())
+                    return;
 
-                string aiAnswer = string.Empty;
-                try
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                string aiAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
+                sw.Stop();
+
+                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(aiAnswer)) return;
+
+                var aiItem = new TemplateItem
                 {
-                    if (await OllamaService.Instance.IsServerRespondingAsync())
-                    {
-                        aiAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
-                    }
-                }
-                catch { }
-
-                if (token.IsCancellationRequested) return;
-
-                var combined = new List<TemplateItem>();
-                foreach (var p in pills)
-                {
-                    if (!combined.Contains(p))
-                        combined.Add(p);
-                }
-
-                if (!string.IsNullOrWhiteSpace(aiAnswer))
-                {
-                    combined.Add(new TemplateItem
-                    {
-                        Keyword = hangul,
-                        ContentKeyword = inferredKw,
-                        Title = "🤖 AI 추천",
-                        Content = aiAnswer,
-                        Category = "AI생성"
-                    });
-                }
-
-                if (combined.Count == 0) return;
+                    Keyword = hangul,
+                    ContentKeyword = hangul,
+                    Title = "🤖 AI 추천 답변",
+                    Content = aiAnswer,
+                    Category = "AI생성"
+                };
 
                 lock (_lock)
                 {
                     if (_buffer.ToString() != targetRaw) return;
-                    _lastTargetHwnd = targetHwnd;
-                    ShowCandidateList(combined, hangul.Length, isNaturalLanguage: true);
+
+                    // 현재 후보 목록에 AI 추천 추가
+                    if (!_currentCandidates.Any(c => c.Category == "AI생성"))
+                    {
+                        _currentCandidates.Add(aiItem);
+                    }
+                    else
+                    {
+                        int idx = _currentCandidates.FindIndex(c => c.Category == "AI생성");
+                        if (idx >= 0) _currentCandidates[idx] = aiItem;
+                    }
                 }
+
+                // AI 후보 준비 완료 알림
+                AiCandidateReady?.Invoke(aiItem, hangul.Length, targetHwnd);
             }
-            catch
-            {
-                // 취소 또는 Ollama 미연결 시 무시
-            }
+            catch { }
         }, token);
     }
 

@@ -188,26 +188,10 @@
                 <TabItem Header="🎨 디자인 &amp; 표시" Padding="16,8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="16">
-                            <!-- 윈도우 98 ME 클래식 단독 테마 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="1. 윈도우 비주얼 스타일" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
-                                    <Border Background="#D4D0C8" BorderBrush="#808080" BorderThickness="1" Padding="14,10">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🖥️" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                            <StackPanel>
-                                                <TextBlock Text="Windows 98 Millennium Edition (단독 테마)" FontWeight="Bold" FontSize="14" Foreground="#000080"/>
-                                                <TextBlock Text="불필요한 테마 전환을 제거하고 안정적인 Windows 98 ME 클래식 UI (3D 베벨 &amp; 네이비 타이틀바)로 최적화되었습니다." Foreground="#4B5563" FontSize="12" Margin="0,3,0,0"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
-
                             <!-- 알약 크기 3단계 조절 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="2. 추천 알약(Suggestion Pill) 크기 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="1. 추천 알약(Suggestion Pill) 크기 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
                                     <RadioButton x:Name="RadioPillScale1" Content="1단계: 보통 크기 (1.0x 배율 - 미니멀한 크기)" Margin="8,5"/>
                                     <RadioButton x:Name="RadioPillScale2" Content="2단계: 크게 (2.0x 배율 - 시원하고 가독성이 뛰어난 2배 크기, 권장)" Margin="8,5" IsChecked="True"/>
                                     <RadioButton x:Name="RadioPillScale3" Content="3단계: 아주 크게 (3.0x 배율 - 고해상도 모니터 및 대형 폰트)" Margin="8,5"/>
@@ -330,31 +314,54 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 탭 5: 버전 정보 & 로컬 AI -->
-                <TabItem Header="ℹ️ 버전 &amp; 로컬 AI" Padding="16,8">
-                    <Grid Margin="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Border Width="64" Height="64" Background="{DynamicResource ThemeAccent}" CornerRadius="10" VerticalAlignment="Top">
-                            <TextBlock Text="ME" Foreground="White" FontWeight="Bold" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-
-                        <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                            <TextBlock Text="ChatHelper Millennium Edition" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource ThemeText}"/>
-                            <TextBlock Text="Version 2.2.0 (Build 2026.11.18)" FontSize="12" Foreground="{DynamicResource ThemeSubText}" Margin="0,3,0,14"/>
-
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <!-- 탭 5: 로컬 AI 설정 -->
+                <TabItem Header="🤖 로컬 AI 설정" Padding="16,8">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="16">
+                            <!-- 로컬 AI 활성화 카드 -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="🤖 초경량 로컬 AI 시맨틱 검색 엔진 (계획)" FontWeight="Bold" FontSize="14" Margin="0,0,0,6"/>
-                                    <TextBlock Text="• 수백 개의 키워드를 외우지 않아도, 사용자가 '돈 환불해달래' 처럼 자연어로 검색하면 AI가 의미를 파악해 최적의 답변 템플릿을 추천합니다." FontSize="12" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,6"/>
-                                    <TextBlock Text="• 기반 기술: Microsoft ONNX Runtime + BGE-m3 / KR-SBERT INT8 (약 35MB 단일 파일, CPU 0.01초 추론, 인터넷 불필요)" FontSize="12" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="1. Ollama 로컬 AI 기능 활성화" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <CheckBox x:Name="ChkEnableLocalAi" Content="로컬 AI 어시스턴트 기능 사용 (Ollama qwen2.5:1.5b)" FontWeight="Bold" FontSize="13" Margin="0,4,0,6"/>
+                                    <TextBlock Text="• 활성화 시 사용자가 자연어로 입력하면 의미를 분석해 추천 답변을 생성하고, Alt+X AI 비서를 활용할 수 있습니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="22,0,0,10" TextWrapping="Wrap"/>
+                                    <TextBlock Text="• 로컬 PC 내부에서 100% 실행되므로 외부로 데이터가 유출되지 않으며 인터넷 연결 없이도 동작합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="22,0,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- AI 추천 칩 배치 위치 -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="2. 자동완성 알약에서 AI 추천 칩 배치 위치" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="시트 템플릿 추천 알약과 별개의 독립된 라인으로 AI 추천 칩이 표시됩니다. 배치될 위치를 선택하세요:" Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+                                    <RadioButton x:Name="RadioAiPosBottom" GroupName="AiPosGroup" Content="기존 추천 알약 아래쪽에 표시 (기본 권장)" Margin="8,4" IsChecked="True"/>
+                                    <RadioButton x:Name="RadioAiPosTop" GroupName="AiPosGroup" Content="기존 추천 알약 위쪽에 표시" Margin="8,4"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- AI 비서(Alt+X) 진입 시 동작 방식 -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="3. AI 상담 비서 (Alt+X) 진입 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <CheckBox x:Name="ChkAutoGenerateAltX" Content="Alt+X 진입 시 클립보드 내용을 즉시 자동 생성 (해제 시 Enter를 누를 때 생성)" Margin="8,4" IsChecked="False"/>
+                                    <TextBlock Text="• 체크 해제(권장) 시 창이 열릴 때 마지막 클립보드 내용을 먼저 보여주고 사용자가 내용을 확인/수정한 뒤 Enter를 누를 때 안전하게 생성을 시작합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="26,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Ollama 연결 상태 및 테스트 -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="4. Ollama 서버 상태 확인" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="상태: " VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtOllamaStatus" Text="확인되지 않음" FontWeight="Bold" Foreground="#000080" VerticalAlignment="Center" Margin="6,0,14,0"/>
+                                        <Button Content="🔍 연결 상태 테스트" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,2" Click="BtnTestOllama_Click"/>
+                                    </StackPanel>
+                                    <TextBlock Text="• 로컬에 Ollama가 설치되어 백그라운드 서비스로 실행 중이어야 합니다 (기본 포트: 11434)." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
-                    </Grid>
+                    </ScrollViewer>
                 </TabItem>
             </TabControl>
 

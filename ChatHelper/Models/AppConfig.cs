@@ -3,8 +3,8 @@ namespace ChatHelper.Models;
 public class AppConfig
 {
     // 버전 정보
-    public string Version { get; set; } = "v2.0.0 (Millennium Edition)";
-    public string BuildDate { get; set; } = "2026-11-18";
+    public string Version { get; set; } = "v2.2.0";
+    public string BuildDate { get; set; } = "2026-11-20";
 
     // 로그인 및 세션 관리
     public string CurrentUserId { get; set; } = "taerin";
@@ -42,12 +42,14 @@ public class AppConfig
     public bool EnableNumberSelection { get; set; } = true;
     public string GlobalHotkey { get; set; } = "Alt+Q";
 
-    // 템플릿 데이터 소스 및 스프레드시트 업로드
+    // 템플릿 데이터 소스 및 로컬 AI
     public string DisplayMode { get; set; } = "InlinePill";
     public string CsvFilePath { get; set; } = "chat_templates.csv";
     public string RemoteCsvUrl { get; set; } = "";
     public string SheetUploadUrl { get; set; } = ""; // 스프레드시트 새 행 등록(웹훅/Apps Script) URL
-    public bool EnableLocalAi { get; set; } = false; // 로컬 AI 자연어 추천 기능 사용 여부
+    public bool EnableLocalAi { get; set; } = true; // 로컬 AI 자연어 추천 기능 사용 여부
+    public string AiPlacement { get; set; } = "Bottom"; // AI 추천 칩 배치 위치: "Bottom" 또는 "Top"
+    public bool AutoGenerateOnAltX { get; set; } = false; // Alt+X 시 즉시 자동 생성하지 않고 사용자 확인 후 생성
     public bool AutoUploadAiSelection { get; set; } = false; // AI 추천 채택 시 자동 시트 업로드 여부
 
     // 구글 스프레드시트 주기적 자동 동기화 (분 단위, 기본 15분, 0이면 비활성화)

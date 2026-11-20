@@ -43,10 +43,20 @@ public partial class QuickAiWindow : Window
         Show();
         Activate();
 
-        TxtStatus.Text = "클립보드 분석 중...";
+        TxtStatus.Text = "클립보드 확인 중...";
         TxtAiResponse.Text = string.Empty;
 
         // 클립보드 분석 (캡처 이미지 OCR 또는 복사된 텍스트)
+        await LoadClipboardAsync();
+
+        if (_configManager?.Config.AutoGenerateOnAltX == true && !string.IsNullOrWhiteSpace(TxtCustomerInput.Text))
+        {
+            await StartGenerationAsync();
+        }
+    }
+
+    private async Task LoadClipboardAsync()
+    {
         var clipResult = await ClipboardSmartService.GetCustomerMessageAsync();
 
         if (clipResult.IsFromImage)
@@ -54,24 +64,48 @@ public partial class QuickAiWindow : Window
             TxtSourceType.Text = "📸 [인식: 화면 캡처 이미지 (자동 OCR 추출)]";
             TxtSourceType.Foreground = System.Windows.Media.Brushes.DarkGreen;
         }
-        else
+        else if (!string.IsNullOrWhiteSpace(clipResult.ExtractedText))
         {
             TxtSourceType.Text = "📋 [인식: 복사된 텍스트]";
             TxtSourceType.Foreground = System.Windows.Media.Brushes.Navy;
-        }
-
-        if (!string.IsNullOrWhiteSpace(clipResult.ExtractedText))
-        {
-            TxtCustomerInput.Text = clipResult.ExtractedText;
-            await StartGenerationAsync();
         }
         else
         {
             TxtSourceType.Text = "⚠️ [클립보드가 비어 있습니다]";
             TxtSourceType.Foreground = System.Windows.Media.Brushes.DarkRed;
+        }
+
+        if (!string.IsNullOrWhiteSpace(clipResult.ExtractedText))
+        {
+            TxtCustomerInput.Text = clipResult.ExtractedText;
+            TxtStatus.Text = "고객 문의 내용을 확인/수정한 뒤 [✨ 답변 생성 (Enter)]을 누르세요.";
+        }
+        else
+        {
             TxtCustomerInput.Text = string.Empty;
-            TxtStatus.Text = "고객 문의를 직접 입력한 뒤 [F5: 다시 작성]을 누르거나, 캡처(Win+Shift+S) 후 다시 Alt+X를 누르세요.";
-            TxtCustomerInput.Focus();
+            TxtStatus.Text = "고객 문의를 직접 입력하거나 캡처(Win+Shift+S) 후 [📋 클립보드 다시 불러오기]를 누르세요.";
+        }
+
+        TxtCustomerInput.Focus();
+        TxtCustomerInput.SelectAll();
+    }
+
+    private async void BtnReloadClipboard_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadClipboardAsync();
+    }
+
+    private async void BtnGenerate_Click(object sender, RoutedEventArgs e)
+    {
+        await StartGenerationAsync();
+    }
+
+    private void TxtCustomerInput_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
+        {
+            e.Handled = true;
+            _ = StartGenerationAsync();
         }
     }
 
@@ -250,7 +284,7 @@ public partial class QuickAiWindow : Window
                 _lastInferredContentKeyword = !string.IsNullOrWhiteSpace(item.ContentKeyword)
                     ? item.ContentKeyword
                     : item.Keyword;
-                TxtStatus.Text = $"💊 시트 템플릿 '{item.Title}' 선택됨 - [Tab]으로 바로 입력하거나 수정 후 [💾 시트 저장] 가능";
+                TxtStatus.Text = $"💊 시트 템플릿 '{item.Title}' 선택됨 - [Tab]으로 대화창에 바로 입력할 수 있습니다.";
             };
             PnlSuggestedPills.Children.Add(pillBtn);
         }
@@ -266,7 +300,7 @@ public partial class QuickAiWindow : Window
             return;
         }
 
-        BtnSaveToSheet.IsEnabled = false;
+        // BtnSaveToSheet.IsEnabled = false;
         TxtStatus.Text = "🤖 Ollama가 시트 저장용 항목(단축키/키워드/제목/분류)을 정리 중입니다...";
 
         try
@@ -313,7 +347,7 @@ public partial class QuickAiWindow : Window
         }
         finally
         {
-            BtnSaveToSheet.IsEnabled = true;
+            // BtnSaveToSheet.IsEnabled = true;
         }
     }
 

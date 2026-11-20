@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Windows.Media.Ocr;
 using Windows.Globalization;
@@ -13,6 +14,7 @@ namespace ChatHelper.Services;
 
 /// <summary>
 /// Windows 10/11 네이티브 내장 OCR 서비스 (0.05초 초고속 한글/영문 인식)
+/// 윈도우 10/11 캡처 도구(Win+Shift+S)의 32비트 DIB 투명(Alpha=0) 버그 완벽 자동 보정
 /// </summary>
 public static class OcrService
 {
@@ -54,24 +56,27 @@ public static class OcrService
         try
         {
             var engine = GetEngine();
-            if (engine == null)
+            if (engine == null || bitmapSource == null)
             {
                 return string.Empty;
             }
 
-            // 1. WPF BitmapSource를 PNG byte 배열로 변환
+            // 1. 캡처 도구의 Alpha=0 투명 버그 해결 및 이미지 정규화
+            var normalizedSource = NormalizeForOcr(bitmapSource);
+
+            // 2. WPF BitmapSource를 PNG byte 배열로 변환
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
                 var encoder = new WpfImaging.PngBitmapEncoder();
-                encoder.Frames.Add(WpfImaging.BitmapFrame.Create(bitmapSource));
+                encoder.Frames.Add(WpfImaging.BitmapFrame.Create(normalizedSource));
                 encoder.Save(ms);
                 bytes = ms.ToArray();
             }
 
             if (bytes.Length == 0) return string.Empty;
 
-            // 2. DataWriter를 통해 WinRT InMemoryRandomAccessStream에 안전하게 쓰기 (Dispose 문제 완전 해결)
+            // 3. DataWriter를 통해 WinRT InMemoryRandomAccessStream에 안전하게 쓰기
             var ras = new InMemoryRandomAccessStream();
             using (var writer = new DataWriter(ras.GetOutputStreamAt(0)))
             {
@@ -94,5 +99,56 @@ public static class OcrService
             Debug.WriteLine($"[OcrService] Recognize failed: {ex.Message}");
             return string.Empty;
         }
+    }
+
+    /// <summary>
+    /// 윈도우 캡처 도구(Win+Shift+S)에서 발생하는 32비트 DIB Alpha=0(완전 투명) 현상을 감지하여
+    /// 모든 픽셀의 Alpha를 255(완전 불투명)로 복원하고, 필요 시 최대 해상도 제한 내로 축소
+    /// </summary>
+    private static BitmapSource NormalizeForOcr(BitmapSource src)
+    {
+        // 1. 해상도가 너무 큰 경우 (OcrEngine 최대 제한 2600px 초과 방지)
+        BitmapSource formatted = src;
+        if (src.PixelWidth > 2400 || src.PixelHeight > 2400)
+        {
+            double scale = Math.Min(2400.0 / src.PixelWidth, 2400.0 / src.PixelHeight);
+            formatted = new TransformedBitmap(src, new ScaleTransform(scale, scale));
+        }
+
+        // Bgra32로 변환하여 픽셀 직접 분석
+        if (formatted.Format != PixelFormats.Bgra32)
+        {
+            formatted = new FormatConvertedBitmap(formatted, PixelFormats.Bgra32, null, 0);
+        }
+
+        int w = formatted.PixelWidth;
+        int h = formatted.PixelHeight;
+        int stride = w * 4;
+        byte[] pixels = new byte[h * stride];
+        formatted.CopyPixels(pixels, stride, 0);
+
+        // Alpha 채널 검사: 만약 90% 이상의 픽셀이 Alpha == 0 이면 캡처 도구의 제로-알파 버그임!
+        int zeroAlphaCount = 0;
+        int sampleStep = Math.Max(1, (h * w) / 2000);
+        int sampleTotal = 0;
+
+        for (int i = 3; i < pixels.Length; i += 4 * sampleStep)
+        {
+            sampleTotal++;
+            if (pixels[i] == 0) zeroAlphaCount++;
+        }
+
+        if (sampleTotal > 0 && (double)zeroAlphaCount / sampleTotal > 0.90)
+        {
+            // 전체 픽셀을 100% 불투명(Alpha = 255)으로 복원
+            for (int i = 3; i < pixels.Length; i += 4)
+            {
+                pixels[i] = 255;
+            }
+
+            return BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        }
+
+        return formatted;
     }
 }

@@ -52,17 +52,20 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="65"/>
                                 </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,3">
-                                    <TextBlock x:Name="TxtSourceType" Text="[인식: 복사된 텍스트]" FontWeight="Bold" Foreground="#000080" FontSize="11"/>
-                                    <TextBlock Text=" (내용을 직접 수정하거나 다시 입력할 수 있습니다)" Foreground="#606060" FontSize="11" Margin="6,0,0,0"/>
-                                </StackPanel>
+                                <Grid Grid.Row="0" Margin="0,0,0,3">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtSourceType" Text="[인식: 복사된 텍스트]" FontWeight="Bold" Foreground="#000080" FontSize="11"/>
+                                        <TextBlock Text=" (내용을 확인/수정한 뒤 [답변 생성]을 누르세요)" Foreground="#606060" FontSize="11" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                    <Button x:Name="BtnReloadClipboard" Content="📋 클립보드 다시 불러오기" HorizontalAlignment="Right" Height="22" Padding="8,1" Style="{DynamicResource ThemeWin98Button}" FontSize="10.5" Click="BtnReloadClipboard_Click"/>
+                                </Grid>
                                 <TextBox x:Name="TxtCustomerInput" Grid.Row="1" 
                                          TextWrapping="Wrap" AcceptsReturn="True" 
                                          VerticalScrollBarVisibility="Auto"
                                          FontSize="12" FontFamily="Malgun Gothic, Segoe UI"
                                          Background="#FFFFFF" Foreground="#000000"
                                          BorderBrush="#808080" BorderThickness="1"
-                                         Padding="4"/>
+                                         Padding="4" KeyDown="TxtCustomerInput_KeyDown"/>
                             </Grid>
                         </GroupBox>
 
@@ -102,14 +105,15 @@
                         <!-- 5. 하단 버튼 바 -->
                         <Grid Grid.Row="4" Background="#D4D0C8" Margin="0,2,0,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <TextBlock Text="조작: [Tab] 대화창 바로 입력  |  [Enter] 입력+전송  |  [F5] 다시 작성  |  [Esc] 닫기" 
+                                <TextBlock Text="조작: [Enter] 답변 생성  |  [Tab] 대화창 바로 입력  |  [F5] 다시 작성  |  [Esc] 닫기" 
                                            FontSize="11" Foreground="#505050" FontFamily="Tahoma, Gulim"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0">
-                                <Button x:Name="BtnSaveToSheet" Content="💾 시트 저장" 
-                                        Width="88" Height="25" Margin="0,0,5,0"
-                                        Style="{DynamicResource ThemeWin98Button}" Click="BtnSaveToSheet_Click"/>
+                                <Button x:Name="BtnGenerate" Content="✨ 답변 생성 (Enter)" 
+                                        Width="135" Height="25" Margin="0,0,5,0"
+                                        FontWeight="Bold" Foreground="#000080"
+                                        Style="{DynamicResource ThemeWin98Button}" Click="BtnGenerate_Click"/>
                                 <Button x:Name="BtnRegenerate" Content="🔄 다시작성(F5)" 
                                         Width="95" Height="25" Margin="0,0,5,0"
                                         Style="{DynamicResource ThemeWin98Button}" Click="BtnRegenerate_Click"/>
