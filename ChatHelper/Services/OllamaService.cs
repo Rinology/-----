@@ -319,6 +319,32 @@ public class OllamaService : IDisposable
                 answer = answer[1..^1].Trim();
             }
             answer = Regex.Replace(answer, @"^(답장|답변|추천\s*답변|응답)\s*:\s*", "", RegexOptions.IgnoreCase).Trim();
+
+            // 소형 모델(1.5B)이 고객 문의의 오타/유사어(aliases)를 그대로 따라 쓰는 현상 방지:
+            // 매칭된 용어집의 유사어(aliases)를 공식 용어(Term)로 후처리 정규화
+            if (glossaryMatches != null && glossaryMatches.Count > 0)
+            {
+                foreach (var g in glossaryMatches)
+                {
+                    if (string.IsNullOrWhiteSpace(g.Term) || string.IsNullOrWhiteSpace(g.Aliases))
+                        continue;
+
+                    var aliases = g.Aliases
+                        .Split(new[] { ',', '/', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(a => a.Trim())
+                        .Where(a => a.Length >= 2 && !string.Equals(a, g.Term, StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(a => a.Length);
+
+                    foreach (var alias in aliases)
+                    {
+                        if (!g.Term.Contains(alias, StringComparison.OrdinalIgnoreCase))
+                        {
+                            answer = Regex.Replace(answer, Regex.Escape(alias), g.Term, RegexOptions.IgnoreCase);
+                        }
+                    }
+                }
+            }
+
             return answer;
         }
 

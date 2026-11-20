@@ -78,11 +78,16 @@ public static class ClipboardSmartService
                     {
                         directText = Clipboard.GetText()?.Trim() ?? string.Empty;
                     }
+
+                    if (imageSource != null && imageSource.CanFreeze && !imageSource.IsFrozen)
+                    {
+                        imageSource.Freeze();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ClipboardSmartService] Attempt {attempt} failed: {ex.Message}");
+                AppLogger.Warn("ClipboardSmartService", $"클립보드 읽기 재시도 {attempt + 1}", ex);
             }
 
             if (imageSource != null || !string.IsNullOrWhiteSpace(directText))

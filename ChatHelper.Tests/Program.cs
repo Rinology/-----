@@ -32,6 +32,9 @@ public class Program
         TemplateManagerTests.RunAll();
         Console.WriteLine("[PASS] TemplateManagerTests");
 
+        AiAndOcrIntegrationTests.RunAll();
+        Console.WriteLine("[PASS] AiAndOcrIntegrationTests");
+
         Console.WriteLine("All unit tests passed!");
     }
 

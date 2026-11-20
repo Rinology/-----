@@ -96,26 +96,21 @@ public static class OcrService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[OcrService] Recognize failed: {ex.Message}");
+            AppLogger.Warn("OcrService", "OCR 이미지 텍스트 추출 실패", ex);
             return string.Empty;
         }
     }
 
     /// <summary>
     /// 윈도우 캡처 도구(Win+Shift+S)에서 발생하는 32비트 DIB Alpha=0(완전 투명) 현상을 감지하여
-    /// 모든 픽셀의 Alpha를 255(완전 불투명)로 복원하고, 필요 시 최대 해상도 제한 내로 축소
+    /// 모든 픽셀의 Alpha를 255(완전 불투명)로 복원하고, 작은 말풍선 캡처는 2배 확대 및 최대 해상도 제한 내로 보정
     /// </summary>
     private static BitmapSource NormalizeForOcr(BitmapSource src)
     {
-        // 1. 해상도가 너무 큰 경우 (OcrEngine 최대 제한 2600px 초과 방지)
         BitmapSource formatted = src;
-        if (src.PixelWidth > 2400 || src.PixelHeight > 2400)
-        {
-            double scale = Math.Min(2400.0 / src.PixelWidth, 2400.0 / src.PixelHeight);
-            formatted = new TransformedBitmap(src, new ScaleTransform(scale, scale));
-        }
 
-        // Bgra32로 변환하여 픽셀 직접 분석
+        // 1. 반드시 스케일링(TransformedBitmap) 전에 Bgra32 픽셀의 Alpha=0 투명 버그를 먼저 복원해야
+        // 보간 과정에서 RGB 채널이 0(검은색)으로 소실되지 않음!
         if (formatted.Format != PixelFormats.Bgra32)
         {
             formatted = new FormatConvertedBitmap(formatted, PixelFormats.Bgra32, null, 0);
@@ -127,7 +122,6 @@ public static class OcrService
         byte[] pixels = new byte[h * stride];
         formatted.CopyPixels(pixels, stride, 0);
 
-        // Alpha 채널 검사: 만약 90% 이상의 픽셀이 Alpha == 0 이면 캡처 도구의 제로-알파 버그임!
         int zeroAlphaCount = 0;
         int sampleStep = Math.Max(1, (h * w) / 2000);
         int sampleTotal = 0;
@@ -140,13 +134,28 @@ public static class OcrService
 
         if (sampleTotal > 0 && (double)zeroAlphaCount / sampleTotal > 0.90)
         {
-            // 전체 픽셀을 100% 불투명(Alpha = 255)으로 복원
             for (int i = 3; i < pixels.Length; i += 4)
             {
                 pixels[i] = 255;
             }
 
-            return BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+            formatted = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        }
+
+        // 2. Alpha 복원 완료 후 해상도 보정: 너무 큰 경우 축소(2400px 이하), 작은 한 줄 말풍선은 2배 확대
+        if (w > 2400 || h > 2400)
+        {
+            double scale = Math.Min(2400.0 / w, 2400.0 / h);
+            formatted = new TransformedBitmap(formatted, new ScaleTransform(scale, scale));
+        }
+        else if (h < 90 || w < 350)
+        {
+            formatted = new TransformedBitmap(formatted, new ScaleTransform(2.0, 2.0));
+        }
+
+        if (formatted.CanFreeze && !formatted.IsFrozen)
+        {
+            formatted.Freeze();
         }
 
         return formatted;
