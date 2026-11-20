@@ -116,6 +116,7 @@ public partial class MainWindow : Window
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
         _ = Task.Run(async () =>
         {
+            await DataSourceResolver.RefreshRemoteProfilesAsync();
             var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
             await _glossaryService.SyncFromRemoteAsync();
             await OllamaService.Instance.SyncRemoteAiRulesAsync();
@@ -622,6 +623,7 @@ public partial class MainWindow : Window
 
     private async Task SyncRemoteAsync()
     {
+        await DataSourceResolver.RefreshRemoteProfilesAsync();
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         await _glossaryService.SyncFromRemoteAsync();
         await OllamaService.Instance.SyncRemoteAiRulesAsync();

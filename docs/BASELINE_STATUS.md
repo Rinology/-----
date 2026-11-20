@@ -29,10 +29,11 @@
 
 ## 3. 데이터 소스 프로필 (읽기·쓰기 모두 해당 시트)
 
-### 개념
-- **기본(프로필 미선택)** = `.env` 의 시트 3개(읽기) + GAS 기본 시트(쓰기). 기존과 100% 동일.
-- **관리자 사전 등록 프리셋(`.env`)**: `PROFILE_<키>_NAME`, `PROFILE_<키>_SHEET_URL` (선택: `_TEMPLATE_TAB`, `_GLOSSARY_TAB`, `_RULES_TAB`)를 `.env`에 등록하면 제어판 > `🗂 데이터 소스` 드롭다운에 자동 표시.
-- **일반 유저 UX**: 드롭다운에서 업무 프로필(`CS상담`, `물류` 등)만 고르고 `적용 및 동기화` 클릭 → URL/공유 개념 없이 해당 시트에서 읽기·쓰기 모두 수행. (직접 URL 등록은 `고급` Expander 안에 배치)
+### 개념 (방법 B: GAS 중앙 관리)
+- `.env`에는 `USER_SHEET_URL`, `LOCAL_LLM_ENDPOINT`, `SHEET_WRITE_WEBHOOK_URL` **3줄만** 유지.
+- `GAS/Code.gs` (v3) 상단 `PROFILES` 배열에 시트 이름/URL을 등록하면, 앱이 `doGet?action=profiles`로 목록을 받아 제어판 드롭다운에 표시.
+- 읽기(`doGet?action=read`)와 쓰기(`doPost`) 모두 GAS가 처리하므로 시트를 '웹에 게시'하거나 '링크 공유'로 풀지 않아도 동작 (단, GAS 배포 계정이 시트 편집 권한 보유 필요).
+- GAS v3 미배포/오프라인 시에는 `AppConstants` 기본 게시 URL 및 로컬 캐시로 fallback.
 - GAS 웹앱 URL 은 모든 프로필 공용(`.env SHEET_WRITE_WEBHOOK_URL`).
 - 읽기는 `.../gviz/tq?tqx=out:csv&sheet=<탭이름>` 방식 → 시트를 '링크가 있는 모든 사용자 - 뷰어' 이상으로 공유해야 함.
 - 쓰기는 GAS 가 해당 시트를 열어야 하므로 GAS 계정이 편집 권한을 가져야 하고, 시트 ID를 GAS 속성 `ALLOWED_SPREADSHEET_IDS` 에 등록해야 함.

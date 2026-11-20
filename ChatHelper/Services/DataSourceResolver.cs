@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using ChatHelper.Models;
 
@@ -5,10 +6,10 @@ namespace ChatHelper.Services;
 
 /// <summary>
 /// 현재 활성 프로필 기준으로 읽기/쓰기 대상 시트를 결정한다.
-/// 프로필 출처:
-/// 1) 개발자가 .env 에 사전 등록한 프리셋 (PROFILE_<키>_NAME, PROFILE_<키>_SHEET_URL, 선택: _TEMPLATE_TAB / _GLOSSARY_TAB / _RULES_TAB)
-/// 2) 사용자가 제어판에서 직접 추가한 프로필 (config.json)
-/// 3) 미선택 시 "기본(.env)" → 기존 TEMPLATE_SHEET_URL / GLOSSARY_SHEET_URL / AI_RULES_SHEET_URL + GAS 기본 시트
+/// 프로필 출처(우선순위):
+/// 1) GAS(doGet?action=profiles) 에서 내려받는 중앙 프로필 목록 (방법 B)
+/// 2) .env 에 등록된 PROFILE_<키>_NAME (있을 경우)
+/// 3) 사용자가 제어판 고급 설정에서 직접 추가한 프로필 (config.json)
 /// </summary>
 public static class DataSourceResolver
 {
@@ -17,14 +18,43 @@ public static class DataSourceResolver
     public const string DefaultGlossaryTab = "용어집";
     public const string DefaultAiRulesTab = "톤앤매너";
 
+    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+
     public static ConfigManager? Config { get; set; }
+    public static List<DataSourceProfile> RemoteProfiles { get; private set; } = new();
 
     /// <summary>활성 프로필이 바뀌었거나 수정되어 재동기화가 필요할 때 발생.</summary>
     public static event Action? ProfileChanged;
 
     public static void RaiseChanged() => ProfileChanged?.Invoke();
 
-    /// <summary>.env 에 PROFILE_<키>_NAME 과 PROFILE_<키>_SHEET_URL 로 등록된 프리셋 목록.</summary>
+    /// <summary>GAS ?action=profiles 에서 중앙 프로필 목록을 받아온다. 실패 시 기존 목록 유지.</summary>
+    public static async Task<bool> RefreshRemoteProfilesAsync(CancellationToken ct = default)
+    {
+        string webhook = WebhookUrl;
+        if (string.IsNullOrWhiteSpace(webhook)) return false;
+
+        try
+        {
+            string sep = webhook.Contains('?') ? "&" : "?";
+            string json = await HttpService.ExternalClient.GetStringAsync($"{webhook}{sep}action=profiles", ct);
+            if (string.IsNullOrWhiteSpace(json) || !json.TrimStart().StartsWith("[")) return false;
+
+            var list = JsonSerializer.Deserialize<List<DataSourceProfile>>(json, JsonOpts);
+            if (list == null) return false;
+
+            RemoteProfiles = list
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name) && !string.IsNullOrWhiteSpace(ExtractId(p.SpreadsheetUrl)))
+                .ToList();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("DataSourceResolver", "GAS 프로필 목록 조회 실패 (기존 설정 사용)", ex);
+            return false;
+        }
+    }
+
     public static List<DataSourceProfile> GetEnvPresets()
     {
         var keys = EnvService.GetAllKeys();
@@ -54,20 +84,22 @@ public static class DataSourceResolver
         return list;
     }
 
-    /// <summary>.env 프리셋 + 사용자 프로필을 합쳐 반환 (.env 프리셋 우선).</summary>
-    public static List<(DataSourceProfile Profile, bool IsEnvPreset)> GetAllProfiles()
+    /// <summary>GAS 중앙 목록 + .env 프리셋 + 사용자 프로필을 합쳐 반환.</summary>
+    public static List<(DataSourceProfile Profile, string Source)> GetAllProfiles()
     {
-        var result = new List<(DataSourceProfile, bool)>();
-        foreach (var p in GetEnvPresets())
-            result.Add((p, true));
-
-        var userProfiles = Config?.Config.DataSourceProfiles ?? new List<DataSourceProfile>();
-        foreach (var p in userProfiles)
+        var result = new List<(DataSourceProfile, string)>();
+        void AddUnique(IEnumerable<DataSourceProfile> items, string src)
         {
-            if (result.Any(x => string.Equals(x.Item1.Name, p.Name, StringComparison.OrdinalIgnoreCase)))
-                continue;
-            result.Add((p, false));
+            foreach (var p in items)
+            {
+                if (!result.Any(x => string.Equals(x.Item1.Name, p.Name, StringComparison.OrdinalIgnoreCase)))
+                    result.Add((p, src));
+            }
         }
+
+        AddUnique(RemoteProfiles, "GAS");
+        AddUnique(GetEnvPresets(), "ENV");
+        AddUnique(Config?.Config.DataSourceProfiles ?? new List<DataSourceProfile>(), "USER");
         return result;
     }
 
@@ -76,20 +108,38 @@ public static class DataSourceResolver
         get
         {
             var cfg = Config?.Config;
-            if (cfg == null || string.IsNullOrWhiteSpace(cfg.ActiveDataSourceProfile)) return null;
-            var match = GetAllProfiles().FirstOrDefault(x =>
-                string.Equals(x.Profile.Name, cfg.ActiveDataSourceProfile, StringComparison.OrdinalIgnoreCase));
-            var p = match.Profile;
-            return p != null && !string.IsNullOrWhiteSpace(ExtractId(p.SpreadsheetUrl)) ? p : null;
+            var all = GetAllProfiles();
+            if (cfg != null && !string.IsNullOrWhiteSpace(cfg.ActiveDataSourceProfile))
+            {
+                var found = all.FirstOrDefault(x =>
+                    string.Equals(x.Profile.Name, cfg.ActiveDataSourceProfile, StringComparison.OrdinalIgnoreCase)).Profile;
+                if (found != null && !string.IsNullOrWhiteSpace(ExtractId(found.SpreadsheetUrl))) return found;
+            }
+
+            // 선택된 프로필이 없고 GAS 중앙 목록이 있으면 첫 번째 항목을 기본으로 사용
+            return RemoteProfiles.Count > 0 ? RemoteProfiles[0] : null;
         }
     }
 
     public static string ActiveName => Active?.Name ?? DefaultProfileName;
 
     // ---------- 읽기 URL ----------
-    public static string TemplateUrl => Active is { } p ? BuildReadUrl(p.SpreadsheetUrl, TabOf(p.TemplateTab, DefaultTemplateTab)) : EnvService.Get("TEMPLATE_SHEET_URL");
-    public static string GlossaryUrl => Active is { } p ? BuildReadUrl(p.SpreadsheetUrl, TabOf(p.GlossaryTab, DefaultGlossaryTab)) : EnvService.Get("GLOSSARY_SHEET_URL");
-    public static string AiRulesUrl => Active is { } p ? BuildReadUrl(p.SpreadsheetUrl, TabOf(p.AiRulesTab, DefaultAiRulesTab)) : EnvService.Get("AI_RULES_SHEET_URL");
+    public static string TemplateUrl => ResolveReadUrl(Active, p => TabOf(p.TemplateTab, DefaultTemplateTab), "TEMPLATE_SHEET_URL");
+    public static string GlossaryUrl => ResolveReadUrl(Active, p => TabOf(p.GlossaryTab, DefaultGlossaryTab), "GLOSSARY_SHEET_URL");
+    public static string AiRulesUrl => ResolveReadUrl(Active, p => TabOf(p.AiRulesTab, DefaultAiRulesTab), "AI_RULES_SHEET_URL");
+
+    private static string ResolveReadUrl(DataSourceProfile? p, Func<DataSourceProfile, string> tabSelector, string envFallbackKey)
+    {
+        if (p == null) return EnvService.Get(envFallbackKey);
+        string tab = tabSelector(p);
+
+        // GAS 중앙 프로필이거나 Webhook 이 있으면 GAS doGet(read) 로 비공개 시트도 안전하게 읽음
+        bool isRemote = RemoteProfiles.Any(r => string.Equals(r.Name, p.Name, StringComparison.OrdinalIgnoreCase));
+        if (isRemote && !string.IsNullOrWhiteSpace(WebhookUrl))
+            return BuildGasReadUrl(WebhookUrl, p.SpreadsheetUrl, tab);
+
+        return BuildReadUrl(p.SpreadsheetUrl, tab);
+    }
 
     // ---------- 쓰기 대상 (GAS 로 전달) ----------
     public static string WebhookUrl
@@ -99,7 +149,9 @@ public static class DataSourceResolver
             var env = EnvService.Get("SHEET_WRITE_WEBHOOK_URL");
             if (!string.IsNullOrWhiteSpace(env) && !env.Contains("YOUR_DEPLOYMENT_ID", StringComparison.OrdinalIgnoreCase))
                 return env.Trim();
-            return Config?.Config.SheetUploadUrl?.Trim() ?? "";
+            var cfg = Config?.Config.SheetUploadUrl?.Trim();
+            if (!string.IsNullOrWhiteSpace(cfg)) return cfg;
+            return Constants.AppConstants.DefaultGasWebhookUrl;
         }
     }
 
@@ -115,7 +167,12 @@ public static class DataSourceResolver
         return m.Success && m.Groups[1].Value != "e" ? m.Groups[1].Value : "";
     }
 
-    /// <summary>탭 이름으로 CSV를 읽는 URL (시트가 '링크가 있는 모든 사용자 - 뷰어' 이상으로 공유돼야 함).</summary>
+    public static string BuildGasReadUrl(string webhookUrl, string spreadsheetUrl, string tabName)
+    {
+        string sep = webhookUrl.Contains('?') ? "&" : "?";
+        return $"{webhookUrl}{sep}action=read&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
+    }
+
     public static string BuildReadUrl(string spreadsheetUrl, string tabName) =>
         $"https://docs.google.com/spreadsheets/d/{ExtractId(spreadsheetUrl)}/gviz/tq?tqx=out:csv&headers=1&sheet={Uri.EscapeDataString(tabName)}";
 }

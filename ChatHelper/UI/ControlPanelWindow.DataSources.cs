@@ -17,15 +17,17 @@ public partial class ControlPanelWindow
         var cfg = _configManager.Config;
         cfg.DataSourceProfiles ??= new List<DataSourceProfile>();
 
-        // 1) 일반 유저용 업무 프로필 선택 드롭다운 (기본 + .env 프리셋 + 사용자 프로필)
+        // 1) 일반 유저용 업무 프로필 선택 드롭다운 (GAS 중앙 목록 + .env + 사용자 프로필)
         CmbActivePreset.Items.Clear();
-        CmbActivePreset.Items.Add(DataSourceResolver.DefaultProfileName);
-        foreach (var (p, _) in DataSourceResolver.GetAllProfiles())
+        var all = DataSourceResolver.GetAllProfiles();
+        if (DataSourceResolver.RemoteProfiles.Count == 0)
+            CmbActivePreset.Items.Add(DataSourceResolver.DefaultProfileName);
+        foreach (var (p, _) in all)
             CmbActivePreset.Items.Add(p.Name);
 
-        string active = string.IsNullOrWhiteSpace(cfg.ActiveDataSourceProfile)
-            ? DataSourceResolver.DefaultProfileName
-            : cfg.ActiveDataSourceProfile;
+        string active = !string.IsNullOrWhiteSpace(cfg.ActiveDataSourceProfile)
+            ? cfg.ActiveDataSourceProfile
+            : DataSourceResolver.ActiveName;
         int activeIdx = CmbActivePreset.Items.IndexOf(active);
         CmbActivePreset.SelectedIndex = activeIdx >= 0 ? activeIdx : 0;
 
