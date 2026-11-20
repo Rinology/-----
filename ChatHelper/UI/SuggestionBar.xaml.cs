@@ -52,6 +52,8 @@ public partial class SuggestionBar : Window
         _matchedLen = matchedLen;
         _targetHwnd = targetHwnd;
 
+        var screenWidthForWrap = SystemParameters.PrimaryScreenWidth;
+        ItemsPanel.MaxWidth = Math.Min(780, Math.Max(420, screenWidthForWrap * 0.56));
         ItemsPanel.Children.Clear();
         TopAiRowPanel.Children.Clear();
         BottomAiRowPanel.Children.Clear();
@@ -166,7 +168,7 @@ public partial class SuggestionBar : Window
                             : (Brush)new BrushConverter().ConvertFromString("#D4D0C8")!,
                         BorderBrush = (Brush)new BrushConverter().ConvertFromString("#808080")!,
                         BorderThickness = new Thickness(1),
-                        Margin = new Thickness(0, 0, 6, 0),
+                        Margin = new Thickness(0, 0, 6, 5),
                         Padding = badgePadding,
                         Cursor = Cursors.Hand,
                         FontSize = contentFontSize - 2,

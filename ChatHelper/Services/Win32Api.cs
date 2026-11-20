@@ -33,6 +33,7 @@ public static class Win32Api
     public const int VK_HANGUL = 0x15;
     public const int VK_ESCAPE = 0x1B;
     public const int VK_SPACE = 0x20;
+    public const int VK_END = 0x23;
     public const int VK_HOME = 0x24;
     public const int VK_LEFT = 0x25;
     public const int VK_UP = 0x26;
@@ -57,6 +58,7 @@ public static class Win32Api
     public const int SCAN_Q = 0x10;
     public const int SCAN_X = 0x2D;
 
+    public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint MAPVK_VK_TO_VSC = 0x00;
     public const uint MAPVK_VSC_TO_VK = 0x01;
