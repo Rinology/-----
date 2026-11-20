@@ -124,7 +124,7 @@ public partial class QuickAiWindow : Window
         _cts = new CancellationTokenSource();
 
         PnlLoading.Visibility = Visibility.Visible;
-        TxtStatus.Text = "⚡ 로컬 AI(Qwen 2.5 1.5B)가 친절한 답변을 생성 중입니다...";
+        TxtStatus.Text = "⚡ 로컬 AI(Qwen 2.5 3B)가 친절한 답변을 생성 중입니다...";
 
         var sw = Stopwatch.StartNew();
 

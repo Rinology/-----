@@ -323,6 +323,7 @@ public partial class MainWindow : Window
         // 스프레드시트 동기화 및 AI 모드 실시간 상태 표시
         string profTag = DataSourceResolver.Active != null ? $" [{DataSourceResolver.ActiveName}]" : "";
         LblSyncStatus.Text = $"  |  🔄 시트{profTag}: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
+        RefreshMainProfileCombo();
         if (_configManager.Config.EnableLocalAi)
         {
             LblAiStatus.Text = "🤖 AI: ON";
@@ -619,6 +620,50 @@ public partial class MainWindow : Window
             };
             _noticeTimer.Start();
         });
+    }
+
+    private bool _mainProfileUpdating;
+
+    private void RefreshMainProfileCombo()
+    {
+        if (CmbMainProfile == null) return;
+        _mainProfileUpdating = true;
+        try
+        {
+            CmbMainProfile.Items.Clear();
+            var all = DataSourceResolver.GetAllProfiles();
+            if (all.Count == 0)
+                CmbMainProfile.Items.Add(DataSourceResolver.DefaultProfileName);
+            foreach (var (p, _) in all)
+                CmbMainProfile.Items.Add(p.Name);
+
+            string active = !string.IsNullOrWhiteSpace(_configManager.Config.ActiveDataSourceProfile)
+                ? _configManager.Config.ActiveDataSourceProfile
+                : DataSourceResolver.ActiveName;
+            int idx = CmbMainProfile.Items.IndexOf(active);
+            CmbMainProfile.SelectedIndex = idx >= 0 ? idx : 0;
+        }
+        finally { _mainProfileUpdating = false; }
+    }
+
+    private async void CmbMainProfile_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_mainProfileUpdating || CmbMainProfile.SelectedItem is not string selected) return;
+
+        bool isDefault = string.Equals(selected, DataSourceResolver.DefaultProfileName, StringComparison.OrdinalIgnoreCase);
+        _configManager.Config.ActiveDataSourceProfile = isDefault ? "" : selected;
+        _configManager.Save();
+
+        CmbMainProfile.IsEnabled = false;
+        ShowNoticeBadge($"⏳ '{selected}' 동기화 중...", "#B45309");
+        try
+        {
+            await SyncRemoteAsync();
+        }
+        finally
+        {
+            CmbMainProfile.IsEnabled = true;
+        }
     }
 
     private async Task SyncRemoteAsync()

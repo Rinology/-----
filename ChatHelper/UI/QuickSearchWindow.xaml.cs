@@ -88,6 +88,8 @@ public partial class QuickSearchWindow : Window
         Top = desiredY;
 
         _selectedCategory = "전체";
+        _selectedSymbolIndex = -1;
+        HighlightSelectedSymbol();
         TxtSearch.Clear();
         BtnClearSearch.Visibility = Visibility.Collapsed;
 
@@ -120,10 +122,16 @@ public partial class QuickSearchWindow : Window
     private static readonly string[] QuickSymbols =
         { "→", "➔", "▶", "■", "□", "●", "★", "☆", "※", "✔", "✅", "📌", "📦", "📞", "😊", "🙏" };
 
+    private readonly List<Button> _symbolButtons = new();
+    private int _selectedSymbolIndex = -1;
+
     private void BuildQuickSymbolBar()
     {
-        foreach (var sym in QuickSymbols)
+        _symbolButtons.Clear();
+        for (int i = 0; i < QuickSymbols.Length; i++)
         {
+            string sym = QuickSymbols[i];
+            string shortcutHint = i < 9 ? $" (Alt+{i + 1})" : "";
             var btn = new Button
             {
                 Content = sym,
@@ -140,23 +148,37 @@ public partial class QuickSearchWindow : Window
                 BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080")),
                 BorderThickness = new Thickness(1),
                 Focusable = false,
-                ToolTip = $"클릭 시 '{sym}' 즉시 대화창 입력"
+                ToolTip = $"'{sym}' 즉시 입력{shortcutHint} | 검색어 없을 때 ←/→+Enter"
             };
 
             string captured = sym;
-            btn.Click += (s, e) =>
-            {
-                Hide();
-                ItemSelected?.Invoke(new TemplateItem
-                {
-                    Keyword = captured,
-                    Title = captured,
-                    Content = captured,
-                    Category = "특수기호"
-                }, _targetHwnd);
-            };
+            btn.Click += (s, e) => InsertQuickSymbol(captured);
 
             QuickSymbolPanel.Children.Add(btn);
+            _symbolButtons.Add(btn);
+        }
+    }
+
+    private void InsertQuickSymbol(string sym)
+    {
+        Hide();
+        ItemSelected?.Invoke(new TemplateItem
+        {
+            Keyword = sym,
+            Title = sym,
+            Content = sym,
+            Category = "특수기호"
+        }, _targetHwnd);
+    }
+
+    private void HighlightSelectedSymbol()
+    {
+        for (int i = 0; i < _symbolButtons.Count; i++)
+        {
+            bool sel = i == _selectedSymbolIndex;
+            _symbolButtons[i].Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000080" : "#FFFFFF"));
+            _symbolButtons[i].Foreground = sel ? Brushes.White : Brushes.Black;
+            _symbolButtons[i].BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000000" : "#808080"));
         }
     }
 
@@ -283,6 +305,31 @@ public partial class QuickSearchWindow : Window
     {
         var actualKey = (e.Key == Key.System) ? e.SystemKey : e.Key;
 
+        // Alt+1 ~ Alt+9: 기호 바 앞 9개 즉시 입력
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0 && actualKey >= Key.D1 && actualKey <= Key.D9)
+        {
+            int symIdx = actualKey - Key.D1;
+            if (symIdx < QuickSymbols.Length)
+            {
+                InsertQuickSymbol(QuickSymbols[symIdx]);
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // 검색창이 비어있을 때 ← / → 키로 16개 기호 탐색
+        if (string.IsNullOrEmpty(TxtSearch.Text) && (actualKey == Key.Left || actualKey == Key.Right) && QuickSymbols.Length > 0)
+        {
+            if (actualKey == Key.Right)
+                _selectedSymbolIndex = (_selectedSymbolIndex + 1) % QuickSymbols.Length;
+            else
+                _selectedSymbolIndex = _selectedSymbolIndex <= 0 ? QuickSymbols.Length - 1 : _selectedSymbolIndex - 1;
+
+            HighlightSelectedSymbol();
+            e.Handled = true;
+            return;
+        }
+
         if (actualKey == Key.Escape)
         {
             Hide();
@@ -297,6 +344,7 @@ public partial class QuickSearchWindow : Window
         }
         else if (e.Key == Key.Down)
         {
+            if (_selectedSymbolIndex >= 0) { _selectedSymbolIndex = -1; HighlightSelectedSymbol(); }
             // 아래 방향키: 템플릿 목록 다음 항목 선택 (순환)
             if (LstTemplates.Items.Count > 0)
             {
@@ -314,6 +362,7 @@ public partial class QuickSearchWindow : Window
         }
         else if (e.Key == Key.Up)
         {
+            if (_selectedSymbolIndex >= 0) { _selectedSymbolIndex = -1; HighlightSelectedSymbol(); }
             // 위 방향키: 템플릿 목록 이전 항목 선택 (순환)
             if (LstTemplates.Items.Count > 0)
             {
@@ -331,8 +380,20 @@ public partial class QuickSearchWindow : Window
         }
         else if (e.Key == Key.Enter)
         {
-            ConfirmSelection();
+            if (_selectedSymbolIndex >= 0 && _selectedSymbolIndex < QuickSymbols.Length)
+            {
+                InsertQuickSymbol(QuickSymbols[_selectedSymbolIndex]);
+            }
+            else
+            {
+                ConfirmSelection();
+            }
             e.Handled = true;
+        }
+        else if (_selectedSymbolIndex >= 0)
+        {
+            _selectedSymbolIndex = -1;
+            HighlightSelectedSymbol();
         }
     }
 

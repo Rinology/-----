@@ -1,4 +1,4 @@
-FROM qwen2.5:1.5b
+FROM qwen2.5:3b
 
 # 사내 저사양 PC 최적화 및 환각(지어내기) 억제 파라미터
 PARAMETER temperature 0.15

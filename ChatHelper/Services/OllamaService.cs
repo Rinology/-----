@@ -27,7 +27,7 @@ public class OllamaService : IDisposable
     private readonly string _baseUrl;
     private readonly string _modelName;
     private double _temperature = 0.15;
-    public const string DefaultModel = "qwen2.5:1.5b";
+    public const string DefaultModel = "qwen2.5:3b";
 
     private string _systemPrompt =
         "너는 친절하고 정확한 우리 회사 CS 고객센터 상담원이야. 항상 정중하고 부드러운 한국어 존댓말로 사족이나 따옴표 없이 고객에게 보낼 본문만 1~3문장으로 간결하게 작성해. " +
@@ -501,7 +501,7 @@ public class OllamaService : IDisposable
 
         var requestBody = new
         {
-            model = DefaultModel,
+            model = _modelName,
             messages = new[]
             {
                 new { role = "system", content = "너는 CS 답변에서 핵심 검색 키워드 1~2단어만 간결하게 추출하는 도우미야." },
@@ -568,7 +568,7 @@ public class OllamaService : IDisposable
 
         var requestBody = new
         {
-            model = DefaultModel,
+            model = _modelName,
             messages = new[]
             {
                 new { role = "system", content = "너는 고객센터 템플릿 분류기야. 목록에서 가장 관련성이 높은 번호만 JSON {\"indices\":[...]} 형태로 출력해." },
@@ -662,7 +662,7 @@ public class OllamaService : IDisposable
 
             var requestBody = new
             {
-                model = DefaultModel,
+                model = _modelName,
                 messages = new[]
                 {
                     new { role = "system", content = "너는 CS 템플릿 데이터를 JSON으로 구조화하는 도우미야. 반드시 유효한 JSON 객체만 출력해." },
