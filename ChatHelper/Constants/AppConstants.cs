@@ -63,9 +63,10 @@ public static class AppConstants
     public const string DefaultGlossaryGid = "661663576";
     public const string DefaultAiRulesGid = "0";
 
-    // GAS 통합 미들웨어 웹앱 기본 URL (.env 없이 exe만 배포할 때도 동작하도록 기본 내장)
+    // GAS 통합 미들웨어 웹앱 기본 URL & 사내 전용 API 토큰 (.env 없이 exe만 배포할 때도 동작)
     public const string DefaultGasWebhookUrl =
         "https://script.google.com/a/macros/qualisports.kr/s/AKfycbxMYjByP3Y9XeJMNgTK-BA2_XmgfP-WBN8d0X0bCaiEnGmDAi3ejWYS8K-ClTmod6xc/exec";
+    public const string DefaultGasApiToken = "qs-ch-2026-x9K4mP7vR2nL8wQ5";
 
     public static string BuildPublishedCsvUrl(string sheetId, string gid) =>
         $"https://docs.google.com/spreadsheets/d/e/{sheetId}/pub?gid={gid}&single=true&output=csv";

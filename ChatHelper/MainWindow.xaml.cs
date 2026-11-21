@@ -120,7 +120,10 @@ public partial class MainWindow : Window
             var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
             await _glossaryService.SyncFromRemoteAsync();
             await OllamaService.Instance.SyncRemoteAiRulesAsync();
-            _ = OllamaService.Instance.WarmUpAsync();
+            if (_configManager.Config.EnableLocalAi)
+            {
+                _ = OllamaService.Instance.WarmUpAsync();
+            }
             // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
             _isOfflineMode = !success && _templateManager.Templates.Count == 0;
             if (success) _lastSyncTime = DateTime.Now;

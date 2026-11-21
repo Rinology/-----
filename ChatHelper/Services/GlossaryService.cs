@@ -22,25 +22,33 @@ public class GlossaryService
 
     private readonly ConfigManager _configManager;
     private readonly HttpClient _httpClient = HttpService.ExternalClient;
-    private readonly string _localCachePath;
+    private readonly string? _customCachePath;
 
     public List<GlossaryItem> Terms { get; private set; } = new();
 
     public GlossaryService(ConfigManager configManager, string? localCachePath = null)
     {
         _configManager = configManager;
-        _localCachePath = localCachePath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "glossary_cache.csv");
+        _customCachePath = localCachePath;
         LoadFromLocalCache();
+    }
+
+    private string ResolveCachePath()
+    {
+        if (!string.IsNullOrWhiteSpace(_customCachePath)) return _customCachePath;
+        string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "glossary_cache.csv");
+        return DataSourceResolver.GetScopedCachePath(basePath);
     }
 
     public int LoadFromLocalCache()
     {
-        if (!File.Exists(_localCachePath))
+        string cachePath = ResolveCachePath();
+        if (!File.Exists(cachePath))
             return 0;
 
         try
         {
-            string csv = File.ReadAllText(_localCachePath, Encoding.UTF8);
+            string csv = File.ReadAllText(cachePath, Encoding.UTF8);
             return ParseGlossaryCsv(csv);
         }
         catch
@@ -117,7 +125,7 @@ public class GlossaryService
                 return (false, "용어집 시트 응답이 비어 있습니다.");
 
             int count = ParseGlossaryCsv(csv);
-            try { await File.WriteAllTextAsync(_localCachePath, csv, Encoding.UTF8, cancellationToken); } catch { }
+            try { await File.WriteAllTextAsync(ResolveCachePath(), csv, Encoding.UTF8, cancellationToken); } catch { }
             return (true, $"용어집 {count}개 동기화 완료");
         }
         catch (Exception ex)
@@ -203,6 +211,7 @@ public class GlossaryService
 
         var payload = new
         {
+            token = DataSourceResolver.ApiToken,
             sheetName = DataSourceResolver.GlossarySheetName,
             target = "glossary",
             spreadsheetUrl = DataSourceResolver.SpreadsheetUrl,
@@ -231,6 +240,7 @@ public class GlossaryService
 
         var payload = new
         {
+            token = DataSourceResolver.ApiToken,
             sheetName = DataSourceResolver.GlossarySheetName,
             target = "glossary",
             spreadsheetUrl = DataSourceResolver.SpreadsheetUrl,
@@ -271,7 +281,7 @@ public class GlossaryService
             {
                 sb.AppendLine($"{Esc(t.Term)},{Esc(t.Aliases)},{Esc(t.Description)},{Esc(t.Guide)},{Esc(t.Category)}");
             }
-            File.WriteAllText(_localCachePath, sb.ToString(), Encoding.UTF8);
+            File.WriteAllText(ResolveCachePath(), sb.ToString(), Encoding.UTF8);
         }
         catch { }
     }

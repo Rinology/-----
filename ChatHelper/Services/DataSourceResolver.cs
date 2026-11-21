@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ChatHelper.Models;
@@ -37,7 +38,8 @@ public static class DataSourceResolver
         try
         {
             string sep = webhook.Contains('?') ? "&" : "?";
-            string json = await HttpService.ExternalClient.GetStringAsync($"{webhook}{sep}action=profiles", ct);
+            string json = await HttpService.ExternalClient.GetStringAsync(
+                $"{webhook}{sep}action=profiles&token={Uri.EscapeDataString(ApiToken)}", ct);
             if (string.IsNullOrWhiteSpace(json) || !json.TrimStart().StartsWith("[")) return false;
 
             var list = JsonSerializer.Deserialize<List<DataSourceProfile>>(json, JsonOpts);
@@ -155,9 +157,33 @@ public static class DataSourceResolver
         }
     }
 
+    public static string ApiToken
+    {
+        get
+        {
+            var env = EnvService.Get("GAS_API_TOKEN");
+            return !string.IsNullOrWhiteSpace(env) ? env.Trim() : Constants.AppConstants.DefaultGasApiToken;
+        }
+    }
+
     public static string SpreadsheetUrl => Active?.SpreadsheetUrl.Trim() ?? "";
     public static string TemplateSheetName => Active is { } p ? TabOf(p.TemplateTab, DefaultTemplateTab) : "";
     public static string GlossarySheetName => Active is { } p ? TabOf(p.GlossaryTab, DefaultGlossaryTab) : DefaultGlossaryTab;
+
+    /// <summary>프로필별 로컬 캐시 파일 경로를 반환한다. (기본 프로필은 기존 경로 유지)</summary>
+    public static string GetScopedCachePath(string baseFilePath)
+    {
+        string profileName = Config?.Config.ActiveDataSourceProfile?.Trim() ?? "";
+        if (string.IsNullOrEmpty(profileName)) return baseFilePath;
+
+        string safe = Regex.Replace(profileName, @"[\\/:*?""<>|\s]+", "_").Trim('_');
+        if (string.IsNullOrEmpty(safe)) return baseFilePath;
+
+        string dir = Path.GetDirectoryName(baseFilePath) ?? "";
+        string stem = Path.GetFileNameWithoutExtension(baseFilePath);
+        string ext = Path.GetExtension(baseFilePath);
+        return Path.Combine(dir, $"{stem}_{safe}{ext}");
+    }
 
     private static string TabOf(string? tab, string fallback) => string.IsNullOrWhiteSpace(tab) ? fallback : tab.Trim();
 
@@ -170,7 +196,7 @@ public static class DataSourceResolver
     public static string BuildGasReadUrl(string webhookUrl, string spreadsheetUrl, string tabName)
     {
         string sep = webhookUrl.Contains('?') ? "&" : "?";
-        return $"{webhookUrl}{sep}action=read&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
+        return $"{webhookUrl}{sep}action=read&token={Uri.EscapeDataString(ApiToken)}&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
     }
 
     public static string BuildReadUrl(string spreadsheetUrl, string tabName) =>

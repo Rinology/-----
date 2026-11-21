@@ -22,13 +22,19 @@ public class TemplateManager
         LoadTemplates();
     }
 
-    public int LoadTemplates()
+    private string ResolveCachePath()
     {
         var csvPath = _configManager.Config.CsvFilePath;
         if (!Path.IsPathRooted(csvPath))
         {
             csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
         }
+        return DataSourceResolver.GetScopedCachePath(csvPath);
+    }
+
+    public int LoadTemplates()
+    {
+        var csvPath = ResolveCachePath();
 
         if (File.Exists(csvPath))
         {
@@ -140,11 +146,7 @@ public class TemplateManager
 
     private void SaveTemplatesToCsv()
     {
-        var csvPath = _configManager.Config.CsvFilePath;
-        if (!Path.IsPathRooted(csvPath))
-        {
-            csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
-        }
+        var csvPath = ResolveCachePath();
 
         var sb = new StringBuilder();
         sb.AppendLine("Keyword,ContentKeyword,Title,Content,Category");
@@ -184,15 +186,10 @@ public class TemplateManager
 
                 var count = ParseTemplatesFromCsv(response);
 
-                // 로컬 캐시 파일 보관
+                // 로컬 캐시 파일 보관 (프로필별 분리)
                 try
                 {
-                    var csvPath = _configManager.Config.CsvFilePath;
-                    if (!Path.IsPathRooted(csvPath))
-                    {
-                        csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, csvPath);
-                    }
-                    await File.WriteAllTextAsync(csvPath, response, Encoding.UTF8);
+                    await File.WriteAllTextAsync(ResolveCachePath(), response, Encoding.UTF8);
                 }
                 catch { }
 

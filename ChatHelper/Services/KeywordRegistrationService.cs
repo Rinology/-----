@@ -77,6 +77,7 @@ public class KeywordRegistrationService
             title,
             content,
             category,
+            token = DataSourceResolver.ApiToken,
             target = "template",
             sheetName = DataSourceResolver.TemplateSheetName,
             spreadsheetUrl = DataSourceResolver.SpreadsheetUrl

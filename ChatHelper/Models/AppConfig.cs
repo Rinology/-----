@@ -47,7 +47,7 @@ public class AppConfig
     public string CsvFilePath { get; set; } = "chat_templates.csv";
     public string RemoteCsvUrl { get; set; } = "";
     public string SheetUploadUrl { get; set; } = ""; // 스프레드시트 새 행 등록(웹훅/Apps Script) URL
-    public bool EnableLocalAi { get; set; } = true; // 로컬 AI 자연어 추천 기능 사용 여부
+    public bool EnableLocalAi { get; set; } = false; // 로컬 AI 자연어 추천 기능 사용 여부 (저사양 PC 기본 OFF)
     public string AiPlacement { get; set; } = "Bottom"; // AI 추천 칩 배치 위치: "Bottom" 또는 "Top"
     public bool AutoGenerateOnAltX { get; set; } = false; // Alt+X 시 즉시 자동 생성하지 않고 사용자 확인 후 생성
     public bool AutoUploadAiSelection { get; set; } = false; // AI 추천 채택 시 자동 시트 업로드 여부
