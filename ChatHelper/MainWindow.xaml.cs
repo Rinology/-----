@@ -114,12 +114,11 @@ public partial class MainWindow : Window
         InitPeriodicSyncTimer();
         InitRollingTicker();
 
-        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 용어집 비동기 동기화
+        // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
         _ = Task.Run(async () =>
         {
             await DataSourceResolver.RefreshRemoteProfilesAsync();
             var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
-            await _glossaryService.SyncFromRemoteAsync();
             // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
             _isOfflineMode = !success && _templateManager.Templates.Count == 0;
             if (success) _lastSyncTime = DateTime.Now;
@@ -720,7 +719,6 @@ public partial class MainWindow : Window
     {
         await DataSourceResolver.RefreshRemoteProfilesAsync();
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
-        await _glossaryService.SyncFromRemoteAsync();
         _isOfflineMode = !success && _templateManager.Templates.Count == 0;
         _lastSyncTime = DateTime.Now;
         UpdateStatusUi();

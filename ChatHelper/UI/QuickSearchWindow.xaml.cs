@@ -389,30 +389,30 @@ public partial class QuickSearchWindow : Window
             var sp = new StackPanel { Margin = new Thickness(16) };
 
             sp.Children.Add(new TextBlock { Text = "단축어 (keyword - 자동완성용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtKw = new TextBox { Height = 32, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            var txtKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtKw);
 
-            sp.Children.Add(new TextBlock { Text = "본문 키워드 (contentKeyword - AI/의미 검색용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtContentKw = new TextBox { Height = 32, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(new TextBlock { Text = "본문 키워드 (contentKeyword - 의미 검색용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
+            var txtContentKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtContentKw);
 
             sp.Children.Add(new TextBlock { Text = "제목:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtTitle = new TextBox { Height = 32, Text = currentQuery, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            var txtTitle = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = currentQuery, Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtTitle);
 
             sp.Children.Add(new TextBlock { Text = "카테고리:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtCat = new TextBox { Height = 32, Text = _selectedCategory == "전체" ? "일반" : _selectedCategory, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            var txtCat = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = _selectedCategory == "전체" || _selectedCategory == RecentCategoryName ? "일반" : _selectedCategory, Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtCat);
 
             sp.Children.Add(new TextBlock { Text = "치환될 본문 내용 (복사해 둔 텍스트 자동 입력):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtContent = new TextBox { Height = 90, Text = clipText, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            var txtContent = new TextBox { Height = 90, Padding = new Thickness(6, 4, 6, 4), Text = clipText, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
             sp.Children.Add(txtContent);
 
             var btnUpload = new Button
             {
                 Content = "💾 저장 및 스프레드시트에 즉시 업로드",
                 Height = 36,
-                Style = (Style)FindResource("ThemeButtonStyle"),
+                Style = TryFindResource("ThemeButtonStyle") as Style,
                 FontWeight = FontWeights.Bold
             };
 
