@@ -61,6 +61,12 @@ public class AppConfig
     // 최근 사용한 템플릿 키워드 (Alt+Q 상단 우선 표시, 최대 10개)
     public List<string> RecentKeywords { get; set; } = new();
 
+    // 사용자 정의 특수문자 목록 (Alt+X 특수문자 전용 창에서 추가/삭제 관리)
+    public List<string> CustomSymbols { get; set; } = new()
+    {
+        "→", "➔", "▶", "■", "□", "●", "★", "☆", "※", "✔", "✅", "📌", "📦", "📞", "😊", "🙏"
+    };
+
     // 데이터 소스 프로필 (상황/사용자별 키워드·톤앤매너·용어집 스프레드시트 전환). 비어 있으면 .env 기본값 사용
     public List<DataSourceProfile> DataSourceProfiles { get; set; } = new();
     public string ActiveDataSourceProfile { get; set; } = "";

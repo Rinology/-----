@@ -88,8 +88,6 @@ public partial class QuickSearchWindow : Window
         Top = desiredY;
 
         _selectedCategory = "전체";
-        _selectedSymbolIndex = -1;
-        HighlightSelectedSymbol();
         TxtSearch.Clear();
         BtnClearSearch.Visibility = Visibility.Collapsed;
 
@@ -119,98 +117,9 @@ public partial class QuickSearchWindow : Window
         });
     }
 
-    private static readonly string[] QuickSymbols =
-        { "→", "➔", "▶", "■", "□", "●", "★", "☆", "※", "✔", "✅", "📌", "📦", "📞", "😊", "🙏" };
-
-    private readonly List<Button> _symbolButtons = new();
-    private int _selectedSymbolIndex = -1;
-
     private void BuildQuickSymbolBar()
     {
-        _symbolButtons.Clear();
-        for (int i = 0; i < QuickSymbols.Length; i++)
-        {
-            string sym = QuickSymbols[i];
-            string shortcutHint = i < 9 ? $" (Alt/Ctrl+{i + 1})" : "";
-
-            object btnContent;
-            if (i < 9)
-            {
-                var grid = new Grid { Width = 28, Height = 24 };
-                grid.Children.Add(new TextBlock
-                {
-                    Text = (i + 1).ToString(),
-                    FontSize = 8,
-                    FontWeight = FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(2, 0, 0, 0)
-                });
-                grid.Children.Add(new TextBlock
-                {
-                    Text = sym,
-                    FontSize = 12.5,
-                    FontWeight = FontWeights.Bold,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(3, 2, 0, 0)
-                });
-                btnContent = grid;
-            }
-            else
-            {
-                btnContent = sym;
-            }
-
-            var btn = new Button
-            {
-                Content = btnContent,
-                Width = 30,
-                Height = 26,
-                Margin = new Thickness(0, 0, 3, 0),
-                Padding = new Thickness(0),
-                FontSize = 12.5,
-                FontWeight = FontWeights.Bold,
-                FontFamily = new FontFamily("Segoe UI Emoji, Segoe UI Symbol, Tahoma, Gulim"),
-                Cursor = Cursors.Hand,
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
-                Foreground = Brushes.Black,
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080")),
-                BorderThickness = new Thickness(1),
-                Focusable = false,
-                ToolTip = $"'{sym}' 즉시 입력{shortcutHint} | 검색어 없을 때 ←/→+Enter"
-            };
-
-            string captured = sym;
-            btn.Click += (s, e) => InsertQuickSymbol(captured);
-
-            QuickSymbolPanel.Children.Add(btn);
-            _symbolButtons.Add(btn);
-        }
-    }
-
-    private void InsertQuickSymbol(string sym)
-    {
-        Hide();
-        ItemSelected?.Invoke(new TemplateItem
-        {
-            Keyword = sym,
-            Title = sym,
-            Content = sym,
-            Category = "특수기호"
-        }, _targetHwnd);
-    }
-
-    private void HighlightSelectedSymbol()
-    {
-        for (int i = 0; i < _symbolButtons.Count; i++)
-        {
-            bool sel = i == _selectedSymbolIndex;
-            _symbolButtons[i].Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000080" : "#FFFFFF"));
-            _symbolButtons[i].Foreground = sel ? Brushes.White : Brushes.Black;
-            _symbolButtons[i].BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000000" : "#808080"));
-        }
+        // 특수기호는 Alt+X 전용 창(SymbolPickerWindow)으로 분리됨
     }
 
     private const string RecentCategoryName = "⭐ 최근 사용";
@@ -375,37 +284,6 @@ public partial class QuickSearchWindow : Window
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         var actualKey = (e.Key == Key.System) ? e.SystemKey : e.Key;
-        if (actualKey == Key.ImeProcessed)
-            actualKey = e.ImeProcessedKey;
-
-        // Alt+1~9 또는 Ctrl+1~9 (숫자열 & 키패드 모두 지원, 한글 IME 상태에서도 동작)
-        bool hasAltOrCtrl = (Keyboard.Modifiers & (ModifierKeys.Alt | ModifierKeys.Control)) != 0 || e.Key == Key.System;
-        if (hasAltOrCtrl)
-        {
-            int symIdx = -1;
-            if (actualKey >= Key.D1 && actualKey <= Key.D9) symIdx = actualKey - Key.D1;
-            else if (actualKey >= Key.NumPad1 && actualKey <= Key.NumPad9) symIdx = actualKey - Key.NumPad1;
-
-            if (symIdx >= 0 && symIdx < QuickSymbols.Length)
-            {
-                InsertQuickSymbol(QuickSymbols[symIdx]);
-                e.Handled = true;
-                return;
-            }
-        }
-
-        // 검색창이 비어있을 때 ← / → 키로 16개 기호 탐색
-        if (string.IsNullOrEmpty(TxtSearch.Text) && (actualKey == Key.Left || actualKey == Key.Right) && QuickSymbols.Length > 0)
-        {
-            if (actualKey == Key.Right)
-                _selectedSymbolIndex = (_selectedSymbolIndex + 1) % QuickSymbols.Length;
-            else
-                _selectedSymbolIndex = _selectedSymbolIndex <= 0 ? QuickSymbols.Length - 1 : _selectedSymbolIndex - 1;
-
-            HighlightSelectedSymbol();
-            e.Handled = true;
-            return;
-        }
 
         if (actualKey == Key.Escape)
         {
@@ -414,63 +292,37 @@ public partial class QuickSearchWindow : Window
         }
         else if (actualKey == Key.Tab)
         {
-            // Tab 키: 다음 카테고리 칩으로 이동! / Shift+Tab: 이전 카테고리로 이동! (Alt+Q 직후 Alt 잔존 시 SystemKey도 처리)
+            // Tab 키: 다음 카테고리 칩으로 이동! / Shift+Tab: 이전 카테고리로 이동!
             bool isShift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             CycleCategory(!isShift);
             e.Handled = true;
         }
         else if (e.Key == Key.Down)
         {
-            if (_selectedSymbolIndex >= 0) { _selectedSymbolIndex = -1; HighlightSelectedSymbol(); }
-            // 아래 방향키: 템플릿 목록 다음 항목 선택 (순환)
             if (LstTemplates.Items.Count > 0)
             {
-                if (LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1)
-                {
-                    LstTemplates.SelectedIndex++;
-                }
-                else
-                {
-                    LstTemplates.SelectedIndex = 0;
-                }
+                LstTemplates.SelectedIndex = LstTemplates.SelectedIndex < LstTemplates.Items.Count - 1
+                    ? LstTemplates.SelectedIndex + 1
+                    : 0;
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
             }
             e.Handled = true;
         }
         else if (e.Key == Key.Up)
         {
-            if (_selectedSymbolIndex >= 0) { _selectedSymbolIndex = -1; HighlightSelectedSymbol(); }
-            // 위 방향키: 템플릿 목록 이전 항목 선택 (순환)
             if (LstTemplates.Items.Count > 0)
             {
-                if (LstTemplates.SelectedIndex > 0)
-                {
-                    LstTemplates.SelectedIndex--;
-                }
-                else
-                {
-                    LstTemplates.SelectedIndex = LstTemplates.Items.Count - 1;
-                }
+                LstTemplates.SelectedIndex = LstTemplates.SelectedIndex > 0
+                    ? LstTemplates.SelectedIndex - 1
+                    : LstTemplates.Items.Count - 1;
                 LstTemplates.ScrollIntoView(LstTemplates.SelectedItem);
             }
             e.Handled = true;
         }
         else if (e.Key == Key.Enter)
         {
-            if (_selectedSymbolIndex >= 0 && _selectedSymbolIndex < QuickSymbols.Length)
-            {
-                InsertQuickSymbol(QuickSymbols[_selectedSymbolIndex]);
-            }
-            else
-            {
-                ConfirmSelection();
-            }
+            ConfirmSelection();
             e.Handled = true;
-        }
-        else if (_selectedSymbolIndex >= 0)
-        {
-            _selectedSymbolIndex = -1;
-            HighlightSelectedSymbol();
         }
     }
 
@@ -512,21 +364,22 @@ public partial class QuickSearchWindow : Window
         Hide();
     }
 
-    private void BtnAddAndUpload_Click(object sender, RoutedEventArgs e)
+    public void OpenAddAndUploadDialog(Window? ownerWindow = null)
     {
         _isActionModalOpen = true;
         try
         {
-            // 사용자가 입력한 검색어가 있다면 초기값으로 활용
             string currentQuery = TxtSearch.Text.Trim();
+            string clipText = "";
+            try { if (Clipboard.ContainsText()) clipText = Clipboard.GetText().Trim(); } catch { }
 
             var addWin = new Window
             {
-                Title = "새 템플릿 등록 및 구글 시트 업로드",
+                Title = $"새 답변 등록 → 구글 시트 ({DataSourceResolver.ActiveName})",
                 Width = 520,
-                Height = 500,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this,
+                Height = 520,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                Owner = ownerWindow ?? (IsVisible ? this : null),
                 Background = (Brush)FindResource("ThemeBg"),
                 BorderBrush = (Brush)FindResource("ThemeAccent"),
                 BorderThickness = new Thickness(2),
@@ -551,8 +404,8 @@ public partial class QuickSearchWindow : Window
             var txtCat = new TextBox { Height = 32, Text = _selectedCategory == "전체" ? "일반" : _selectedCategory, Margin = new Thickness(0, 0, 0, 10), Style = (Style)FindResource("ThemeTextBoxStyle") };
             sp.Children.Add(txtCat);
 
-            sp.Children.Add(new TextBlock { Text = "치환될 본문 내용:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtContent = new TextBox { Height = 80, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16), Style = (Style)FindResource("ThemeTextBoxStyle") };
+            sp.Children.Add(new TextBlock { Text = "치환될 본문 내용 (복사해 둔 텍스트 자동 입력):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
+            var txtContent = new TextBox { Height = 90, Text = clipText, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16), Style = (Style)FindResource("ThemeTextBoxStyle") };
             sp.Children.Add(txtContent);
 
             var btnUpload = new Button
@@ -600,4 +453,6 @@ public partial class QuickSearchWindow : Window
             _isActionModalOpen = false;
         }
     }
+
+    private void BtnAddAndUpload_Click(object sender, RoutedEventArgs e) => OpenAddAndUploadDialog(this);
 }

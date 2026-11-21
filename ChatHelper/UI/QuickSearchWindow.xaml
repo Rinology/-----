@@ -48,15 +48,8 @@
                                     Click="BtnClose_Click"/>
                         </Grid>
 
-                        <!-- 2. 검색창 + 상단 1클릭 특수문자 미니 바 -->
+                        <!-- 2. 검색창 -->
                         <StackPanel Grid.Row="1" Margin="4,6,4,5">
-                            <!-- 1클릭 특수문자 미니 버튼 바 (키워드와 겹치지 않고 클릭 즉시 대화창 입력) -->
-                            <Border Background="#D4D0C8" BorderBrush="#808080" BorderThickness="1" Padding="6,3" Margin="0,0,0,5">
-                                <StackPanel x:Name="QuickSymbolPanel" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="✨ 기호 (Alt/Ctrl+1~9, ←→+Enter):" FontSize="11" FontWeight="Bold" Foreground="#000080" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Tahoma, Gulim"/>
-                                </StackPanel>
-                            </Border>
-
                             <!-- Windows 98 클래식 Sunken 3D Edit Box -->
                             <Border BorderThickness="1,1,0,0" BorderBrush="#808080">
                                 <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">

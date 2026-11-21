@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 
     private readonly SuggestionBar _suggestionBar;
     private QuickSearchWindow? _quickSearchWindow;
+    private SymbolPickerWindow? _symbolPickerWindow;
     private QuickAiWindow? _quickAiWindow;
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
@@ -237,6 +238,11 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => OpenQuickSearch(targetHwnd));
         };
 
+        _hookService.AiHotkeyTriggered += (targetHwnd) =>
+        {
+            Dispatcher.BeginInvoke(() => OpenSymbolPicker(targetHwnd));
+        };
+
         _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
         {
             Dispatcher.BeginInvoke(() =>
@@ -335,6 +341,50 @@ public partial class MainWindow : Window
     private void BtnQuickSearch_Click(object sender, RoutedEventArgs e)
     {
         OpenQuickSearch();
+    }
+
+    private void BtnSymbolPicker_Click(object sender, RoutedEventArgs e)
+    {
+        OpenSymbolPicker();
+    }
+
+    private void BtnQuickAddTemplate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
+        {
+            _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
+        }
+        _quickSearchWindow.OpenAddAndUploadDialog(this);
+        UpdateStatusUi();
+    }
+
+    private void OpenSymbolPicker(IntPtr? targetHwnd = null)
+    {
+        _suggestionBar.Hide();
+        IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
+            ? targetHwnd.Value
+            : Win32Api.GetForegroundWindow();
+
+        uint myPid = (uint)Process.GetCurrentProcess().Id;
+        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
+        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
+        {
+            hwnd = _hookService.LastTargetHwnd;
+        }
+
+        if (_symbolPickerWindow == null || !_symbolPickerWindow.IsLoaded)
+        {
+            _symbolPickerWindow = new SymbolPickerWindow(_configManager);
+            _symbolPickerWindow.SymbolSelected += (sym, dstHwnd) =>
+            {
+                Dispatcher.BeginInvoke(() =>
+                {
+                    TextInjectionService.ReplaceText(0, sym, dstHwnd);
+                });
+            };
+        }
+
+        _symbolPickerWindow.ShowForTarget(hwnd);
     }
 
     private void BtnQuickAi_Click(object sender, RoutedEventArgs e)
@@ -572,6 +622,11 @@ public partial class MainWindow : Window
             if (id == HOTKEY_SEARCH_ID)
             {
                 OpenQuickSearch();
+                handled = true;
+            }
+            else if (id == HOTKEY_AI_ID)
+            {
+                OpenSymbolPicker();
                 handled = true;
             }
         }

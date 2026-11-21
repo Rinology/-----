@@ -163,6 +163,14 @@ public class KeyboardHookService : IDisposable
                 return (IntPtr)1;
             }
 
+            // Alt + X 특수문자 전용 창 호출 (왼쪽 Alt + X)
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_X || scanCode == Win32Api.SCAN_X))
+            {
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                AiHotkeyTriggered?.Invoke(fgHwnd);
+                return (IntPtr)1;
+            }
+
             // 자동완성이 일시정지(OFF) 상태이면 패스
             if (!_configManager.Config.IsEnabled)
             {
@@ -550,15 +558,8 @@ public class KeyboardHookService : IDisposable
 
     private void ScheduleBackgroundAi(string raw, string hangul)
     {
-        if (!_configManager.Config.EnableLocalAi)
-            return;
-
-        _pendingAiRaw = raw;
-        _aiDebounceTimer.Change(300, Timeout.Infinite);
-
-        // 사용자가 타이핑하자마자 헬프 화면에 즉시 "⚡ AI 답변 생성 중..." 알림
-        string query = !string.IsNullOrWhiteSpace(hangul) ? hangul : raw;
-        AiGeneratingStarted?.Invoke(query);
+        // Ollama 로컬 AI 제거됨 — 키워드/템플릿 검색 전용으로 동작
+        return;
     }
 
     private void ShowCandidateList(List<TemplateItem> list, int matchedLen, bool isNaturalLanguage)
