@@ -131,12 +131,43 @@ public partial class QuickSearchWindow : Window
         for (int i = 0; i < QuickSymbols.Length; i++)
         {
             string sym = QuickSymbols[i];
-            string shortcutHint = i < 9 ? $" (Alt+{i + 1})" : "";
+            string shortcutHint = i < 9 ? $" (Alt/Ctrl+{i + 1})" : "";
+
+            object btnContent;
+            if (i < 9)
+            {
+                var grid = new Grid { Width = 28, Height = 24 };
+                grid.Children.Add(new TextBlock
+                {
+                    Text = (i + 1).ToString(),
+                    FontSize = 8,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(2, 0, 0, 0)
+                });
+                grid.Children.Add(new TextBlock
+                {
+                    Text = sym,
+                    FontSize = 12.5,
+                    FontWeight = FontWeights.Bold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(3, 2, 0, 0)
+                });
+                btnContent = grid;
+            }
+            else
+            {
+                btnContent = sym;
+            }
+
             var btn = new Button
             {
-                Content = sym,
-                Width = 28,
-                Height = 24,
+                Content = btnContent,
+                Width = 30,
+                Height = 26,
                 Margin = new Thickness(0, 0, 3, 0),
                 Padding = new Thickness(0),
                 FontSize = 12.5,
@@ -182,10 +213,24 @@ public partial class QuickSearchWindow : Window
         }
     }
 
+    private const string RecentCategoryName = "⭐ 최근 사용";
+
+    private List<string> GetDisplayCategories()
+    {
+        var cats = _templateManager.GetCategories();
+        var recent = _configManager.Config.RecentKeywords;
+        if (recent != null && recent.Count > 0)
+        {
+            int insertIdx = cats.Count > 0 && cats[0] == "전체" ? 1 : 0;
+            cats.Insert(insertIdx, RecentCategoryName);
+        }
+        return cats;
+    }
+
     private void BuildCategoryChips()
     {
         CategoryPanel.Children.Clear();
-        var cats = _templateManager.GetCategories();
+        var cats = GetDisplayCategories();
 
         foreach (var cat in cats)
         {
@@ -230,7 +275,7 @@ public partial class QuickSearchWindow : Window
 
     public void CycleCategory(bool forward)
     {
-        var cats = _templateManager.GetCategories();
+        var cats = GetDisplayCategories();
         if (cats.Count == 0) return;
 
         int idx = cats.FindIndex(c => string.Equals(c, _selectedCategory, StringComparison.OrdinalIgnoreCase));
@@ -266,7 +311,33 @@ public partial class QuickSearchWindow : Window
     private void UpdateList()
     {
         string query = TxtSearch.Text.Trim();
-        var items = _templateManager.Search(query, _selectedCategory);
+        var recent = _configManager.Config.RecentKeywords ?? new List<string>();
+        List<TemplateItem> items;
+
+        if (_selectedCategory == RecentCategoryName)
+        {
+            var all = _templateManager.Search(query, "전체");
+            items = recent
+                .Select(kw => all.FirstOrDefault(t => string.Equals(t.Keyword, kw, StringComparison.OrdinalIgnoreCase)))
+                .Where(t => t != null)
+                .Cast<TemplateItem>()
+                .ToList();
+        }
+        else
+        {
+            items = _templateManager.Search(query, _selectedCategory);
+            // 검색어가 없을 때는 최근 사용한 템플릿을 상단에 우선 배치
+            if (string.IsNullOrWhiteSpace(query) && recent.Count > 0)
+            {
+                items = items
+                    .OrderBy(t =>
+                    {
+                        int idx = recent.FindIndex(kw => string.Equals(kw, t.Keyword, StringComparison.OrdinalIgnoreCase));
+                        return idx >= 0 ? idx : int.MaxValue;
+                    })
+                    .ToList();
+            }
+        }
 
         // [스마트 폴백] 선택된 특정 카테고리에 결과가 없는데, 전체에서 검색하면 결과가 있는 경우
         if (items.Count == 0 && _selectedCategory != "전체" && !string.IsNullOrWhiteSpace(query))
@@ -304,12 +375,18 @@ public partial class QuickSearchWindow : Window
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         var actualKey = (e.Key == Key.System) ? e.SystemKey : e.Key;
+        if (actualKey == Key.ImeProcessed)
+            actualKey = e.ImeProcessedKey;
 
-        // Alt+1 ~ Alt+9: 기호 바 앞 9개 즉시 입력
-        if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0 && actualKey >= Key.D1 && actualKey <= Key.D9)
+        // Alt+1~9 또는 Ctrl+1~9 (숫자열 & 키패드 모두 지원, 한글 IME 상태에서도 동작)
+        bool hasAltOrCtrl = (Keyboard.Modifiers & (ModifierKeys.Alt | ModifierKeys.Control)) != 0 || e.Key == Key.System;
+        if (hasAltOrCtrl)
         {
-            int symIdx = actualKey - Key.D1;
-            if (symIdx < QuickSymbols.Length)
+            int symIdx = -1;
+            if (actualKey >= Key.D1 && actualKey <= Key.D9) symIdx = actualKey - Key.D1;
+            else if (actualKey >= Key.NumPad1 && actualKey <= Key.NumPad9) symIdx = actualKey - Key.NumPad1;
+
+            if (symIdx >= 0 && symIdx < QuickSymbols.Length)
             {
                 InsertQuickSymbol(QuickSymbols[symIdx]);
                 e.Handled = true;
@@ -406,9 +483,20 @@ public partial class QuickSearchWindow : Window
     {
         if (LstTemplates.SelectedItem is TemplateItem item)
         {
+            RecordRecentKeyword(item.Keyword);
             Hide();
             ItemSelected?.Invoke(item, _targetHwnd);
         }
+    }
+
+    private void RecordRecentKeyword(string? keyword)
+    {
+        if (string.IsNullOrWhiteSpace(keyword)) return;
+        var list = _configManager.Config.RecentKeywords ??= new List<string>();
+        list.RemoveAll(k => string.Equals(k, keyword, StringComparison.OrdinalIgnoreCase));
+        list.Insert(0, keyword.Trim());
+        if (list.Count > 10) list.RemoveRange(10, list.Count - 10);
+        _configManager.Save();
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

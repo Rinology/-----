@@ -355,56 +355,7 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 탭 5: 로컬 AI 설정 -->
-                <TabItem Header="🤖 로컬 AI 설정" Padding="16,8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="16">
-                            <!-- 로컬 AI 활성화 카드 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="1. Ollama 로컬 AI 기능 활성화" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <CheckBox x:Name="ChkEnableLocalAi" Content="로컬 AI 어시스턴트 기능 사용 (Ollama qwen2.5:1.5b)" FontWeight="Bold" FontSize="13" Margin="0,4,0,6"/>
-                                    <TextBlock Text="• 활성화 시 사용자가 자연어로 입력하면 의미를 분석해 추천 답변을 생성하고, Alt+X AI 비서를 활용할 수 있습니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="22,0,0,10" TextWrapping="Wrap"/>
-                                    <TextBlock Text="• 로컬 PC 내부에서 100% 실행되므로 외부로 데이터가 유출되지 않으며 인터넷 연결 없이도 동작합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="22,0,0,0" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- AI 추천 칩 배치 위치 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="2. 자동완성 알약에서 AI 추천 칩 배치 위치" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="시트 템플릿 추천 알약과 별개의 독립된 라인으로 AI 추천 칩이 표시됩니다. 배치될 위치를 선택하세요:" Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10" TextWrapping="Wrap"/>
-
-                                    <RadioButton x:Name="RadioAiPosBottom" GroupName="AiPosGroup" Content="기존 추천 알약 아래쪽에 표시 (기본 권장)" Margin="8,4" IsChecked="True"/>
-                                    <RadioButton x:Name="RadioAiPosTop" GroupName="AiPosGroup" Content="기존 추천 알약 위쪽에 표시" Margin="8,4"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- AI 비서(Alt+X) 진입 시 동작 방식 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="3. AI 상담 비서 (Alt+X) 진입 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <CheckBox x:Name="ChkAutoGenerateAltX" Content="Alt+X 진입 시 클립보드 내용을 즉시 자동 생성 (해제 시 Enter를 누를 때 생성)" Margin="8,4" IsChecked="False"/>
-                                    <TextBlock Text="• 체크 해제(권장) 시 창이 열릴 때 마지막 클립보드 내용을 먼저 보여주고 사용자가 내용을 확인/수정한 뒤 Enter를 누를 때 안전하게 생성을 시작합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="26,2,0,0" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Ollama 연결 상태 및 테스트 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="4. Ollama 서버 상태 확인" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="상태: " VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                        <TextBlock x:Name="TxtOllamaStatus" Text="확인되지 않음" FontWeight="Bold" Foreground="#000080" VerticalAlignment="Center" Margin="6,0,14,0"/>
-                                        <Button Content="🔍 연결 상태 테스트" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,2" Click="BtnTestOllama_Click"/>
-                                    </StackPanel>
-                                    <TextBlock Text="• 로컬에 Ollama가 설치되어 백그라운드 서비스로 실행 중이어야 합니다 (기본 포트: 11434)." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </TabItem>
-            </TabControl>
+                </TabControl>
 
             <!-- 3. 하단 상태 바 및 저장 버튼 (잘림 방지) -->
             <Grid Grid.Row="2" Margin="16,0,16,0">

@@ -163,14 +163,6 @@ public class KeyboardHookService : IDisposable
                 return (IntPtr)1;
             }
 
-            // Alt + X 로컬 AI 상담 비서 호출 (왼쪽 Alt + X)
-            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_X || scanCode == Win32Api.SCAN_X))
-            {
-                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
-                AiHotkeyTriggered?.Invoke(fgHwnd);
-                return (IntPtr)1;
-            }
-
             // 자동완성이 일시정지(OFF) 상태이면 패스
             if (!_configManager.Config.IsEnabled)
             {

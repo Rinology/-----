@@ -58,6 +58,9 @@ public class AppConfig
     // 추천 알약 자동 숨김 시간 (초 단위, 3 ~ 20초, 기본 12초)
     public int AutoHideSeconds { get; set; } = 12;
 
+    // 최근 사용한 템플릿 키워드 (Alt+Q 상단 우선 표시, 최대 10개)
+    public List<string> RecentKeywords { get; set; } = new();
+
     // 데이터 소스 프로필 (상황/사용자별 키워드·톤앤매너·용어집 스프레드시트 전환). 비어 있으면 .env 기본값 사용
     public List<DataSourceProfile> DataSourceProfiles { get; set; } = new();
     public string ActiveDataSourceProfile { get; set; } = "";

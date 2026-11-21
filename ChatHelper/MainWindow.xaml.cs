@@ -113,17 +113,12 @@ public partial class MainWindow : Window
         InitPeriodicSyncTimer();
         InitRollingTicker();
 
-        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 2번 시트(용어집) + 원격 AI 규칙 비동기 동기화 및 Ollama 예열
+        // 앱 시작 시 구글 스프레드시트 최신 템플릿 + 용어집 비동기 동기화
         _ = Task.Run(async () =>
         {
             await DataSourceResolver.RefreshRemoteProfilesAsync();
             var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
             await _glossaryService.SyncFromRemoteAsync();
-            await OllamaService.Instance.SyncRemoteAiRulesAsync();
-            if (_configManager.Config.EnableLocalAi)
-            {
-                _ = OllamaService.Instance.WarmUpAsync();
-            }
             // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
             _isOfflineMode = !success && _templateManager.Templates.Count == 0;
             if (success) _lastSyncTime = DateTime.Now;
@@ -242,11 +237,6 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => OpenQuickSearch(targetHwnd));
         };
 
-        _hookService.AiHotkeyTriggered += (targetHwnd) =>
-        {
-            Dispatcher.BeginInvoke(() => OpenQuickAi(targetHwnd));
-        };
-
         _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
         {
             Dispatcher.BeginInvoke(() =>
@@ -323,20 +313,10 @@ public partial class MainWindow : Window
 
         LblSubStatus.Text = $"👤 {userId} ({planInfo})  |  ⌨️ {keyHint}";
 
-        // 스프레드시트 동기화 및 AI 모드 실시간 상태 표시
+        // 스프레드시트 동기화 실시간 상태 표시
         string profTag = DataSourceResolver.Active != null ? $" [{DataSourceResolver.ActiveName}]" : "";
-        LblSyncStatus.Text = $"  |  🔄 시트{profTag}: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
+        LblSyncStatus.Text = $"🔄 시트{profTag}: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
         RefreshMainProfileCombo();
-        if (_configManager.Config.EnableLocalAi)
-        {
-            LblAiStatus.Text = "🤖 AI: ON";
-            LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
-        }
-        else
-        {
-            LblAiStatus.Text = "🤖 AI: OFF";
-            LblAiStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#707070"));
-        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -594,11 +574,6 @@ public partial class MainWindow : Window
                 OpenQuickSearch();
                 handled = true;
             }
-            else if (id == HOTKEY_AI_ID)
-            {
-                OpenQuickAi();
-                handled = true;
-            }
         }
         return IntPtr.Zero;
     }
@@ -669,12 +644,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private bool _isManualSyncing;
+
+    private async void LblSyncStatus_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isManualSyncing) return;
+        _isManualSyncing = true;
+        ShowNoticeBadge("⏳ 시트 동기화 중...", "#B45309");
+        try
+        {
+            await SyncRemoteAsync();
+        }
+        finally
+        {
+            _isManualSyncing = false;
+        }
+    }
+
     private async Task SyncRemoteAsync()
     {
         await DataSourceResolver.RefreshRemoteProfilesAsync();
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         await _glossaryService.SyncFromRemoteAsync();
-        await OllamaService.Instance.SyncRemoteAiRulesAsync();
         _isOfflineMode = !success && _templateManager.Templates.Count == 0;
         _lastSyncTime = DateTime.Now;
         UpdateStatusUi();
