@@ -378,7 +378,48 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Text="※ 새 업무 시트 추가는 관리자가 GAS 서버에 등록하면 자동으로 목록에 나타납니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap"/>
+                            <TextBlock Text="※ 공용 시트는 관리자가 GAS 시트의 '프로필목록' 탭에 등록하며, 아래에서 본인 전용 시트를 직접 추가/삭제할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                            <!-- 개인 시트 추가/삭제 (GAS 클라우드 또는 로컬 PC 전용) -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
+                                <StackPanel>
+                                    <TextBlock Text="내 개인 시트 직접 추가 / 삭제" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="시트 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                            <TextBox x:Name="TxtNewProfileName" Height="28" Padding="6,4"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="구글 시트 URL (편집 주소)" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                            <TextBox x:Name="TxtNewProfileUrl" Height="28" Padding="6,4"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4">
+                                            <TextBlock Text="탭 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                            <TextBox x:Name="TxtNewProfileTab" Height="28" Padding="6,4" Text="채팅템플릿"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                                        <RadioButton x:Name="RadioProfileGas" Content="☁️ GAS 클라우드에 저장 (내 계정 로밍 · 비공개 시트 읽기/쓰기)" GroupName="ProfileStorage" IsChecked="True" Margin="0,0,16,0" FontSize="12"/>
+                                        <RadioButton x:Name="RadioProfileLocal" Content="💻 이 PC 로컬에만 저장 (읽기 전용)" GroupName="ProfileStorage" FontSize="12"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button x:Name="BtnAddUserProfile" Content="+ 내 시트 추가" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Margin="0,0,8,0" Click="BtnAddUserProfile_Click"/>
+                                        <Button x:Name="BtnDeleteUserProfile" Content="🗑 선택 시트 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteUserProfile_Click"/>
+                                    </StackPanel>
+
+                                    <ListBox x:Name="LstUserProfiles" Height="110" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

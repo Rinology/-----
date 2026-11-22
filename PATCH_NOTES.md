@@ -7,6 +7,10 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **유저 개인 시트 동적 추가·삭제 지원 (GAS `프로필목록` 탭 로밍 + 로컬 PC 전용 시트) — ⚠️ GAS 재배포 1회 필요**:
+  - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)에 `프로필목록` 탭 동적 로드(`loadProfiles_`) 및 `add_profile` / `delete_profile` 액션 추가 (`owner_id = ALL`은 공용 시트, `owner_id = 본인아이디`는 본인만 조회·추가·삭제 가능, 타인 시트·공용 시트 삭제 차단).
+  - [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml) > **`🗂 데이터 소스`** 탭에서 **`☁️ GAS 클라우드(내 계정 로밍 · 비공개 시트 읽기/쓰기)`** 또는 **`💻 이 PC 로컬 전용(읽기 전용)`** 방식을 선택해 개인 시트를 직접 추가/삭제할 수 있습니다.
+  - 이번 `GAS/Code.gs`를 1회 새 버전으로 배포하면, 이후에는 공용·개인 시트 추가/삭제 시 GAS 코드를 다시 수정·배포할 필요가 없습니다.
 - **시트 바로등록 기능 임시 비활성화 & `Alt + T` 번역 메뉴/치환 수정**:
   - `+ 등록`, `+ 시트 등록`, `Alt + R`, 제어판 즉시 저장 옵션을 잠시 숨김/주석 처리.
   - `Alt + T` 입력 시 대상 창의 Alt 기본 메뉴바가 열리면서 포커스를 빼앗아 `[선택 영역을 영문으로 바꾸기]`·`[원문+영문 함께 입력]`이 동작하지 않던 문제를 `VK_NONAME(0xFC)` 처리 및 `Alt` 키 해제로 해결.

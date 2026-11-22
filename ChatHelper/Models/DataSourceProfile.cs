@@ -16,4 +16,6 @@ public class DataSourceProfile
     public string TemplateTab { get; set; } = "";  // 키워드(채팅템플릿)  기본: 채팅템플릿
     public string GlossaryTab { get; set; } = "";  // 용어집              기본: 용어집
     public string AiRulesTab { get; set; } = "";   // 톤앤매너            기본: 톤앤매너
+    public string OwnerId { get; set; } = "";      // GAS 소유자 아이디 (ALL 또는 본인 ID)
+    public bool IsPersonal { get; set; } = false;  // 개인 시트 여부
 }

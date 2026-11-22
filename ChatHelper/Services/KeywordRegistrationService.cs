@@ -89,6 +89,7 @@ public class KeywordRegistrationService
             content,
             category,
             token = DataSourceResolver.ApiToken,
+            userId = _configManager?.Config.CurrentUserId ?? string.Empty,
             target = "template",
             sheetName = DataSourceResolver.TemplateSheetName,
             spreadsheetUrl = DataSourceResolver.SpreadsheetUrl

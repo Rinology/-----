@@ -33,6 +33,13 @@ public static class DataSourceResolver
 
     public static bool IsProfileAllowed(string? profileName)
     {
+        if (!string.IsNullOrWhiteSpace(profileName))
+        {
+            if (RemoteProfiles.Any(r => r.IsPersonal && string.Equals(r.Name, profileName, StringComparison.OrdinalIgnoreCase)))
+                return true;
+            if (Config?.Config.DataSourceProfiles.Any(u => string.Equals(u.Name, profileName, StringComparison.OrdinalIgnoreCase)) == true)
+                return true;
+        }
         if (string.IsNullOrWhiteSpace(_allowedProfilesRaw)) return true;
         if (_allowedProfilesRaw.Equals("ALL", StringComparison.OrdinalIgnoreCase) ||
             _allowedProfilesRaw == "*" || _allowedProfilesRaw == "전체")
@@ -57,8 +64,10 @@ public static class DataSourceResolver
         try
         {
             string sep = webhook.Contains('?') ? "&" : "?";
+            string uid = Config?.Config.CurrentUserId?.Trim() ?? "";
+            string uidQuery = string.IsNullOrEmpty(uid) ? "" : $"&userId={Uri.EscapeDataString(uid)}";
             string json = await HttpService.ExternalClient.GetStringAsync(
-                $"{webhook}{sep}action=profiles&token={Uri.EscapeDataString(ApiToken)}", ct);
+                $"{webhook}{sep}action=profiles&token={Uri.EscapeDataString(ApiToken)}{uidQuery}", ct);
             if (string.IsNullOrWhiteSpace(json) || !json.TrimStart().StartsWith("[")) return false;
 
             var list = JsonSerializer.Deserialize<List<DataSourceProfile>>(json, JsonOpts);
@@ -216,7 +225,77 @@ public static class DataSourceResolver
     public static string BuildGasReadUrl(string webhookUrl, string spreadsheetUrl, string tabName)
     {
         string sep = webhookUrl.Contains('?') ? "&" : "?";
-        return $"{webhookUrl}{sep}action=read&token={Uri.EscapeDataString(ApiToken)}&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
+        string uid = Config?.Config.CurrentUserId?.Trim() ?? "";
+        string uidQuery = string.IsNullOrEmpty(uid) ? "" : $"&userId={Uri.EscapeDataString(uid)}";
+        return $"{webhookUrl}{sep}action=read&token={Uri.EscapeDataString(ApiToken)}{uidQuery}&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
+    }
+
+    public static async Task<(bool Success, string Message)> AddRemoteUserProfileAsync(string userId, DataSourceProfile profile)
+    {
+        string webhook = WebhookUrl;
+        if (string.IsNullOrWhiteSpace(webhook))
+            return (false, "GAS 웹앱 URL이 설정되어 있지 않습니다.");
+        if (string.IsNullOrWhiteSpace(userId))
+            return (false, "로그인된 사용자 아이디가 없습니다.");
+
+        try
+        {
+            var payload = new
+            {
+                action = "add_profile",
+                token = ApiToken,
+                userId = userId.Trim(),
+                profileName = profile.Name.Trim(),
+                spreadsheetUrl = profile.SpreadsheetUrl.Trim(),
+                templateTab = string.IsNullOrWhiteSpace(profile.TemplateTab) ? DefaultTemplateTab : profile.TemplateTab.Trim()
+            };
+            var content = new System.Net.Http.StringContent(
+                JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+            var resp = await HttpService.ExternalClient.PostAsync(webhook, content);
+            string body = (await resp.Content.ReadAsStringAsync()).Trim();
+            if (resp.IsSuccessStatusCode && body.Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                await RefreshRemoteProfilesAsync();
+                return (true, "GAS 프로필목록 시트에 저장 완료!");
+            }
+            return (false, AppLogger.SummarizeResponse(body));
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    public static async Task<(bool Success, string Message)> DeleteRemoteUserProfileAsync(string userId, string profileName)
+    {
+        string webhook = WebhookUrl;
+        if (string.IsNullOrWhiteSpace(webhook))
+            return (false, "GAS 웹앱 URL이 설정되어 있지 않습니다.");
+
+        try
+        {
+            var payload = new
+            {
+                action = "delete_profile",
+                token = ApiToken,
+                userId = userId.Trim(),
+                profileName = profileName.Trim()
+            };
+            var content = new System.Net.Http.StringContent(
+                JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+            var resp = await HttpService.ExternalClient.PostAsync(webhook, content);
+            string body = (await resp.Content.ReadAsStringAsync()).Trim();
+            if (resp.IsSuccessStatusCode && body.Equals("OK", StringComparison.OrdinalIgnoreCase))
+            {
+                await RefreshRemoteProfilesAsync();
+                return (true, "GAS 프로필목록에서 삭제 완료!");
+            }
+            return (false, AppLogger.SummarizeResponse(body));
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
     }
 
     public static string BuildGasUsersReadUrl()
