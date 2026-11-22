@@ -132,7 +132,6 @@ public class AuthService
                     ParseUserCsv(gasCsv);
                     if (Users.Count > 0)
                     {
-                        SaveLocalUserCache(gasCsv);
                         return (true, $"사용자 목록 {Users.Count}명 동기화 완료!");
                     }
                 }
