@@ -2,11 +2,10 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChatHelper - 로그인"
-        Height="348" Width="440"
+        Height="328" Width="420"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        Background="{DynamicResource ThemeBg}"
         ResizeMode="NoResize"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
@@ -14,14 +13,11 @@
         TextOptions.TextRenderingMode="ClearType"
         RenderOptions.ClearTypeHint="Enabled">
 
-    <Border Margin="10"
+    <Border Margin="0"
             CornerRadius="{DynamicResource ThemeWindowCornerRadius}"
             Background="{DynamicResource ThemeBg}"
             BorderBrush="{DynamicResource ThemeBorder}"
             BorderThickness="1">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="18" Direction="270" ShadowDepth="4" Opacity="0.16" Color="#0F172A"/>
-        </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>

@@ -35,6 +35,12 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **모든 PC 환경 DWM 마우스 스터터 근본 차단 (`AllowsTransparency` 제거 + `SoftwareOnly` 렌더링)**:
+  - 전 창(`MainWindow`, `SuggestionBar`, `QuickSearchWindow`, `SymbolPickerWindow`, `ControlPanelWindow`, `ExitConfirmWindow`, `LoginWindow`)에서 `AllowsTransparency="True"`(`WS_EX_LAYERED`)와 반투명 배경을 제거하고 불투명 네이티브 창으로 전환.
+  - [App.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/App.xaml.cs)에 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly` 및 Windows 11 네이티브 라운드 코너(`DwmSetWindowAttribute`)를 적용해 고주사율·듀얼 모니터·하이브리드 GPU·원격 환경에서도 마우스/UI 지연이 발생하지 않도록 개선.
+- **키보드 훅(`WH_KEYBOARD_LL`) 동기 플러시 경량화 & WPF 그림자 효과 경량화**:
+  - [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)에서 트리거 키(`\`, `Tab`, `Space` 등) 입력 시 `WH_KEYBOARD_LL` 콜백 내부에서 크로스-프로세스 COM 위치 조회(`TryGetValidInputPosition`)를 실행하지 않도록 분리(`skipPositionCheck: true`)해 고속 타이핑 시 훅 지연을 제거.
+  - [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [SuggestionBar.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml) 등 7개 반투명 창의 `<DropShadowEffect>` 소프트웨어 블러를 제거해 저사양·신규 PC 및 원격 데스크톱 환경의 창 렌더링 부하를 경량화.
 - **전역 마우스 훅(`WH_MOUSE_LL`) 제거로 마우스 커서 심각한 지연(렉) 해결 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs))**:
   - 기존 `WH_MOUSE_LL` 전역 마우스 훅이 모든 `WM_MOUSEMOVE` 이벤트를 WPF UI 스레드로 동기 전달해 고주사율 마우스·신규 PC 환경에서 커서 움직임이 극심하게 느려지던 문제를 해결.
   - 전역 마우스 훅을 완전히 제거하고 비동기 out-of-context `SetWinEventHook` (`EVENT_SYSTEM_FOREGROUND`, `EVENT_OBJECT_FOCUS` + `WINEVENT_SKIPOWNPROCESS`)으로 대체하여 마우스 이동 지연 `0ms`로 개선.

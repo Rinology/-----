@@ -197,11 +197,12 @@ public class KeyboardHookService : IDisposable
             }
 
             // 빠른 타이핑 직후 트리거 키(\, Tab, Space)가 들어왔을 때 채널에 대기 중인 앞 글자들을 즉시 플러시
+            // (WH_KEYBOARD_LL 훅 콜백 내부에서는 크로스-프로세스 COM 위치 조회를 건너뛰어 <0.1ms 유지)
             if (IsPotentialTriggerKey(vkCode) && _keyChannel.Reader.TryPeek(out _))
             {
                 while (_keyChannel.Reader.TryRead(out var pending))
                 {
-                    ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd);
+                    ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd, skipPositionCheck: true);
                 }
             }
 
@@ -338,7 +339,7 @@ public class KeyboardHookService : IDisposable
         }
     }
 
-    private void ProcessBufferedKeyDown(int vkCode, bool isShiftPressed, IntPtr currentHwnd)
+    private void ProcessBufferedKeyDown(int vkCode, bool isShiftPressed, IntPtr currentHwnd, bool skipPositionCheck = false)
     {
         lock (_lock)
         {
@@ -421,7 +422,7 @@ public class KeyboardHookService : IDisposable
 
             if (inputChar.HasValue)
             {
-                if (!Win32Api.TryGetValidInputPosition(out _, out _, out _))
+                if (!skipPositionCheck && !Win32Api.TryGetValidInputPosition(out _, out _, out _))
                 {
                     _buffer.Clear();
                     ClearCandidates();

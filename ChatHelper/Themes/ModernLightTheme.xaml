@@ -2,7 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Windows 11 Fluent Light (기본 테마) -->
-    <CornerRadius x:Key="ThemeWindowCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="ThemeWindowCornerRadius">0</CornerRadius>
     <CornerRadius x:Key="ThemePanelCornerRadius">8</CornerRadius>
     <CornerRadius x:Key="ThemeButtonCornerRadius">6</CornerRadius>
     <Thickness x:Key="ThemeWindowBorderThickness">1</Thickness>
@@ -21,7 +21,7 @@
     <SolidColorBrush x:Key="ThemeTitleText" Color="#0F172A"/>
 
     <!-- 도킹 바 / 알약 전용 토큰 -->
-    <SolidColorBrush x:Key="ThemeHudBg" Color="#FAFFFFFF"/>
+    <SolidColorBrush x:Key="ThemeHudBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeHudBorder" Color="#CBD5E1"/>
     <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#EEF2FF"/>
     <SolidColorBrush x:Key="ThemePillBg" Color="#FFFFFF"/>

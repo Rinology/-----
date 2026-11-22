@@ -2,23 +2,20 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="특수기호 빠른 입력 (Alt+X)"
-        Width="456" Height="326"
+        Width="440" Height="310"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        ResizeMode="NoResize"
+        Background="{DynamicResource ThemeBg}"
         ShowInTaskbar="False"
         Topmost="True"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         PreviewKeyDown="Window_PreviewKeyDown">
 
-    <Border Margin="8" CornerRadius="{DynamicResource ThemeWindowCornerRadius}"
+    <Border Margin="0" CornerRadius="{DynamicResource ThemeWindowCornerRadius}"
             Background="{DynamicResource ThemeBg}"
             BorderBrush="{DynamicResource ThemeBorder}"
             BorderThickness="1">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="16" Direction="270" ShadowDepth="4" Opacity="0.16" Color="#0F172A"/>
-        </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="36"/>

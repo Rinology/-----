@@ -2,10 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChatHelper"
-        Height="64" Width="640"
+        Height="48" Width="624"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        Background="{DynamicResource ThemeHudBg}"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
         Topmost="False"
@@ -16,17 +15,14 @@
         RenderOptions.ClearTypeHint="Enabled"
         Loaded="Window_Loaded">
 
-    <Grid Margin="8">
+    <Grid Margin="0">
         <!-- 모던 플로팅 HUD 도킹 바 -->
         <Border Background="{DynamicResource ThemeHudBg}"
                 BorderBrush="{DynamicResource ThemeHudBorder}"
                 BorderThickness="1"
-                CornerRadius="12"
+                CornerRadius="0"
                 Padding="10,6"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.14" Color="#0F172A"/>
-            </Border.Effect>
 
             <StackPanel>
                 <!-- 1행: 초슬림 1줄 HUD 도킹 바 -->

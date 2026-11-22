@@ -387,8 +387,8 @@ public partial class MainWindow : Window
     private void BtnToggleLog_Click(object sender, RoutedEventArgs e)
     {
         bool show = LogPanelBorder.Visibility != Visibility.Visible;
-        const double collapsedH = 64;
-        const double expandedH = 196;
+        const double collapsedH = 48;
+        const double expandedH = 180;
         double delta = expandedH - collapsedH;
         var workArea = SystemParameters.WorkArea;
 

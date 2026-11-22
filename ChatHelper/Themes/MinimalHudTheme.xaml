@@ -1,32 +1,32 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Minimal Glass / HUD Theme (유저 선택 옵션) -->
-    <CornerRadius x:Key="ThemeWindowCornerRadius">14</CornerRadius>
-    <CornerRadius x:Key="ThemePanelCornerRadius">10</CornerRadius>
-    <CornerRadius x:Key="ThemeButtonCornerRadius">8</CornerRadius>
+    <!-- Minimal Glass / HUD Theme (불투명 네이티브 창 + 저지연 최적화) -->
+    <CornerRadius x:Key="ThemeWindowCornerRadius">0</CornerRadius>
+    <CornerRadius x:Key="ThemePanelCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="ThemeButtonCornerRadius">6</CornerRadius>
     <Thickness x:Key="ThemeWindowBorderThickness">1</Thickness>
 
-    <!-- 반투명 슬레이트-글래스 팔레트 -->
-    <SolidColorBrush x:Key="ThemeBg" Color="#EBF8FAFC"/>
-    <SolidColorBrush x:Key="ThemeSurfaceBg" Color="#E6FFFFFF"/>
-    <SolidColorBrush x:Key="ThemePanelBg" Color="#D9F1F5F9"/>
-    <SolidColorBrush x:Key="ThemePanelBorder" Color="#99CBD5E1"/>
+    <!-- 슬레이트 팔레트 (AllowsTransparency=False 호환 불투명 색상) -->
+    <SolidColorBrush x:Key="ThemeBg" Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="ThemeSurfaceBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ThemePanelBg" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="ThemePanelBorder" Color="#CBD5E1"/>
     <SolidColorBrush x:Key="ThemeText" Color="#0F172A"/>
     <SolidColorBrush x:Key="ThemeSubText" Color="#475569"/>
-    <SolidColorBrush x:Key="ThemeBorder" Color="#B3CBD5E1"/>
+    <SolidColorBrush x:Key="ThemeBorder" Color="#94A3B8"/>
     <SolidColorBrush x:Key="ThemeAccent" Color="#0F172A"/>
     <SolidColorBrush x:Key="ThemeAccentHover" Color="#334155"/>
-    <SolidColorBrush x:Key="ThemeTitleBg" Color="#E6FFFFFF"/>
+    <SolidColorBrush x:Key="ThemeTitleBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeTitleText" Color="#0F172A"/>
 
-    <!-- 도킹 바 / 알약 HUD 토큰 (은은한 반투명 글래스) -->
-    <SolidColorBrush x:Key="ThemeHudBg" Color="#DDF8FAFC"/>
-    <SolidColorBrush x:Key="ThemeHudBorder" Color="#B094A3B8"/>
-    <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#260F172A"/>
-    <SolidColorBrush x:Key="ThemePillBg" Color="#EAFFFFFF"/>
-    <SolidColorBrush x:Key="ThemePillBorder" Color="#A694A3B8"/>
-    <SolidColorBrush x:Key="ThemeKbdBg" Color="#CCF1F5F9"/>
+    <!-- 도킹 바 / 알약 HUD 토큰 -->
+    <SolidColorBrush x:Key="ThemeHudBg" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="ThemeHudBorder" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="ThemePillBg" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ThemePillBorder" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="ThemeKbdBg" Color="#E2E8F0"/>
 
     <Style x:Key="ThemeButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="#CCFFFFFF"/>

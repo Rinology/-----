@@ -45,7 +45,10 @@
   dotnet publish ChatHelper\ChatHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-restore -o dist
   ```
 
-## 7. 전역 마우스 훅(`WH_MOUSE_LL`) 금지
-* **❌ 실패한 방법**: 외부 창 클릭 시 입력 버퍼를 비우기 위해 WPF UI 스레드에 `WH_MOUSE_LL` 전역 마우스 훅을 설치하는 방식.
+## 7. 전역 마우스 훅(`WH_MOUSE_LL`) 및 `AllowsTransparency` 금지
+* **❌ 실패한 방법 1**: 외부 창 클릭 시 입력 버퍼를 비우기 위해 WPF UI 스레드에 `WH_MOUSE_LL` 전역 마우스 훅을 설치하는 방식.
   * **실패 원인**: `WM_LBUTTONDOWN`만 필요해도 OS가 모든 `WM_MOUSEMOVE`(125~1000Hz) 이벤트를 UI 스레드로 동기 전달하므로, UI 스레드가 잠깐이라도 바쁘거나 고주사율 마우스를 쓰는 PC에서 시스템 전체 마우스 커서가 극심하게 느려짐.
   * **✅ 검증된 해결책**: [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)처럼 `WH_MOUSE_LL`을 사용하지 말고, 비동기 `SetWinEventHook(EVENT_SYSTEM_FOREGROUND / EVENT_OBJECT_FOCUS, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS)`로 창 전환·포커스 이동을 감지할 것.
+* **❌ 실패한 방법 2**: `MainWindow`·`SuggestionBar` 등 상시/빈번 노출 창에 `AllowsTransparency="True"` + `DropShadowEffect` + 기본 D3D9 하드웨어 가속을 사용하는 방식.
+  * **실패 원인**: 고주사율 모니터(120Hz+), 주사율 불일치 듀얼 모니터, 하이브리드 GPU(Optimus/Intel) 환경에서 `WS_EX_LAYERED` + D3D9 창이 Windows DWM/MPO와 충돌해 마우스 커서 스터터를 유발함.
+  * **✅ 검증된 해결책**: `AllowsTransparency="True"` 및 `<DropShadowEffect>`를 제거하고, [App.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/App.xaml.cs)에서 `RenderMode.SoftwareOnly` + Windows 11 네이티브 `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE)`를 적용할 것.

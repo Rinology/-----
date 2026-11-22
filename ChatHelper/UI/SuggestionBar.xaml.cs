@@ -206,7 +206,7 @@ public partial class SuggestionBar : Window
 
         if (completeMode == "SlashOnly" || mode == "InlinePill")
         {
-            MainBorder.CornerRadius = new CornerRadius(10);
+            MainBorder.CornerRadius = new CornerRadius(0);
             MainBorder.Background = (Brush)(TryFindResource("ThemePillBg") ?? Brushes.White);
             MainBorder.BorderBrush = (Brush)(TryFindResource("ThemePillBorder") ?? Brushes.LightGray);
 
@@ -256,7 +256,7 @@ public partial class SuggestionBar : Window
         }
         else
         {
-            MainBorder.CornerRadius = new CornerRadius(10);
+            MainBorder.CornerRadius = new CornerRadius(0);
             MainBorder.Background = (Brush)(TryFindResource("ThemePillBg") ?? Brushes.White);
             MainBorder.BorderBrush = (Brush)(TryFindResource("ThemePillBorder") ?? Brushes.LightGray);
 
