@@ -117,8 +117,8 @@ public partial class LoginWindow : Window
         TxtPasswordVisible.IsEnabled = false;
         BtnTogglePw.IsEnabled = false;
         ProgressBarLoading.Visibility = Visibility.Visible;
-        LblStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080"));
-        LblStatus.Text = "구글 스프레드시트에서 라이선스 및 비밀번호 확인 중...";
+        LblStatus.Foreground = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")));
+        LblStatus.Text = "유저 정보를 확인하고 있습니다...";
 
         try
         {

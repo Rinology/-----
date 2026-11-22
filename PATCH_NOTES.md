@@ -26,7 +26,7 @@
   - 화면을 거의 가리지 않는 가로 1줄 도킹 바(`ON/OFF 토글 · 업무 프로필 · 검색 · 기호 · + 등록 · 동기화 · 로그 · 설정`)로 단순화하고, 과한 이모지를 제거해 깔끔한 프로 도구 감성으로 정리.
   - `로그` 클릭 시 도킹 바 아래로 실시간 상태 로그 패널이 펼쳐짐.
 - **보조 창 UI 통일**:
-  - 로그인 창(`LoginWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일.
+  - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
 - **제안 알약(`SuggestionBar`) 위치 일관성 개선**:

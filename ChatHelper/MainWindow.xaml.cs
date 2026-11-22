@@ -146,8 +146,8 @@ public partial class MainWindow : Window
         else
         {
             var user = _authService.CurrentUser;
-            _trayIconService?.ShowBalloon($"ChatHelper v2.0 실행 중 ({user?.UserId})",
-                "화면 우측 하단 상태표시창 또는 트레이 아이콘에서 [💻 제어판]을 열 수 있습니다.");
+            _trayIconService?.ShowBalloon($"ChatHelper 실행 중 ({user?.UserId})",
+                "도킹 바 또는 트레이 아이콘에서 설정 및 검색을 열 수 있습니다.");
         }
     }
 
@@ -487,24 +487,19 @@ public partial class MainWindow : Window
 
     private void PromptExitAndLogout()
     {
-        var res = MessageBox.Show(
-            "ChatHelper 프로그램을 종료합니다.\n\n[예 (Yes)] 다음 실행 시 로그인 상태를 유지하고 종료\n[아니오 (No)] 로그아웃하고 세션을 초기화한 뒤 종료\n[취소 (Cancel)] 종료 취소",
-            "프로그램 종료 및 로그아웃 확인",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Question);
+        var dlg = new ExitConfirmWindow();
+        dlg.ShowDialog();
 
-        if (res == MessageBoxResult.Cancel)
-        {
+        if (dlg.Choice == ExitConfirmWindow.ExitChoice.Cancel)
             return;
-        }
 
-        if (res == MessageBoxResult.No)
+        if (dlg.Choice == ExitConfirmWindow.ExitChoice.LogoutAndExit)
         {
             _configManager.Config.KeepLoggedIn = false;
             _configManager.Config.CurrentUserId = "";
             _configManager.Save();
         }
-        else if (res == MessageBoxResult.Yes)
+        else if (dlg.Choice == ExitConfirmWindow.ExitChoice.KeepLoginAndExit)
         {
             _configManager.Config.KeepLoggedIn = true;
             _configManager.Save();
