@@ -47,6 +47,7 @@ public partial class MainWindow : Window
         _templateManager = new TemplateManager(_configManager);
         _glossaryService = new GlossaryService(_configManager);
         _authService = new AuthService(_configManager);
+        _authService.LastLoginReported += msg => AddStatusLog(msg);
         _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);

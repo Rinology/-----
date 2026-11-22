@@ -7,6 +7,10 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **단어(키워드 매칭) vs 문장(구글 영문 번역) 완벽 분리**:
+  - 공백 없는 1단어 입력 시에는 오직 스프레드시트 키워드 매칭만 수행하고, 띄어쓰기 2어절 이상 문장 입력 시에는 시트 검색을 생략하고 오직 Google 번역(GAS)만 실행.
+- **GAS `last_login` 기록 안정화 (`doGet` 지원 + 실시간 로그 출력)**:
+  - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)에서 `update_last_login`을 `doGet`으로도 처리하고 헤더 인식(`로그인`/`접속`/`last_login`)을 확장했으며, 결과를 도킹 바 `로그` 패널에 출력하도록 개선.
 - **GAS 내장 Google 번역(`LanguageApp.translate`) 실시간 영문 번역 연동**:
   - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)에 `action=translate` 엔드포인트를 추가해 Ollama 없이도 무료 Google 번역 품질로 한글 → 영문 실시간 번역 지원 (`\+E` 또는 시트 후보 없을 때 `\+Tab`으로 치환, 제어판 ON/OFF 토글).
 - **비공개 사용자 시트 GAS 통합 & 마지막 로그인 일시(`last_login`) 자동 기록**:

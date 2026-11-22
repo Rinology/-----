@@ -242,6 +242,8 @@ public class AuthService
         catch { }
     }
 
+    public event Action<string>? LastLoginReported;
+
     private async Task ReportLastLoginAsync(string userId)
     {
         try
@@ -249,16 +251,23 @@ public class AuthService
             string webhook = DataSourceResolver.WebhookUrl;
             if (string.IsNullOrWhiteSpace(webhook) || string.IsNullOrWhiteSpace(userId)) return;
 
-            var payload = new
+            string sep = webhook.Contains('?') ? "&" : "?";
+            string url = $"{webhook}{sep}action=update_last_login&token={Uri.EscapeDataString(DataSourceResolver.ApiToken)}&userId={Uri.EscapeDataString(userId.Trim())}";
+            string resp = (await _httpClient.GetStringAsync(url)).Trim();
+            if (resp.Equals("OK", StringComparison.OrdinalIgnoreCase))
             {
-                action = "update_last_login",
-                token = DataSourceResolver.ApiToken,
-                userId = userId.Trim()
-            };
-            string json = System.Text.Json.JsonSerializer.Serialize(payload);
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            using var resp = await _httpClient.PostAsync(webhook, content);
+                LastLoginReported?.Invoke($"✅ 로그인 일시 기록 완료 ({userId})");
+            }
+            else
+            {
+                AppLogger.Warn("AuthService", $"last_login 응답 오류: {resp}");
+                LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 실패: {resp}");
+            }
         }
-        catch { /* 오프라인/테스트 환경에서는 조용히 무시 */ }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("AuthService", "last_login 기록 예외", ex);
+            LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 오류: {ex.Message}");
+        }
     }
 }

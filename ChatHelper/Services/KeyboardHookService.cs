@@ -482,55 +482,62 @@ public class KeyboardHookService : IDisposable
             return;
         }
 
-        // 1. 영문 단축키 즉시 매칭 (예: qa, \dz, /dz, ed)
+        // 1. 영문 단축키 즉시 매칭 (예: qa, \dz, /dz, ed) — 단어 전용, 번역 미호출
         var list = _templateManager.FindMatchingCandidates(raw, out int matchedLen);
         if (list.Count > 0)
         {
             LastRecognizedToken = raw.Trim();
             RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
             ShowCandidateList(list, matchedLen, isNaturalLanguage: false);
-            ScheduleBackgroundAi(raw, "");
             return;
         }
 
-        // 2. 한글 조합 변환 후 한글 단축키 즉시 매칭 (예: 반품, 환불)
+        // 2. 한글 입력: [문장 = Google 영문 번역 전용] vs [단어 = 스프레드시트 키워드 검색 전용] 완벽 분리
         string hangul = hangulFull.Trim().TrimStart('\\', '/');
         if (!string.IsNullOrWhiteSpace(hangul) && hangul.Length >= 2)
         {
+            bool isSentence = IsKoreanSentence(hangul);
+
+            if (isSentence)
+            {
+                // 문장 모드: 시트 키워드 검색을 하지 않고 오직 Google 영문 번역만 수행
+                LastRecognizedToken = hangul;
+                if (!_configManager.Config.EnableKoToEnTranslation || IsUnrecognizedGibberish(hangul))
+                {
+                    ClearCandidates(cancelAi: true);
+                    return;
+                }
+
+                ClearCandidates(cancelAi: false);
+                RecognitionStateChanged?.Invoke(hangul, "WAITING");
+                ScheduleBackgroundAi(raw, hangul);
+                return;
+            }
+
+            // 단어 모드: 오직 스프레드시트 키워드 검색만 수행 (구글 번역 호출 안 함)
             var hangulList = _templateManager.FindMatchingCandidates(hangul, out int hMatchedLen);
             if (hangulList.Count > 0)
             {
                 LastRecognizedToken = hangul;
                 RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
                 ShowCandidateList(hangulList, hMatchedLen, isNaturalLanguage: true);
-                ScheduleBackgroundAi(raw, hangul);
                 return;
             }
 
-            // 3. 자연어 의도 -> 로컬 퍼지 즉시 매칭
             var fuzzyPills = _suggestionEngine.SearchRelatedPills(hangul, maxResults: 5);
             if (fuzzyPills.Count > 0)
             {
                 LastRecognizedToken = hangul;
                 RecognitionStateChanged?.Invoke(LastRecognizedToken, "MATCH");
                 ShowCandidateList(fuzzyPills, hangul.Length, isNaturalLanguage: true);
-                ScheduleBackgroundAi(raw, hangul);
                 return;
             }
 
-            // 매칭된 템플릿이 없고 자모 나열(예: ㅁㄴㅇㄹ, ㅋㅋㅋ)이거나 번역 기능이 꺼져 있으면 [미일치] 알림 표시
+            // 매칭된 키워드가 없으면 [미일치] 알림 표시
             LastRecognizedToken = hangul;
-            if (IsUnrecognizedGibberish(hangul) || !_configManager.Config.EnableKoToEnTranslation)
-            {
-                ClearCandidates(cancelAi: true);
-                RecognitionStateChanged?.Invoke(hangul, "UNKNOWN");
-                _autoHideTimer.Change(2500, Timeout.Infinite);
-                return;
-            }
-
-            ClearCandidates(cancelAi: false);
-            RecognitionStateChanged?.Invoke(hangul, "WAITING");
-            ScheduleBackgroundAi(raw, hangul);
+            ClearCandidates(cancelAi: true);
+            RecognitionStateChanged?.Invoke(hangul, "UNKNOWN");
+            _autoHideTimer.Change(2500, Timeout.Infinite);
             return;
         }
 
@@ -538,6 +545,20 @@ public class KeyboardHookService : IDisposable
         ClearCandidates(cancelAi: true);
         RecognitionStateChanged?.Invoke(LastRecognizedToken, "UNKNOWN");
         _autoHideTimer.Change(2500, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// 띄어쓰기 2어절 이상이거나 문장부호(?, ., !)가 포함된 한글 입력을 '문장'으로 판별.
+    /// 단어(키워드 매칭)와 문장(영문 번역)을 완벽히 분리하기 위한 기준.
+    /// </summary>
+    private static bool IsKoreanSentence(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        if (text.StartsWith("영문 ") || text.StartsWith("번역 ")) return true;
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length >= 2) return true;
+        if (text.Length >= 4 && (text.EndsWith('?') || text.EndsWith('.') || text.EndsWith('!'))) return true;
+        return false;
     }
 
     private static bool IsUnrecognizedGibberish(string text)
