@@ -49,11 +49,7 @@
 ### 실행
 - [publish/ChatHelper.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatHelper.exe) 실행 (직원 배포 시 `.env` 파일 불필요)
 
-### 개발 환경 테스트 및 배포 빌드
+### 배포용 독립 실행 파일 빌드 (.NET 런타임 미설치 PC용)
 ```powershell
-# 단위 및 통합 테스트 실행
-dotnet run --no-restore --project ChatHelper.Tests\ChatHelper.Tests.csproj
-
-# Release 배포 빌드 (publish 폴더 갱신)
-dotnet publish ChatHelper\ChatHelper.csproj -c Release --no-restore -o publish
+dotnet publish ChatHelper\ChatHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-restore -o dist
 ```

@@ -57,16 +57,15 @@ public static class AppConstants
     public const string DefaultTriggerKey = "\\";
     public const string DefaultGlobalHotkey = "Alt+Q";
 
-    // 구글 스프레드시트 기본 식별자 및 URL 빌더
-    public const string DefaultPublishedSheetId = "2PACX-1vS6hPU3bOau9Gqe1yKye_lo76sZF2A9VrAni1ABzLI5SnMxrjYwVnUecgbSt_iNfGf8IvZ_O0dzxvk6";
+    // 구글 스프레드시트 기본 식별자 및 URL 빌더 (AES 암호화 보관)
+    public static string DefaultPublishedSheetId => Services.SecretVault.FallbackPublishedSheetId;
     public const string DefaultTemplateGid = "1212205674";
     public const string DefaultGlossaryGid = "661663576";
     public const string DefaultAiRulesGid = "0";
 
-    // GAS 통합 미들웨어 웹앱 기본 URL & 사내 전용 API 토큰 (.env 없이 exe만 배포할 때도 동작)
-    public const string DefaultGasWebhookUrl =
-        "https://script.google.com/a/macros/qualisports.kr/s/AKfycbxMYjByP3Y9XeJMNgTK-BA2_XmgfP-WBN8d0X0bCaiEnGmDAi3ejWYS8K-ClTmod6xc/exec";
-    public const string DefaultGasApiToken = "qs-ch-2026-x9K4mP7vR2nL8wQ5";
+    // GAS 통합 미들웨어 웹앱 기본 URL & 사내 전용 API 토큰 (AES 암호화 보관)
+    public static string DefaultGasWebhookUrl => Services.SecretVault.GasWebhookUrl;
+    public static string DefaultGasApiToken => Services.SecretVault.GasApiToken;
 
     public static string BuildPublishedCsvUrl(string sheetId, string gid) =>
         $"https://docs.google.com/spreadsheets/d/e/{sheetId}/pub?gid={gid}&single=true&output=csv";

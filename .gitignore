@@ -11,6 +11,7 @@ publish/config.json
 **/[Bb]in/
 **/[Oo]bj/
 publish/*.pdb
+dist/
 
 # Debug symbols
 *.pdb

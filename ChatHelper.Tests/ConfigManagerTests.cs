@@ -26,6 +26,8 @@ public static class ConfigManagerTests
             Assert(manager.Config != null, "Default Config must not be null.");
             Assert(manager.Config!.TriggerKey == "\\", "Default TriggerKey should be '\\'");
             Assert(manager.Config.Theme == "FluentLight", "Default Theme should be 'FluentLight'");
+            Assert(SecretVault.GasWebhookUrl.StartsWith("https://script.google.com/"), "SecretVault GasWebhookUrl should decrypt");
+            Assert(!string.IsNullOrWhiteSpace(SecretVault.GasApiToken), "SecretVault GasApiToken should decrypt");
             Assert(manager.Config.WindowOpacity == 0.95, "Default WindowOpacity should be 0.95");
             Assert(manager.Config.MaxCandidatesCount == 5, "Default MaxCandidatesCount should be 5");
             Assert(File.Exists(testConfig), "Default config file should be created on disk");

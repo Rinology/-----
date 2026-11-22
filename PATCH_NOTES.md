@@ -62,6 +62,9 @@
   - 기본 **채팅(키보드) 텍스트 커서(Caret)** 추적(Win32 Caret + MSAA `OBJID_CARET` + 한글 IME `ImmGetCompositionWindow`) 외에 제어판에서 **마우스 포인터 위치 기준** 옵션 선택 가능.
 
 ### 🔒 Security (보안 강화)
+- **민감 URL/토큰 AES-256 암호화 (`SecretVault`) & `.pdb` 제거**:
+  - `DefaultGasWebhookUrl`, `DefaultGasApiToken`, 폴백 시트 URL을 AES-256으로 암호화해 바이너리 내 평문 노출을 차단.
+  - Release 빌드 시 디버그 심볼(`.pdb`)을 생성하지 않도록 설정하고, 개인 캐시/로그가 제외된 깨끗한 단일 파일 배포 폴더(`dist/`) 구성.
 - **GAS v4 API 토큰 인증 (`API_TOKEN`)**:
   - 모든 `doGet`(`profiles`, `read`) 및 `doPost`(등록/삭제) 요청에 사내 전용 보안 토큰 검증을 추가해 외부 무단 접근 차단.
   - 시트를 외부에 '웹에 게시'하거나 '링크 공유'로 열지 않아도 GAS가 읽기·쓰기를 모두 안전하게 중계.
