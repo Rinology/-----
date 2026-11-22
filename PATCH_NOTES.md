@@ -49,6 +49,11 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **수동 동기화 시 타 사용자 목록 노출 차단 & 데이터 소스 UI/안내 개선**:
+  - [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs#L340-L355): `지금 즉시 최신 정보 동기화 실행` 시 타 직원 계정 목록(`SyncUserListFromRemoteAsync`)을 내려받거나 표시하지 않도록 제거(현재 프로필·템플릿만 동기화).
+  - [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml#L383-L481) / [ControlPanelWindow.DataSources.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.DataSources.cs):
+    - **`☁️ 서버 시트 (계정 로밍)`**와 **`💻 로컬 PC 시트 (이 PC 전용)`**를 별도 서브 탭으로 분리하고, 각각 전용 상태/로딩 표시를 두어 상단 업무 프로필 영역과 섞이지 않도록 개선.
+    - 필수 1행 헤더(`keyword | contentKeyword | title | content | category`) 안내 및 `taerin@qualisports.kr` 편집자 추가 안내(+ 원클릭 복사 버튼) 추가.
 - **모든 PC 환경 DWM 마우스 스터터 근본 차단 (`AllowsTransparency` 제거 + `SoftwareOnly` 렌더링)**:
   - 전 창(`MainWindow`, `SuggestionBar`, `QuickSearchWindow`, `SymbolPickerWindow`, `ControlPanelWindow`, `ExitConfirmWindow`, `LoginWindow`)에서 `AllowsTransparency="True"`(`WS_EX_LAYERED`)와 반투명 배경을 제거하고 불투명 네이티브 창으로 전환.
   - [App.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/App.xaml.cs)에 `RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly` 및 Windows 11 네이티브 라운드 코너(`DwmSetWindowAttribute`)를 적용해 고주사율·듀얼 모니터·하이브리드 GPU·원격 환경에서도 마우스/UI 지연이 발생하지 않도록 개선.

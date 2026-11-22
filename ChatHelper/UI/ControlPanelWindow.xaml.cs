@@ -339,22 +339,19 @@ public partial class ControlPanelWindow : Window
     // --- 최신 정보 동기화 & 다시 로그온 ---
     private async void BtnSyncAll_Click(object sender, RoutedEventArgs e)
     {
-        LblStatusBar.Text = "구글 시트에서 최신 정보 동기화 진행 중...";
+        LblStatusBar.Text = "구글 시트에서 최신 템플릿 동기화 진행 중...";
 
-        var tTask = _templateManager.SyncFromRemoteAsync();
-        var uTask = _authService.SyncUserListFromRemoteAsync();
-
-        await Task.WhenAll(tTask, uTask);
-
-        var (tSuccess, tMsg) = tTask.Result;
-        var (uSuccess, uMsg) = uTask.Result;
+        await DataSourceResolver.RefreshRemoteProfilesAsync();
+        var (tSuccess, tMsg) = await _templateManager.SyncFromRemoteAsync();
 
         _templatesObs = new ObservableCollection<TemplateItem>(_templateManager.Templates);
         DgTemplates.ItemsSource = _templatesObs;
-        UpdateUserInfoDisplay();
+        LoadProfiles();
+        DataSourceResolver.RaiseChanged();
 
-        MessageBox.Show($"{tMsg}\n{uMsg}", "동기화 결과", MessageBoxButton.OK, MessageBoxImage.Information);
-        LblStatusBar.Text = "최신 정보 동기화 완료.";
+        MessageBox.Show(tMsg, "동기화 결과", MessageBoxButton.OK,
+            tSuccess ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        LblStatusBar.Text = tSuccess ? "최신 정보 동기화 완료." : "동기화 실패.";
     }
 
     private void BtnRelogin_Click(object sender, RoutedEventArgs e)

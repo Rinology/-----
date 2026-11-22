@@ -34,42 +34,66 @@ public partial class ControlPanelWindow
     private sealed class UserProfileEntry
     {
         public string Name { get; set; } = "";
-        public string StorageType { get; set; } = ""; // "GAS" or "LOCAL"
         public string DisplayText { get; set; } = "";
         public override string ToString() => DisplayText;
     }
 
     private void RefreshUserProfilesList()
     {
-        if (LstUserProfiles == null) return;
-        LstUserProfiles.Items.Clear();
-
-        foreach (var p in DataSourceResolver.RemoteProfiles.Where(x => x.IsPersonal))
+        if (LstGasUserProfiles != null)
         {
-            LstUserProfiles.Items.Add(new UserProfileEntry
+            LstGasUserProfiles.Items.Clear();
+            foreach (var p in DataSourceResolver.RemoteProfiles.Where(x => x.IsPersonal))
             {
-                Name = p.Name,
-                StorageType = "GAS",
-                DisplayText = $"[☁️ GAS 개인] {p.Name}  ({p.TemplateTab}) — {p.SpreadsheetUrl}"
-            });
+                LstGasUserProfiles.Items.Add(new UserProfileEntry
+                {
+                    Name = p.Name,
+                    DisplayText = $"[☁️ 서버] {p.Name}  ({p.TemplateTab}) — {p.SpreadsheetUrl}"
+                });
+            }
         }
 
-        foreach (var p in _configManager.Config.DataSourceProfiles)
+        if (LstLocalUserProfiles != null)
         {
-            LstUserProfiles.Items.Add(new UserProfileEntry
+            LstLocalUserProfiles.Items.Clear();
+            foreach (var p in _configManager.Config.DataSourceProfiles)
             {
-                Name = p.Name,
-                StorageType = "LOCAL",
-                DisplayText = $"[💻 로컬 PC] {p.Name}  ({(string.IsNullOrWhiteSpace(p.TemplateTab) ? "채팅템플릿" : p.TemplateTab)}) — {p.SpreadsheetUrl}"
-            });
+                LstLocalUserProfiles.Items.Add(new UserProfileEntry
+                {
+                    Name = p.Name,
+                    DisplayText = $"[💻 로컬] {p.Name}  ({(string.IsNullOrWhiteSpace(p.TemplateTab) ? "채팅템플릿" : p.TemplateTab)}) — {p.SpreadsheetUrl}"
+                });
+            }
         }
     }
 
-    private async void BtnAddUserProfile_Click(object sender, RoutedEventArgs e)
+    private void BtnCopyGasEmail_Click(object sender, RoutedEventArgs e)
     {
-        string name = TxtNewProfileName.Text.Trim();
-        string url = TxtNewProfileUrl.Text.Trim();
-        string tab = string.IsNullOrWhiteSpace(TxtNewProfileTab.Text) ? "채팅템플릿" : TxtNewProfileTab.Text.Trim();
+        try
+        {
+            Clipboard.SetText("taerin@qualisports.kr");
+            SetGasProfileBusy(false, "✅ 편집자 이메일(taerin@qualisports.kr)이 클립보드에 복사되었습니다.");
+        }
+        catch { }
+    }
+
+    private void SetGasProfileBusy(bool busy, string message = "", bool isError = false)
+    {
+        BtnAddGasProfile.IsEnabled = !busy;
+        BtnDeleteGasProfile.IsEnabled = !busy;
+        PbarGasProfile.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        TxtGasProfileStatus.Visibility = string.IsNullOrEmpty(message) ? Visibility.Collapsed : Visibility.Visible;
+        TxtGasProfileStatus.Text = message;
+        TxtGasProfileStatus.Foreground = isError
+            ? System.Windows.Media.Brushes.Crimson
+            : (busy ? System.Windows.Media.Brushes.DarkOrange : System.Windows.Media.Brushes.ForestGreen);
+    }
+
+    private async void BtnAddGasProfile_Click(object sender, RoutedEventArgs e)
+    {
+        string name = TxtGasProfileName.Text.Trim();
+        string url = TxtGasProfileUrl.Text.Trim();
+        string tab = string.IsNullOrWhiteSpace(TxtGasProfileTab.Text) ? "채팅템플릿" : TxtGasProfileTab.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(DataSourceResolver.ExtractId(url)))
         {
@@ -77,69 +101,100 @@ public partial class ControlPanelWindow
             return;
         }
 
-        var profile = new DataSourceProfile
+        string uid = _configManager.Config.CurrentUserId?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(uid))
         {
-            Name = name,
-            SpreadsheetUrl = url,
-            TemplateTab = tab
-        };
-
-        if (RadioProfileGas.IsChecked == true)
-        {
-            string uid = _configManager.Config.CurrentUserId?.Trim() ?? "";
-            if (string.IsNullOrWhiteSpace(uid))
-            {
-                MessageBox.Show("로그인된 사용자 정보가 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            SetProfileSyncBusy(true, $"⏳ '{name}' 시트 권한 확인 및 GAS에 등록 중...");
-            var (ok, msg) = await DataSourceResolver.AddRemoteUserProfileAsync(uid, profile);
-            SetProfileSyncBusy(false, ok ? $"✅ '{name}' GAS 시트 등록 완료!" : $"⚠️ {msg}", isError: !ok);
-            if (!ok) return;
-        }
-        else
-        {
-            var list = _configManager.Config.DataSourceProfiles;
-            list.RemoveAll(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
-            list.Add(profile);
-            _configManager.Save();
-            SetProfileSyncBusy(false, $"✅ '{name}' 로컬 PC 전용 시트로 저장 완료!");
+            MessageBox.Show("로그인된 사용자 정보가 없습니다.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
 
-        TxtNewProfileName.Clear();
-        TxtNewProfileUrl.Clear();
+        var profile = new DataSourceProfile { Name = name, SpreadsheetUrl = url, TemplateTab = tab };
+        SetGasProfileBusy(true, $"⏳ '{name}' 시트 권한 확인 및 서버(GAS)에 등록 중...");
+        var (ok, msg) = await DataSourceResolver.AddRemoteUserProfileAsync(uid, profile);
+        SetGasProfileBusy(false, ok ? $"✅ '{name}' 서버 등록 완료!" : $"⚠️ {msg}", isError: !ok);
+        if (!ok) return;
+
+        TxtGasProfileName.Clear();
+        TxtGasProfileUrl.Clear();
         LoadProfiles(name);
         DataSourceResolver.RaiseChanged();
     }
 
-    private async void BtnDeleteUserProfile_Click(object sender, RoutedEventArgs e)
+    private async void BtnDeleteGasProfile_Click(object sender, RoutedEventArgs e)
     {
-        if (LstUserProfiles.SelectedItem is not UserProfileEntry entry)
+        if (LstGasUserProfiles.SelectedItem is not UserProfileEntry entry)
         {
-            MessageBox.Show("삭제할 내 개인 시트를 목록에서 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("삭제할 서버 개인 시트를 목록에서 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (MessageBox.Show($"'{entry.Name}' 개인 시트를 삭제할까요?\n(원본 구글 스프레드시트 파일 자체는 삭제되지 않습니다)", "삭제 확인",
+        if (MessageBox.Show($"'{entry.Name}' 서버 개인 시트를 삭제할까요?\n(원본 구글 스프레드시트 파일 자체는 삭제되지 않습니다)", "삭제 확인",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
-        if (entry.StorageType == "GAS")
+        string uid = _configManager.Config.CurrentUserId?.Trim() ?? "";
+        SetGasProfileBusy(true, $"⏳ '{entry.Name}' 서버 시트 삭제 중...");
+        var (ok, msg) = await DataSourceResolver.DeleteRemoteUserProfileAsync(uid, entry.Name);
+        SetGasProfileBusy(false, ok ? $"✅ '{entry.Name}' 삭제 완료." : $"⚠️ {msg}", isError: !ok);
+        if (!ok) return;
+
+        if (string.Equals(_configManager.Config.ActiveDataSourceProfile, entry.Name, StringComparison.OrdinalIgnoreCase))
         {
-            string uid = _configManager.Config.CurrentUserId?.Trim() ?? "";
-            SetProfileSyncBusy(true, $"⏳ '{entry.Name}' GAS 시트 삭제 중...");
-            var (ok, msg) = await DataSourceResolver.DeleteRemoteUserProfileAsync(uid, entry.Name);
-            SetProfileSyncBusy(false, ok ? $"✅ '{entry.Name}' 삭제 완료." : $"⚠️ {msg}", isError: !ok);
-            if (!ok) return;
-        }
-        else
-        {
-            _configManager.Config.DataSourceProfiles.RemoveAll(x =>
-                string.Equals(x.Name, entry.Name, StringComparison.OrdinalIgnoreCase));
+            _configManager.Config.ActiveDataSourceProfile = "";
             _configManager.Save();
-            SetProfileSyncBusy(false, $"✅ '{entry.Name}' 로컬 PC 시트 삭제 완료.");
         }
+
+        LoadProfiles();
+        DataSourceResolver.RaiseChanged();
+    }
+
+    private void BtnAddLocalProfile_Click(object sender, RoutedEventArgs e)
+    {
+        string name = TxtLocalProfileName.Text.Trim();
+        string url = TxtLocalProfileUrl.Text.Trim();
+        string tab = string.IsNullOrWhiteSpace(TxtLocalProfileTab.Text) ? "채팅템플릿" : TxtLocalProfileTab.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(DataSourceResolver.ExtractId(url)))
+        {
+            MessageBox.Show("시트 이름과 올바른 구글 시트 URL을 입력해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var profile = new DataSourceProfile { Name = name, SpreadsheetUrl = url, TemplateTab = tab };
+        var list = _configManager.Config.DataSourceProfiles;
+        list.RemoveAll(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+        list.Add(profile);
+        _configManager.Save();
+
+        TxtLocalProfileStatus.Text = $"✅ '{name}' 이 PC 로컬 전용 시트로 저장 완료!";
+        TxtLocalProfileStatus.Foreground = System.Windows.Media.Brushes.ForestGreen;
+        TxtLocalProfileStatus.Visibility = Visibility.Visible;
+
+        TxtLocalProfileName.Clear();
+        TxtLocalProfileUrl.Clear();
+        LoadProfiles(name);
+        DataSourceResolver.RaiseChanged();
+    }
+
+    private void BtnDeleteLocalProfile_Click(object sender, RoutedEventArgs e)
+    {
+        if (LstLocalUserProfiles.SelectedItem is not UserProfileEntry entry)
+        {
+            MessageBox.Show("삭제할 로컬 시트를 목록에서 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (MessageBox.Show($"'{entry.Name}' 로컬 시트를 이 PC에서 삭제할까요?", "삭제 확인",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        _configManager.Config.DataSourceProfiles.RemoveAll(x =>
+            string.Equals(x.Name, entry.Name, StringComparison.OrdinalIgnoreCase));
+        _configManager.Save();
+
+        TxtLocalProfileStatus.Text = $"✅ '{entry.Name}' 로컬 시트 삭제 완료.";
+        TxtLocalProfileStatus.Foreground = System.Windows.Media.Brushes.ForestGreen;
+        TxtLocalProfileStatus.Visibility = Visibility.Visible;
 
         if (string.Equals(_configManager.Config.ActiveDataSourceProfile, entry.Name, StringComparison.OrdinalIgnoreCase))
         {

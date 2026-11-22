@@ -378,48 +378,106 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Text="※ 공용 시트는 관리자가 GAS 시트의 '프로필목록' 탭에 등록하며, 아래에서 본인 전용 시트를 직접 추가/삭제할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                            <TextBlock Text="※ 공용 시트는 관리자가 GAS 시트의 '프로필목록' 탭에 등록하며, 아래 탭에서 내 개인 시트를 서버(계정 로밍) 또는 로컬(이 PC 전용)로 추가할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                            <!-- 개인 시트 추가/삭제 (GAS 클라우드 또는 로컬 PC 전용) -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14">
-                                <StackPanel>
-                                    <TextBlock Text="내 개인 시트 직접 추가 / 삭제" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                            <!-- 개인 시트 관리 (서버 저장 vs 로컬 PC 저장 별도 탭 분리) -->
+                            <TabControl Background="Transparent" BorderThickness="0">
+                                <!-- 서브 탭 1: 서버 저장 (GAS 클라우드 · 계정 로밍) -->
+                                <TabItem Header="☁️ 서버 시트 (계정 로밍)" Padding="12,6">
+                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,6,0,0">
+                                        <StackPanel>
+                                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
+                                                        <TextBlock Text="1) 공유 안내: 구글 시트 우측 상단 [공유]에서 " FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                        <TextBox Text="taerin@qualisports.kr" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="Bold" FontSize="11.5" Foreground="#1D4ED8" VerticalAlignment="Center" Padding="2,0"/>
+                                                        <TextBlock Text=" 을(를) 편집자로 추가하세요." FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                        <Button Content="복사" Padding="6,1" Margin="6,0,0,0" FontSize="10.5" Cursor="Hand" Click="BtnCopyGasEmail_Click"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="2) 필수 1행 헤더 컬럼:  keyword  |  contentKeyword  |  title  |  content  |  category" FontSize="11.5" FontWeight="SemiBold" Foreground="#1E40AF"/>
+                                                </StackPanel>
+                                            </Border>
 
-                                    <Grid Margin="0,0,0,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160"/>
-                                            <ColumnDefinition Width="8"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="8"/>
-                                            <ColumnDefinition Width="120"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0">
-                                            <TextBlock Text="시트 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="TxtNewProfileName" Height="28" Padding="6,4"/>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="115"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="시트 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtGasProfileName" Height="28" Padding="6,4"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="구글 시트 URL (편집 주소)" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtGasProfileUrl" Height="28" Padding="6,4"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="탭 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtGasProfileTab" Height="28" Padding="6,4" Text="채팅템플릿"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <Button x:Name="BtnAddGasProfile" Content="☁️ 서버에 내 시트 추가" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Margin="0,0,8,0" Click="BtnAddGasProfile_Click"/>
+                                                <Button x:Name="BtnDeleteGasProfile" Content="🗑 선택 시트 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteGasProfile_Click"/>
+                                            </StackPanel>
+
+                                            <ProgressBar x:Name="PbarGasProfile" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,4"/>
+                                            <TextBlock x:Name="TxtGasProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,6"/>
+
+                                            <ListBox x:Name="LstGasUserProfiles" Height="95" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2">
-                                            <TextBlock Text="구글 시트 URL (편집 주소)" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="TxtNewProfileUrl" Height="28" Padding="6,4"/>
+                                    </Border>
+                                </TabItem>
+
+                                <!-- 서브 탭 2: 로컬 PC 저장 (이 PC 전용) -->
+                                <TabItem Header="💻 로컬 PC 시트 (이 PC 전용)" Padding="12,6">
+                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,6,0,0">
+                                        <StackPanel>
+                                            <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
+                                                <StackPanel>
+                                                    <TextBlock Text="1) 이 PC의 config.json에만 저장되며, 다른 PC와 공유되지 않습니다. (읽기 전용: 시트 공유를 '링크가 있는 모든 사용자-뷰어'로 설정)" FontSize="11.5" Foreground="#334155" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="2) 필수 1행 헤더 컬럼:  keyword  |  contentKeyword  |  title  |  content  |  category" FontSize="11.5" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="115"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="시트 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtLocalProfileName" Height="28" Padding="6,4"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="구글 시트 URL" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtLocalProfileUrl" Height="28" Padding="6,4"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="4">
+                                                    <TextBlock Text="탭 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                                    <TextBox x:Name="TxtLocalProfileTab" Height="28" Padding="6,4" Text="채팅템플릿"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <Button x:Name="BtnAddLocalProfile" Content="💻 이 PC에 시트 추가" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Margin="0,0,8,0" Click="BtnAddLocalProfile_Click"/>
+                                                <Button x:Name="BtnDeleteLocalProfile" Content="🗑 선택 시트 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteLocalProfile_Click"/>
+                                            </StackPanel>
+
+                                            <TextBlock x:Name="TxtLocalProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,6"/>
+
+                                            <ListBox x:Name="LstLocalUserProfiles" Height="95" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="4">
-                                            <TextBlock Text="탭 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                            <TextBox x:Name="TxtNewProfileTab" Height="28" Padding="6,4" Text="채팅템플릿"/>
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
-                                        <RadioButton x:Name="RadioProfileGas" Content="☁️ GAS 클라우드에 저장 (내 계정 로밍 · 비공개 시트 읽기/쓰기)" GroupName="ProfileStorage" IsChecked="True" Margin="0,0,16,0" FontSize="12"/>
-                                        <RadioButton x:Name="RadioProfileLocal" Content="💻 이 PC 로컬에만 저장 (읽기 전용)" GroupName="ProfileStorage" FontSize="12"/>
-                                    </StackPanel>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button x:Name="BtnAddUserProfile" Content="+ 내 시트 추가" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Margin="0,0,8,0" Click="BtnAddUserProfile_Click"/>
-                                        <Button x:Name="BtnDeleteUserProfile" Content="🗑 선택 시트 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteUserProfile_Click"/>
-                                    </StackPanel>
-
-                                    <ListBox x:Name="LstUserProfiles" Height="110" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
-                                </StackPanel>
-                            </Border>
+                                    </Border>
+                                </TabItem>
+                            </TabControl>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
