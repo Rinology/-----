@@ -565,6 +565,7 @@ public class KeyboardHookService : IDisposable
 
         _pendingAiRaw = raw;
         _aiDebounceTimer.Change(450, Timeout.Infinite);
+        AiGeneratingStarted?.Invoke(hangul);
     }
 
     private void ShowCandidateList(List<TemplateItem> list, int matchedLen, bool isNaturalLanguage)
@@ -617,7 +618,7 @@ public class KeyboardHookService : IDisposable
                         Content = enAnswer,
                         Category = "AI번역"
                     };
-                    AddOrUpdateDynamicCandidate(targetRaw, transItem);
+                    AddOrUpdateDynamicCandidate(targetRaw, transItem, hangul.Length);
                     AiCandidateReady?.Invoke(transItem, hangul.Length, targetHwnd);
                 }
             }
@@ -625,7 +626,7 @@ public class KeyboardHookService : IDisposable
         }, token);
     }
 
-    private void AddOrUpdateDynamicCandidate(string expectedRaw, TemplateItem item)
+    private void AddOrUpdateDynamicCandidate(string expectedRaw, TemplateItem item, int matchedLen = 0)
     {
         lock (_lock)
         {
@@ -635,7 +636,13 @@ public class KeyboardHookService : IDisposable
                 _currentCandidates[idx] = item;
             else
                 _currentCandidates.Add(item);
+            if (_currentMatchedLen <= 0 && matchedLen > 0)
+            {
+                _currentMatchedLen = matchedLen;
+                _isNaturalLanguageMode = true;
+            }
             _hasCandidates = _currentCandidates.Count > 0;
+            _autoHideTimer.Change(GetAutoHideTimeoutMs(), Timeout.Infinite);
         }
     }
 

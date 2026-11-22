@@ -249,7 +249,7 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 if (_hookService.HasActiveCandidates)
-                    _suggestionBar.UpdateAiCandidate(aiItem);
+                    _suggestionBar.UpdateAiCandidate(aiItem, matchedLen, targetHwnd);
             });
         };
 
@@ -257,7 +257,7 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
-                if (_hookService.HasActiveCandidates)
+                if (_configManager.Config.EnableKoToEnTranslation)
                     _suggestionBar.ShowAiGeneratingPlaceholder(promptHint);
             });
         };

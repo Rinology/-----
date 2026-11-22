@@ -43,6 +43,7 @@ public partial class SuggestionBar : Window
         }
 
         _recognizedToken = recognizedToken ?? string.Empty;
+        _candidates.Clear();
         ItemsPanel.Children.Clear();
         ItemsPanel.Visibility = Visibility.Collapsed;
         TopAiRowPanel.Children.Clear();
@@ -306,12 +307,36 @@ public partial class SuggestionBar : Window
 
     public void ShowAiGeneratingPlaceholder(string promptHint = "")
     {
-        // Ollama 제거됨
+        if (!_configManager.Config.EnableKoToEnTranslation || !_configManager.Config.IsEnabled) return;
+
+        BottomAiRowPanel.Children.Clear();
+        BottomAiRowPanel.Visibility = Visibility.Visible;
+        BottomAiRowPanel.Margin = new Thickness(0, 6, 0, 0);
+
+        BottomAiRowPanel.Children.Add(new TextBlock
+        {
+            Text = "EN 번역 중...",
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
+            FontSize = 11.5,
+            FontWeight = FontWeights.SemiBold,
+            FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
+        });
+
+        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        if (Win32Api.TryGetValidInputPosition(out double cx, out double cy, out _, useMouse))
+        {
+            UpdateLayout();
+            Reposition(cx, cy);
+        }
+        Show();
     }
 
-    public void UpdateAiCandidate(TemplateItem aiItem)
+    public void UpdateAiCandidate(TemplateItem aiItem, int matchedLen = 0, IntPtr targetHwnd = default)
     {
         if (aiItem == null || aiItem.Category != "AI번역") return;
+
+        if (_matchedLen <= 0 && matchedLen > 0) _matchedLen = matchedLen;
+        if (_targetHwnd == IntPtr.Zero && targetHwnd != IntPtr.Zero) _targetHwnd = targetHwnd;
 
         int existingIdx = _candidates.FindIndex(c => c.Category == "AI번역");
         if (existingIdx >= 0) _candidates[existingIdx] = aiItem;
@@ -380,8 +405,11 @@ public partial class SuggestionBar : Window
     {
         var screenWidth = SystemParameters.PrimaryScreenWidth;
         var screenHeight = SystemParameters.PrimaryScreenHeight;
-        double w = ActualWidth > 0 ? ActualWidth : 320;
-        double h = ActualHeight > 0 ? ActualHeight : 42;
+
+        // 현재 콘텐츠의 정확한 크기를 먼저 측정 (이전 상태의 ActualWidth/Height로 위치가 튀는 현상 방지)
+        MainBorder.Measure(new Size(screenWidth, screenHeight));
+        double w = MainBorder.DesiredSize.Width > 0 ? MainBorder.DesiredSize.Width : (ActualWidth > 0 ? ActualWidth : 320);
+        double h = MainBorder.DesiredSize.Height > 0 ? MainBorder.DesiredSize.Height : (ActualHeight > 0 ? ActualHeight : 42);
 
         Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
 
@@ -396,9 +424,12 @@ public partial class SuggestionBar : Window
             if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
 
             Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
-            if (caretY + offsetY + h > screenHeight - 10)
+
+            // 화면 하단 35% 영역(일반 채팅 입력창 위치)에서는 UNKNOWN(1줄)이든 MATCH(여러 줄)든 항상 커서 위쪽에 일관되게 배치
+            bool preferAbove = caretY > screenHeight * 0.65 || (caretY + offsetY + h > screenHeight - 10);
+            if (preferAbove)
             {
-                Top = Math.Max(10, caretY - h - 10);
+                Top = Math.Max(10, caretY - h - 12);
             }
             else
             {
