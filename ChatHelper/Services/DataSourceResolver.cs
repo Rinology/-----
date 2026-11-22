@@ -144,7 +144,7 @@ public static class DataSourceResolver
             {
                 var found = all.FirstOrDefault(x =>
                     string.Equals(x.Profile.Name, cfg.ActiveDataSourceProfile, StringComparison.OrdinalIgnoreCase)).Profile;
-                if (found != null && !string.IsNullOrWhiteSpace(ExtractId(found.SpreadsheetUrl))) return found;
+                if (found != null && (found.IsLocalOnly || !string.IsNullOrWhiteSpace(ExtractId(found.SpreadsheetUrl)))) return found;
             }
 
             // 선택된 프로필이 없거나 권한이 없으면 허용된 첫 번째 프로필을 자동 선택
@@ -153,6 +153,8 @@ public static class DataSourceResolver
     }
 
     public static string ActiveName => Active?.Name ?? DefaultProfileName;
+    public static bool IsActiveLocalOnly =>
+        Active != null && (Active.IsLocalOnly || string.IsNullOrWhiteSpace(ExtractId(Active.SpreadsheetUrl)));
 
     // ---------- 읽기 URL ----------
     public static string TemplateUrl => ResolveReadUrl(Active, p => TabOf(p.TemplateTab, DefaultTemplateTab), "TEMPLATE_SHEET_URL");

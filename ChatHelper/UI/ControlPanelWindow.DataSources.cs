@@ -61,7 +61,7 @@ public partial class ControlPanelWindow
                 LstLocalUserProfiles.Items.Add(new UserProfileEntry
                 {
                     Name = p.Name,
-                    DisplayText = $"[💻 로컬] {p.Name}  ({(string.IsNullOrWhiteSpace(p.TemplateTab) ? "채팅템플릿" : p.TemplateTab)}) — {p.SpreadsheetUrl}"
+                    DisplayText = $"[💻 이 PC 전용] {p.Name}"
                 });
             }
         }
@@ -148,30 +148,35 @@ public partial class ControlPanelWindow
         DataSourceResolver.RaiseChanged();
     }
 
-    private void BtnAddLocalProfile_Click(object sender, RoutedEventArgs e)
+    private async void BtnAddLocalProfile_Click(object sender, RoutedEventArgs e)
     {
         string name = TxtLocalProfileName.Text.Trim();
-        string url = TxtLocalProfileUrl.Text.Trim();
-        string tab = string.IsNullOrWhiteSpace(TxtLocalProfileTab.Text) ? "채팅템플릿" : TxtLocalProfileTab.Text.Trim();
-
-        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(DataSourceResolver.ExtractId(url)))
+        if (string.IsNullOrWhiteSpace(name))
         {
-            MessageBox.Show("시트 이름과 올바른 구글 시트 URL을 입력해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("만들 목록 이름을 입력해 주세요. (예: 내 개인 문구)", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var profile = new DataSourceProfile { Name = name, SpreadsheetUrl = url, TemplateTab = tab };
+        var profile = new DataSourceProfile
+        {
+            Name = name,
+            IsLocalOnly = true
+        };
         var list = _configManager.Config.DataSourceProfiles;
         list.RemoveAll(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
         list.Add(profile);
+        _configManager.Config.ActiveDataSourceProfile = name;
         _configManager.Save();
 
-        TxtLocalProfileStatus.Text = $"✅ '{name}' 이 PC 로컬 전용 시트로 저장 완료!";
+        await _templateManager.SyncFromRemoteAsync();
+        _templatesObs = new ObservableCollection<TemplateItem>(_templateManager.Templates);
+        DgTemplates.ItemsSource = _templatesObs;
+
+        TxtLocalProfileStatus.Text = $"✅ '{name}' 목록이 생성·적용되었습니다! 이제 [📋 커맨드 관리] 탭에서 문구를 바로 추가하세요.";
         TxtLocalProfileStatus.Foreground = System.Windows.Media.Brushes.ForestGreen;
         TxtLocalProfileStatus.Visibility = Visibility.Visible;
 
         TxtLocalProfileName.Clear();
-        TxtLocalProfileUrl.Clear();
         LoadProfiles(name);
         DataSourceResolver.RaiseChanged();
     }
@@ -180,11 +185,11 @@ public partial class ControlPanelWindow
     {
         if (LstLocalUserProfiles.SelectedItem is not UserProfileEntry entry)
         {
-            MessageBox.Show("삭제할 로컬 시트를 목록에서 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("삭제할 로컬 목록을 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (MessageBox.Show($"'{entry.Name}' 로컬 시트를 이 PC에서 삭제할까요?", "삭제 확인",
+        if (MessageBox.Show($"'{entry.Name}' 로컬 목록과 이 PC에 저장된 해당 문구들을 삭제할까요?", "삭제 확인",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             return;
 
@@ -192,7 +197,14 @@ public partial class ControlPanelWindow
             string.Equals(x.Name, entry.Name, StringComparison.OrdinalIgnoreCase));
         _configManager.Save();
 
-        TxtLocalProfileStatus.Text = $"✅ '{entry.Name}' 로컬 시트 삭제 완료.";
+        try
+        {
+            string localPath = TemplateManager.GetLocalOnlyProfilePath(entry.Name);
+            if (System.IO.File.Exists(localPath)) System.IO.File.Delete(localPath);
+        }
+        catch { }
+
+        TxtLocalProfileStatus.Text = $"✅ '{entry.Name}' 로컬 목록 삭제 완료.";
         TxtLocalProfileStatus.Foreground = System.Windows.Media.Brushes.ForestGreen;
         TxtLocalProfileStatus.Visibility = Visibility.Visible;
 

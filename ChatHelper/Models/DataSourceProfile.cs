@@ -18,4 +18,5 @@ public class DataSourceProfile
     public string AiRulesTab { get; set; } = "";   // 톤앤매너            기본: 톤앤매너
     public string OwnerId { get; set; } = "";      // GAS 소유자 아이디 (ALL 또는 본인 ID)
     public bool IsPersonal { get; set; } = false;  // 개인 시트 여부
+    public bool IsLocalOnly { get; set; } = false; // 구글 시트 없이 이 PC에만 저장하는 로컬 전용 목록
 }

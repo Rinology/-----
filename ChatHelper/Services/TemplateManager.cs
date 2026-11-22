@@ -146,11 +146,54 @@ public class TemplateManager
 
     private void SaveTemplatesToCsv()
     {
-        // 보안 및 실시간 시트 조회 정책에 따라 로컬 CSV 백업 파일을 디스크에 저장하지 않음
+        // 원격/사내 시트는 보안 정책상 디스크에 백업하지 않음.
+        // 단, 사용자가 만든 '이 PC 전용 로컬 목록(IsActiveLocalOnly)'만 앱 데이터 폴더에 저장.
+        if (!DataSourceResolver.IsActiveLocalOnly) return;
+        try
+        {
+            string path = GetLocalOnlyProfilePath(DataSourceResolver.ActiveName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var json = System.Text.Json.JsonSerializer.Serialize(Templates, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(path, json, new UTF8Encoding(true));
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("TemplateManager", "로컬 전용 목록 저장 실패", ex);
+        }
+    }
+
+    public static string GetLocalOnlyProfilePath(string profileName)
+    {
+        string safe = System.Text.RegularExpressions.Regex.Replace(profileName ?? "local", @"[\\/:*?""<>|\s]+", "_").Trim('_');
+        if (string.IsNullOrEmpty(safe)) safe = "local";
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "ChatHelper",
+            $"local_templates_{safe}.json");
     }
 
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync()
     {
+        if (DataSourceResolver.IsActiveLocalOnly)
+        {
+            Templates.Clear();
+            try
+            {
+                string path = GetLocalOnlyProfilePath(DataSourceResolver.ActiveName);
+                if (File.Exists(path))
+                {
+                    var json = await File.ReadAllTextAsync(path, Encoding.UTF8);
+                    var items = System.Text.Json.JsonSerializer.Deserialize<List<TemplateItem>>(json);
+                    if (items != null) Templates = items;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn("TemplateManager", "로컬 전용 목록 로드 실패", ex);
+            }
+            return (true, $"내 PC 목록({DataSourceResolver.ActiveName}) {Templates.Count}개 불러옴");
+        }
+
         var url = DataSourceResolver.TemplateUrl;
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -250,18 +293,33 @@ public class TemplateManager
 
     public async Task<(bool Success, string Message)> UploadTemplateToRemoteSheetAsync(TemplateItem item, string? note = null)
     {
+        if (DataSourceResolver.IsActiveLocalOnly)
+        {
+            SaveTemplatesToCsv();
+            return (true, "이 PC 로컬 목록에 저장 완료!");
+        }
         var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
         return await registrationService.RegisterAsync(item);
     }
 
     public async Task<(bool Success, string Message)> UpdateTemplateOnRemoteSheetAsync(string originalKeyword, TemplateItem item)
     {
+        if (DataSourceResolver.IsActiveLocalOnly)
+        {
+            SaveTemplatesToCsv();
+            return (true, "이 PC 로컬 목록에 수정 완료!");
+        }
         var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
         return await registrationService.UpdateAsync(originalKeyword, item);
     }
 
     public async Task<(bool Success, string Message)> DeleteTemplateFromRemoteSheetAsync(string keyword)
     {
+        if (DataSourceResolver.IsActiveLocalOnly)
+        {
+            SaveTemplatesToCsv();
+            return (true, "이 PC 로컬 목록에서 삭제 완료!");
+        }
         var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
         return await registrationService.DeleteAsync(keyword);
     }

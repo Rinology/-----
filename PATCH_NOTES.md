@@ -49,6 +49,8 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **로컬 PC 전용 목록 단순화 (구글 시트·JSON·헤더 설정 완전 제거)**:
+  - [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml#L436-L454) > `💻 로컬 PC 시트 (이 PC 전용)`에서 구글 시트 URL·탭 이름·헤더·`config.json` 안내를 모두 제거하고, **목록 이름만 입력**하면 즉시 생성·적용되어 **`📋 커맨드 관리` 탭에서 바로 단축어·답변을 추가/수정/삭제**할 수 있도록 개선([TemplateManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TemplateManager.cs#L147-L190)).
 - **수동 동기화 시 타 사용자 목록 노출 차단 & 데이터 소스 UI/안내 개선**:
   - [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs#L340-L355): `지금 즉시 최신 정보 동기화 실행` 시 타 직원 계정 목록(`SyncUserListFromRemoteAsync`)을 내려받거나 표시하지 않도록 제거(현재 프로필·템플릿만 동기화).
   - [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml#L383-L481) / [ControlPanelWindow.DataSources.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.DataSources.cs):
