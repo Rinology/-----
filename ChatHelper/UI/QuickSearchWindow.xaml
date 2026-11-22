@@ -4,7 +4,7 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        Width="780" Height="550"
+        Width="760" Height="540"
         ShowInTaskbar="False"
         Topmost="True"
         UseLayoutRounding="True"
@@ -14,193 +14,152 @@
         RenderOptions.ClearTypeHint="Enabled"
         PreviewKeyDown="Window_PreviewKeyDown">
 
-    <!-- 윈도우 98 정통 4단계 3D Raised 입체 베벨 외곽 프레임 (둥근 모서리 및 블러 그림자 제거) -->
-    <Border BorderThickness="1,1,0,0" BorderBrush="#FFFFFF">
-        <Border BorderThickness="0,0,1,1" BorderBrush="#000000">
-            <Border BorderThickness="1,1,0,0" BorderBrush="#DFDFDF">
-                <Border BorderThickness="0,0,1,1" BorderBrush="#808080" Background="#C0C0C0" Padding="3">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="26"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="38"/>
-                        </Grid.RowDefinitions>
+    <Border Margin="8" CornerRadius="{DynamicResource ThemeWindowCornerRadius}"
+            Background="{DynamicResource ThemeBg}"
+            BorderBrush="{DynamicResource ThemeBorder}"
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" Direction="270" ShadowDepth="4" Opacity="0.16" Color="#0F172A"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="44"/>
+            </Grid.RowDefinitions>
 
-                        <!-- 1. 타이틀 바 (Windows 98 Me 네이비-스카이블루 그라데이션) -->
-                        <Grid Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0,0,0">
-                                <TextBlock Text="⌨" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI Emoji, Tahoma"/>
-                                <TextBlock Text="템플릿 빠른 검색 및 추천" 
-                                           Foreground="#FFFFFF" 
-                                           FontWeight="Bold" FontSize="12" 
-                                           FontFamily="Tahoma, Gulim, Segoe UI"/>
-                                <TextBlock Text="[단축키: Alt+Q  |  Tab: 목록/카테고리 이동]" 
-                                           Foreground="#C0D8F8" 
-                                           FontSize="11" Margin="8,1,0,0"
-                                           FontFamily="Tahoma, Gulim, Segoe UI"/>
-                            </StackPanel>
-                            <Button Style="{DynamicResource ThemeCloseButtonStyle}" 
-                                    HorizontalAlignment="Right" 
-                                    Margin="0,0,3,0" 
-                                    Click="BtnClose_Click"/>
-                        </Grid>
-
-                        <!-- 2. 검색창 -->
-                        <StackPanel Grid.Row="1" Margin="4,6,4,5">
-                            <!-- Windows 98 클래식 Sunken 3D Edit Box -->
-                            <Border BorderThickness="1,1,0,0" BorderBrush="#808080">
-                                <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">
-                                    <Border BorderThickness="1,1,0,0" BorderBrush="#000000">
-                                        <Border BorderThickness="0,0,1,1" BorderBrush="#DFDFDF" Background="#FFFFFF">
-                                            <Grid Height="30">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="32"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Text="🔍" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#555555"/>
-                                                <TextBox x:Name="TxtSearch" 
-                                                         Grid.Column="1"
-                                                         Background="Transparent" 
-                                                         Foreground="#000000" 
-                                                         BorderThickness="0" 
-                                                         Padding="4,2" 
-                                                         FontSize="13" 
-                                                         FontFamily="Tahoma, Gulim, Segoe UI"
-                                                         VerticalContentAlignment="Center"
-                                                         TextChanged="TxtSearch_TextChanged"/>
-                                                <Button x:Name="BtnClearSearch" Grid.Column="2" Content="✕" 
-                                                        Width="20" Height="20" Margin="0,0,4,0" 
-                                                        Background="#C0C0C0" BorderThickness="1" 
-                                                        Foreground="#000000" Cursor="Hand" 
-                                                        Click="BtnClearSearch_Click" Visibility="Collapsed"/>
-                                            </Grid>
-                                        </Border>
-                                    </Border>
-                                </Border>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- 3. 카테고리 필터 칩 바 (Win98 툴바/탭 스타일) -->
-                        <ScrollViewer x:Name="CategoryScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="4,0,4,6">
-                            <StackPanel x:Name="CategoryPanel" Orientation="Horizontal">
-                                <!-- 카테고리 버튼들이 동적으로 여기에 추가됨 -->
-                            </StackPanel>
-                        </ScrollViewer>
-
-                        <!-- 4. 결과 상태 안내 (스마트 폴백 알림) -->
-                        <TextBlock x:Name="TxtResultHint" Grid.Row="3" Margin="8,0,0,5" 
-                                   Text="총 0개의 템플릿이 로드되었습니다." 
-                                   FontSize="11.5" Foreground="#333333" FontFamily="Tahoma, Gulim, Segoe UI"/>
-
-                        <!-- 5. 템플릿 목록 (Windows 98 클래식 Sunken 3D ListBox) -->
-                        <Border Grid.Row="4" Margin="4,0,4,4" BorderThickness="1,1,0,0" BorderBrush="#808080">
-                            <Border BorderThickness="0,0,1,1" BorderBrush="#FFFFFF">
-                                <Border BorderThickness="1,1,0,0" BorderBrush="#000000">
-                                    <Border BorderThickness="0,0,1,1" BorderBrush="#DFDFDF" Background="#FFFFFF">
-                                        <ListBox x:Name="LstTemplates" 
-                                                 Background="#FFFFFF" 
-                                                 BorderThickness="0" 
-                                                 Padding="3"
-                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                                 MouseDoubleClick="LstTemplates_MouseDoubleClick">
-                                            <ListBox.ItemContainerStyle>
-                                                <Style TargetType="ListBoxItem">
-                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                                    <Setter Property="Padding" Value="0"/>
-                                                    <Setter Property="Margin" Value="2,2"/>
-                                                    <Setter Property="Background" Value="Transparent"/>
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="ListBoxItem">
-                                                                <!-- 기본 흰색 배경 + 연한 그레이 테두리 -->
-                                                                <Border x:Name="ItemBorder" 
-                                                                        Background="#FFFFFF" 
-                                                                        BorderBrush="#D1D5DB" 
-                                                                        BorderThickness="1" 
-                                                                        Padding="10,7">
-                                                                    <ContentPresenter/>
-                                                                </Border>
-                                                                <ControlTemplate.Triggers>
-                                                                    <!-- 마우스 오버 시 연한 회색 -->
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="ItemBorder" Property="Background" Value="#F3F4F6"/>
-                                                                    </Trigger>
-                                                                    <!-- 선택된 항목만 그레이톤 배경 및 진한 테두리로 강조 -->
-                                                                    <Trigger Property="IsSelected" Value="True">
-                                                                        <Setter TargetName="ItemBorder" Property="Background" Value="#D8DCE3"/>
-                                                                        <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#4B5563"/>
-                                                                        <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1.5"/>
-                                                                    </Trigger>
-                                                                    <MultiTrigger>
-                                                                        <MultiTrigger.Conditions>
-                                                                            <Condition Property="IsSelected" Value="True"/>
-                                                                            <Condition Property="IsMouseOver" Value="True"/>
-                                                                        </MultiTrigger.Conditions>
-                                                                        <Setter TargetName="ItemBorder" Property="Background" Value="#CFD5DE"/>
-                                                                    </MultiTrigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </ListBox.ItemContainerStyle>
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="Auto"/>
-                                                            <RowDefinition Height="Auto"/>
-                                                        </Grid.RowDefinitions>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <!-- 단축키 배지 (클래식 Win98 네이비) -->
-                                                        <Border Background="#000080" Padding="6,2" Margin="0,0,7,0">
-                                                            <TextBlock Text="{Binding Keyword}" Foreground="#FFFFFF" FontWeight="Bold" FontSize="11.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
-                                                        </Border>
-
-                                                        <!-- 카테고리 태그 -->
-                                                        <Border Grid.Column="1" Background="#E8E8E8" BorderBrush="#808080" BorderThickness="1" Padding="6,2" Margin="0,0,7,0">
-                                                            <TextBlock Text="{Binding Category}" Foreground="#222222" FontWeight="SemiBold" FontSize="11" FontFamily="Tahoma, Gulim, Segoe UI"/>
-                                                        </Border>
-
-                                                        <!-- 제목 (검정색 기본 텍스트) -->
-                                                        <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="#000000" FontWeight="Bold" FontSize="13" FontFamily="Tahoma, Gulim, Segoe UI" VerticalAlignment="Center"/>
-
-                                                        <!-- 내용 미리보기 (짙은 회색) -->
-                                                        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="#333333" FontSize="12" FontFamily="Tahoma, Gulim, Segoe UI" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </Border>
-                                </Border>
-                            </Border>
-                        </Border>
-
-                        <!-- 6. 하단 액션 툴바 (드래그 이동 지원 및 윈도우 98 3D 푸시 버튼) -->
-                        <Grid Grid.Row="5" Background="Transparent" Margin="6,4,6,4" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                            <TextBlock VerticalAlignment="Center" 
-                                       Text="↵ Enter: 입력  |  ↑/↓: 이동  |  Tab: 목록/카테고리 전환  |  Esc: 닫기" 
-                                       Foreground="#444444" FontSize="11.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
-
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <Button Content="➕ 새 템플릿 등록 및 시트 업로드" 
-                                        Style="{DynamicResource ThemeButtonStyle}" 
-                                        Padding="12,4" FontSize="11.5"
-                                        Click="BtnAddAndUpload_Click"/>
-                            </StackPanel>
-                        </Grid>
-                    </Grid>
-                </Border>
+            <!-- 1. 타이틀 바 -->
+            <Border Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="14,0,8,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="템플릿 빠른 검색" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="Malgun Gothic, Segoe UI"/>
+                        <TextBlock Text="Alt+Q  ·  Tab: 카테고리 전환" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="Malgun Gothic, Segoe UI"/>
+                    </StackPanel>
+                    <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
+                </Grid>
             </Border>
-        </Border>
+
+            <!-- 2. 검색창 -->
+            <Border Grid.Row="1" Margin="12,10,12,8" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8">
+                <Grid Height="36">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="TxtSearch"
+                             Grid.Column="0"
+                             Background="Transparent"
+                             Foreground="{DynamicResource ThemeText}"
+                             BorderThickness="0"
+                             Padding="12,4"
+                             FontSize="13.5"
+                             FontFamily="Malgun Gothic, Segoe UI"
+                             VerticalContentAlignment="Center"
+                             TextChanged="TxtSearch_TextChanged"/>
+                    <Button x:Name="BtnClearSearch" Grid.Column="1" Content="✕"
+                            Width="24" Height="24" Margin="0,0,6,0"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="{DynamicResource ThemeSubText}" Cursor="Hand"
+                            Click="BtnClearSearch_Click" Visibility="Collapsed"/>
+                </Grid>
+            </Border>
+
+            <!-- 3. 카테고리 필터 칩 바 -->
+            <ScrollViewer x:Name="CategoryScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="12,0,12,6">
+                <StackPanel x:Name="CategoryPanel" Orientation="Horizontal"/>
+            </ScrollViewer>
+
+            <!-- 4. 결과 상태 안내 -->
+            <TextBlock x:Name="TxtResultHint" Grid.Row="3" Margin="14,0,14,6"
+                       Text="총 0개의 템플릿이 로드되었습니다."
+                       FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" FontFamily="Malgun Gothic, Segoe UI"/>
+
+            <!-- 5. 템플릿 목록 -->
+            <Border Grid.Row="4" Margin="12,0,12,4" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="1" CornerRadius="8">
+                <ListBox x:Name="LstTemplates"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="4"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         MouseDoubleClick="LstTemplates_MouseDoubleClick">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="2,3"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="ItemBorder"
+                                                Background="{DynamicResource ThemeSurfaceBg}"
+                                                BorderBrush="{DynamicResource ThemePanelBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="7"
+                                                Padding="12,8">
+                                            <ContentPresenter/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#F8FAFC"/>
+                                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="#CBD5E1"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="ItemBorder" Property="Background" Value="#EFF6FF"/>
+                                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource ThemeAccent}"/>
+                                                <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="7,2" Margin="0,0,7,0">
+                                    <TextBlock Text="{Binding Keyword}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11.5" FontFamily="Malgun Gothic, Segoe UI"/>
+                                </Border>
+
+                                <Border Grid.Column="1" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Category}" Foreground="{DynamicResource ThemeSubText}" FontWeight="SemiBold" FontSize="11" FontFamily="Malgun Gothic, Segoe UI"/>
+                                </Border>
+
+                                <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource ThemeText}" FontWeight="SemiBold" FontSize="13" FontFamily="Malgun Gothic, Segoe UI" VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12" FontFamily="Malgun Gothic, Segoe UI" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- 6. 하단 액션 바 -->
+            <Grid Grid.Row="5" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <TextBlock VerticalAlignment="Center"
+                           Text="Enter 입력  ·  ↑/↓ 이동  ·  Tab 카테고리  ·  Esc 닫기"
+                           Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="Malgun Gothic, Segoe UI"/>
+
+                <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Content="+ 새 답변 시트 등록"
+                        Style="{DynamicResource ThemeButtonStyle}"
+                        Padding="12,5" FontSize="11.5"
+                        Click="BtnAddAndUpload_Click"/>
+            </Grid>
+        </Grid>
     </Border>
 </Window>

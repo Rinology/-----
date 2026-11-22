@@ -71,7 +71,12 @@ public partial class ControlPanelWindow : Window
         else
             RadioSlashTab.IsChecked = true;
 
-        // 3. 표시 및 알약 크기 설정 로드
+        // 3. UI 테마 및 알약 크기 설정 로드
+        if (string.Equals(cfg.Theme, ThemeManager.ThemeMinimalHud, StringComparison.OrdinalIgnoreCase))
+            RadioThemeMinimalHud.IsChecked = true;
+        else
+            RadioThemeFluentLight.IsChecked = true;
+
         if (cfg.PillScale == 1)
             RadioPillScale1.IsChecked = true;
         else if (cfg.PillScale == 3)
@@ -370,6 +375,11 @@ public partial class ControlPanelWindow : Window
             cfg.MaxCandidatesCount = CmbMaxCandidates.SelectedIndex + AppConstants.MinCandidatesCount;
         }
 
+        cfg.Theme = (RadioThemeMinimalHud.IsChecked == true)
+            ? ThemeManager.ThemeMinimalHud
+            : ThemeManager.ThemeFluentLight;
+        ThemeManager.ApplyTheme(cfg.Theme);
+
         if (RadioPillScale1.IsChecked == true)
             cfg.PillScale = AppConstants.PillScaleNormal;
         else if (RadioPillScale3.IsChecked == true)
@@ -427,6 +437,15 @@ public partial class ControlPanelWindow : Window
         _configManager.Save();
         SettingsChanged?.Invoke();
         Close();
+    }
+
+    private void RadioTheme_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        string theme = (RadioThemeMinimalHud.IsChecked == true)
+            ? ThemeManager.ThemeMinimalHud
+            : ThemeManager.ThemeFluentLight;
+        ThemeManager.ApplyTheme(theme);
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

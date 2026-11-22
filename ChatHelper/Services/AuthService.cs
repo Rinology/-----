@@ -53,7 +53,7 @@ public class AuthService
         if (records.Count <= 1) return;
 
         var header = records[0];
-        int uidIdx = -1, pwIdx = -1, expIdx = -1, statusIdx = -1, planIdx = -1, memoIdx = -1;
+        int uidIdx = -1, pwIdx = -1, expIdx = -1, statusIdx = -1, planIdx = -1, memoIdx = -1, profilesIdx = -1;
 
         for (int i = 0; i < header.Count; i++)
         {
@@ -64,15 +64,17 @@ public class AuthService
             else if (h.Contains("status") || h.Contains("상태")) statusIdx = i;
             else if (h.Contains("plan") || h.Contains("등급") || h.Contains("플랜")) planIdx = i;
             else if (h.Contains("memo") || h.Contains("note") || h.Contains("메모") || h.Contains("비고")) memoIdx = i;
+            else if (h.Contains("profile") || h.Contains("프로필") || h.Contains("권한") || h.Contains("부서")) profilesIdx = i;
         }
 
-        // 헤더 매칭 실패 시 기본 열 인덱스 (user_id, pw, expire_date, status, plan, memo)
+        // 헤더 매칭 실패 시 기본 열 인덱스 (user_id, pw, expire_date, status, plan, memo, allowed_profiles)
         if (uidIdx < 0) uidIdx = 0;
         if (pwIdx < 0 && header.Count > 1) pwIdx = 1;
         if (expIdx < 0 && header.Count > 2) expIdx = 2;
         if (statusIdx < 0 && header.Count > 3) statusIdx = 3;
         if (planIdx < 0 && header.Count > 4) planIdx = 4;
         if (memoIdx < 0 && header.Count > 5) memoIdx = 5;
+        if (profilesIdx < 0 && header.Count > 6) profilesIdx = 6;
 
         var list = new List<UserInfo>();
         for (int i = 1; i < records.Count; i++)
@@ -88,6 +90,7 @@ public class AuthService
             string status = statusIdx >= 0 && statusIdx < cols.Count ? cols[statusIdx].Trim().ToLower() : "active";
             string plan = planIdx >= 0 && planIdx < cols.Count ? cols[planIdx].Trim() : "Basic";
             string memo = memoIdx >= 0 && memoIdx < cols.Count ? cols[memoIdx].Trim() : "";
+            string allowedProfiles = profilesIdx >= 0 && profilesIdx < cols.Count ? cols[profilesIdx].Trim() : "";
 
             DateTime exp = DateTime.MaxValue;
             if (!string.IsNullOrEmpty(expStr) && DateTime.TryParse(expStr, out var parsedExp))
@@ -102,7 +105,8 @@ public class AuthService
                 ExpireDate = exp,
                 Status = string.IsNullOrWhiteSpace(status) ? "active" : status,
                 Plan = string.IsNullOrWhiteSpace(plan) ? "Basic" : plan,
-                Memo = memo
+                Memo = memo,
+                AllowedProfiles = allowedProfiles
             });
         }
 
@@ -114,7 +118,29 @@ public class AuthService
 
     public async Task<(bool Success, string Message)> SyncUserListFromRemoteAsync()
     {
-        // 1. .env 파일의 USER_SHEET_URL 우선 확인
+        // 1. GAS 토큰 인증 비공개 시트 조회 최우선 (웹 게시/링크 공유 불필요)
+        var gasUrl = DataSourceResolver.BuildGasUsersReadUrl();
+        if (!string.IsNullOrWhiteSpace(gasUrl))
+        {
+            try
+            {
+                var gasCsv = await _httpClient.GetStringAsync(gasUrl);
+                if (!string.IsNullOrWhiteSpace(gasCsv) &&
+                    !gasCsv.StartsWith("Server error:", StringComparison.OrdinalIgnoreCase) &&
+                    !gasCsv.StartsWith("ChatHelper GAS", StringComparison.OrdinalIgnoreCase))
+                {
+                    ParseUserCsv(gasCsv);
+                    if (Users.Count > 0)
+                    {
+                        SaveLocalUserCache(gasCsv);
+                        return (true, $"사용자 목록 {Users.Count}명 동기화 완료!");
+                    }
+                }
+            }
+            catch { /* GAS v5 미배포 시 기존 URL 폴백 */ }
+        }
+
+        // 2. .env 파일의 USER_SHEET_URL 폴백
         var url = EnvService.Get("USER_SHEET_URL");
 
         // 2. config.json 설정 확인
@@ -193,10 +219,46 @@ public class AuthService
                 return (false, $"이용 기간이 만료되었습니다. (만료일: {user.ExpireDate:yyyy-MM-dd})\n연장 문의가 필요합니다.", user);
 
             CurrentUser = user;
+            DataSourceResolver.SetAllowedProfiles(user.AllowedProfiles);
             _configManager.Config.CurrentUserId = user.UserId;
             _configManager.Save();
 
+            // 백그라운드로 마지막 로그인 일시(last_login) GAS 기록 (로그인 지연 0ms)
+            _ = ReportLastLoginAsync(user.UserId);
+
             return (true, $"인증 성공! (만료일: {user.ExpireDate:yyyy-MM-dd}, {user.DaysRemaining}일 남음)", user);
         }
+    }
+
+    private void SaveLocalUserCache(string csv)
+    {
+        try
+        {
+            var path = _configManager.Config.LocalUserCsvPath;
+            if (!Path.IsPathRooted(path))
+                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
+            File.WriteAllText(path, csv, Encoding.UTF8);
+        }
+        catch { }
+    }
+
+    private async Task ReportLastLoginAsync(string userId)
+    {
+        try
+        {
+            string webhook = DataSourceResolver.WebhookUrl;
+            if (string.IsNullOrWhiteSpace(webhook) || string.IsNullOrWhiteSpace(userId)) return;
+
+            var payload = new
+            {
+                action = "update_last_login",
+                token = DataSourceResolver.ApiToken,
+                userId = userId.Trim()
+            };
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            using var resp = await _httpClient.PostAsync(webhook, content);
+        }
+        catch { /* 오프라인/테스트 환경에서는 조용히 무시 */ }
     }
 }

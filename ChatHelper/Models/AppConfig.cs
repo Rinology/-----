@@ -13,8 +13,8 @@ public class AppConfig
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
-    // UI 테마: Windows 98 ME 클래식 고정
-    public string Theme { get; set; } = "Win98";
+    // UI 테마: FluentLight (기본) / MinimalHud (미니멀 글래스 HUD)
+    public string Theme { get; set; } = "FluentLight";
 
     // 가로형 멀티 추천 바 최대 표시 개수 (3 ~ 10개, 기본 5개)
     public int MaxCandidatesCount { get; set; } = 5;

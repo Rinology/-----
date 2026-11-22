@@ -68,27 +68,27 @@ public partial class SuggestionBar : Window
 
         if (statusMode == "UNKNOWN")
         {
-            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
-            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
-            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#991B1B"));
-            TxtRecognitionHeader.Text = $"❓ [알아듣지 못함] 인식된 입력: \"{token}\" (일치하는 키워드 없음)";
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF2F2"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FECACA"));
+            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B91C1C"));
+            TxtRecognitionHeader.Text = $"[미일치] \"{token}\"";
         }
         else if (statusMode == "WAITING")
         {
-            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7"));
-            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFBEB"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FDE68A"));
             TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E"));
             TxtRecognitionHeader.Text = string.IsNullOrWhiteSpace(token)
-                ? "⏳ [대기중] 커서 입력 대기 중..."
-                : $"⏳ [대기중] 입력 인식 중: \"{token}\"";
+                ? "[대기중] 입력 대기..."
+                : $"[인식중] \"{token}\"";
         }
         else
         {
-            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E0F2FE"));
-            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8"));
-            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#075985"));
-            string displayToken = string.IsNullOrWhiteSpace(token) ? $"{matchedLen}글자" : $"\"{token}\" ({matchedLen}글자 치환)";
-            TxtRecognitionHeader.Text = $"🔎 인식 구간: {displayToken}";
+            RecognitionHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9"));
+            RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0"));
+            TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"));
+            string displayToken = string.IsNullOrWhiteSpace(token) ? $"{matchedLen}자" : $"\"{token}\" ({matchedLen}자)";
+            TxtRecognitionHeader.Text = $"인식: {displayToken}";
         }
 
         if (BtnQuickRegisterToken != null)
@@ -205,9 +205,9 @@ public partial class SuggestionBar : Window
 
         if (completeMode == "SlashOnly" || mode == "InlinePill")
         {
-            MainBorder.CornerRadius = new CornerRadius(0);
-            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFE1"));
-            MainBorder.BorderBrush = Brushes.Black;
+            MainBorder.CornerRadius = new CornerRadius(10);
+            MainBorder.Background = (Brush)(TryFindResource("ThemePillBg") ?? Brushes.White);
+            MainBorder.BorderBrush = (Brush)(TryFindResource("ThemePillBorder") ?? Brushes.LightGray);
 
             if (sheetItems.Count > 0)
             {
@@ -215,8 +215,8 @@ public partial class SuggestionBar : Window
 
                 var badge = new Border
                 {
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")),
-                    CornerRadius = new CornerRadius(0),
+                    Background = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"))),
+                    CornerRadius = new CornerRadius(5),
                     Padding = badgePadding,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
@@ -225,8 +225,8 @@ public partial class SuggestionBar : Window
                     Text = tabKeyHint,
                     Foreground = Brushes.White,
                     FontSize = badgeFontSize,
-                    FontWeight = FontWeights.Bold,
-                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
+                    FontWeight = FontWeights.SemiBold,
+                    FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
                 };
                 ItemsPanel.Children.Add(badge);
 
@@ -235,14 +235,14 @@ public partial class SuggestionBar : Window
 
                 var btn = new Button
                 {
-                    Content = $"{topItem.Title}: \"{preview}\"",
-                    Foreground = Brushes.Black,
+                    Content = $"{topItem.Title} — {preview}",
+                    Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
                     Cursor = Cursors.Hand,
                     FontSize = contentFontSize,
                     FontWeight = FontWeights.SemiBold,
-                    FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                    FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
                     Focusable = false
                 };
                 btn.Click += (s, e) => SelectItem(topItem);
@@ -255,9 +255,9 @@ public partial class SuggestionBar : Window
         }
         else
         {
-            MainBorder.CornerRadius = new CornerRadius(0);
-            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0"));
-            MainBorder.BorderBrush = Brushes.Black;
+            MainBorder.CornerRadius = new CornerRadius(10);
+            MainBorder.Background = (Brush)(TryFindResource("ThemePillBg") ?? Brushes.White);
+            MainBorder.BorderBrush = (Brush)(TryFindResource("ThemePillBorder") ?? Brushes.LightGray);
 
             int maxAllowed = Math.Clamp(_configManager.Config.MaxCandidatesCount, 3, 10);
             var visibleSheetItems = sheetItems.Take(maxAllowed).ToList();
@@ -268,6 +268,10 @@ public partial class SuggestionBar : Window
             }
             else
             {
+                var accentBrush = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")));
+                var kbdBg = (Brush)(TryFindResource("ThemeKbdBg") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")));
+                var borderBrush = (Brush)(TryFindResource("ThemeBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")));
+
                 for (int i = 0; i < visibleSheetItems.Count; i++)
                 {
                     var item = visibleSheetItems[i];
@@ -276,18 +280,16 @@ public partial class SuggestionBar : Window
                     var chip = new Button
                     {
                         Content = $"[{keyHint}] {item.Title}",
-                        Foreground = (i > 0) ? Brushes.Black : Brushes.White,
-                        Background = (i == 0)
-                            ? (Brush)new BrushConverter().ConvertFromString("#000080")!
-                            : (Brush)new BrushConverter().ConvertFromString("#D4D0C8")!,
-                        BorderBrush = (Brush)new BrushConverter().ConvertFromString("#808080")!,
+                        Foreground = (i > 0) ? (Brush)(TryFindResource("ThemeText") ?? Brushes.Black) : Brushes.White,
+                        Background = (i == 0) ? accentBrush : kbdBg,
+                        BorderBrush = (i == 0) ? accentBrush : borderBrush,
                         BorderThickness = new Thickness(1),
                         Margin = new Thickness(0, 0, 6, 5),
                         Padding = badgePadding,
                         Cursor = Cursors.Hand,
                         FontSize = contentFontSize - 2,
-                        FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
-                        FontWeight = (i == 0) ? FontWeights.Bold : FontWeights.Normal,
+                        FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                        FontWeight = (i == 0) ? FontWeights.SemiBold : FontWeights.Normal,
                         Focusable = false
                     };
                     chip.Click += (s, e) => SelectItem(item);

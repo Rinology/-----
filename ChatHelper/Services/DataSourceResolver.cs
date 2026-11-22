@@ -23,6 +23,25 @@ public static class DataSourceResolver
 
     public static ConfigManager? Config { get; set; }
     public static List<DataSourceProfile> RemoteProfiles { get; private set; } = new();
+    private static string _allowedProfilesRaw = string.Empty;
+
+    /// <summary>로그인한 계정의 허용 프로필 문자열 설정 (비어 있거나 ALL/* 이면 전체 허용)</summary>
+    public static void SetAllowedProfiles(string? allowedProfiles)
+    {
+        _allowedProfilesRaw = allowedProfiles?.Trim() ?? string.Empty;
+    }
+
+    public static bool IsProfileAllowed(string? profileName)
+    {
+        if (string.IsNullOrWhiteSpace(_allowedProfilesRaw)) return true;
+        if (_allowedProfilesRaw.Equals("ALL", StringComparison.OrdinalIgnoreCase) ||
+            _allowedProfilesRaw == "*" || _allowedProfilesRaw == "전체")
+            return true;
+        if (string.IsNullOrWhiteSpace(profileName)) return false;
+
+        var tokens = _allowedProfilesRaw.Split(new[] { ',', ';', '/', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        return tokens.Any(t => string.Equals(t.Trim(), profileName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
 
     /// <summary>활성 프로필이 바뀌었거나 수정되어 재동기화가 필요할 때 발생.</summary>
     public static event Action? ProfileChanged;
@@ -86,7 +105,7 @@ public static class DataSourceResolver
         return list;
     }
 
-    /// <summary>GAS 중앙 목록 + .env 프리셋 + 사용자 프로필을 합쳐 반환.</summary>
+    /// <summary>GAS 중앙 목록 + .env 프리셋 + 사용자 프로필 중 현재 계정에 허용된 프로필만 반환.</summary>
     public static List<(DataSourceProfile Profile, string Source)> GetAllProfiles()
     {
         var result = new List<(DataSourceProfile, string)>();
@@ -94,6 +113,7 @@ public static class DataSourceResolver
         {
             foreach (var p in items)
             {
+                if (!IsProfileAllowed(p.Name)) continue;
                 if (!result.Any(x => string.Equals(x.Item1.Name, p.Name, StringComparison.OrdinalIgnoreCase)))
                     result.Add((p, src));
             }
@@ -118,8 +138,8 @@ public static class DataSourceResolver
                 if (found != null && !string.IsNullOrWhiteSpace(ExtractId(found.SpreadsheetUrl))) return found;
             }
 
-            // 선택된 프로필이 없고 GAS 중앙 목록이 있으면 첫 번째 항목을 기본으로 사용
-            return RemoteProfiles.Count > 0 ? RemoteProfiles[0] : null;
+            // 선택된 프로필이 없거나 권한이 없으면 허용된 첫 번째 프로필을 자동 선택
+            return all.Count > 0 ? all[0].Profile : null;
         }
     }
 
@@ -197,6 +217,14 @@ public static class DataSourceResolver
     {
         string sep = webhookUrl.Contains('?') ? "&" : "?";
         return $"{webhookUrl}{sep}action=read&token={Uri.EscapeDataString(ApiToken)}&spreadsheetUrl={Uri.EscapeDataString(spreadsheetUrl)}&sheet={Uri.EscapeDataString(tabName)}";
+    }
+
+    public static string BuildGasUsersReadUrl()
+    {
+        string webhook = WebhookUrl;
+        if (string.IsNullOrWhiteSpace(webhook)) return "";
+        string sep = webhook.Contains('?') ? "&" : "?";
+        return $"{webhook}{sep}action=users&token={Uri.EscapeDataString(ApiToken)}";
     }
 
     public static string BuildReadUrl(string spreadsheetUrl, string tabName) =>

@@ -138,12 +138,17 @@ public partial class SymbolPickerWindow : Window
 
     private void UpdateSelectionVisual()
     {
+        var accent = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")));
+        var surface = (Brush)(TryFindResource("ThemeSurfaceBg") ?? Brushes.White);
+        var border = (Brush)(TryFindResource("ThemePanelBorder") ?? Brushes.LightGray);
+        var text = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black);
+
         for (int i = 0; i < _symbolButtons.Count; i++)
         {
             bool sel = i == _selectedIndex;
-            _symbolButtons[i].Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000080" : "#FFFFFF"));
-            _symbolButtons[i].Foreground = sel ? Brushes.White : Brushes.Black;
-            _symbolButtons[i].BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(sel ? "#000000" : "#808080"));
+            _symbolButtons[i].Background = sel ? accent : surface;
+            _symbolButtons[i].Foreground = sel ? Brushes.White : text;
+            _symbolButtons[i].BorderBrush = sel ? accent : border;
         }
     }
 

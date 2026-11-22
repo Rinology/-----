@@ -13,26 +13,27 @@
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         RenderOptions.ClearTypeHint="Enabled">
-    <!-- 윈도우 98 4단계 3D Raised Bevel Frame -->
-    <Border BorderThickness="1,1,0,0" BorderBrush="#FFFFFF">
-        <Border BorderThickness="0,0,1,1" BorderBrush="#000000">
-            <Border BorderThickness="1,1,0,0" BorderBrush="#DFDFDF">
-                <Border BorderThickness="0,0,1,1" BorderBrush="#808080" Background="#C0C0C0" Padding="3">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="28"/>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="46"/>
-                        </Grid.RowDefinitions>
+    <Border Margin="8" CornerRadius="{DynamicResource ThemeWindowCornerRadius}"
+            Background="{DynamicResource ThemeBg}"
+            BorderBrush="{DynamicResource ThemeBorder}"
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" Direction="270" ShadowDepth="4" Opacity="0.16" Color="#0F172A"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="52"/>
+            </Grid.RowDefinitions>
 
-                        <!-- 1. 타이틀 바 -->
-                        <Grid Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
-                                <TextBlock Text="⌨" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0" FontFamily="Segoe UI Emoji, Tahoma"/>
-                                <TextBlock Text="ChatHelper 종합 제어판 &amp; 환경 설정" Foreground="#FFFFFF" FontWeight="Bold" FontSize="12.5" FontFamily="Tahoma, Gulim, Segoe UI"/>
-                            </StackPanel>
-                            <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" Margin="0,0,4,0" Click="BtnClose_Click"/>
-                        </Grid>
+            <!-- 1. 타이틀 바 -->
+            <Border Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0,10,0">
+                    <TextBlock Text="ChatHelper 환경 설정" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13.5" FontFamily="Malgun Gothic, Segoe UI" VerticalAlignment="Center"/>
+                    <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
+                </Grid>
+            </Border>
 
             <!-- 2. 탭 컨트롤 (넓고 쾌적한 레이아웃) -->
             <TabControl Grid.Row="1" Margin="14,10,14,6" Background="{DynamicResource ThemeBg}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="13">
@@ -184,10 +185,20 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <!-- 탭 3: 디자인 & 표시 (3대 OS 테마, 알약 크기, 위치 오프셋, 투명도) -->
-                <TabItem Header="🎨 디자인 &amp; 표시" Padding="16,8">
+                <!-- 탭 3: 디자인 & 표시 -->
+                <TabItem Header="디자인 &amp; 표시" Padding="16,8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="16">
+                            <!-- UI 테마 선택 (Fluent 라이트 기본 / 미니멀 HUD 선택) -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="0. UI 테마 스타일" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="원하는 디자인 스타일을 선택하면 즉시 미리보기로 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
+                                    <RadioButton x:Name="RadioThemeFluentLight" GroupName="UiThemeGroup" Content="Windows 11 Fluent 라이트 (기본 권장 — 깔끔한 밝은 카드 스타일)" Margin="8,5" IsChecked="True" Checked="RadioTheme_Checked"/>
+                                    <RadioButton x:Name="RadioThemeMinimalHud" GroupName="UiThemeGroup" Content="미니멀 글래스 HUD (반투명 슬레이트 · 절제된 미니멀 스타일)" Margin="8,5" Checked="RadioTheme_Checked"/>
+                                </StackPanel>
+                            </Border>
+
                             <!-- 알약 크기 3단계 조절 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
@@ -366,13 +377,10 @@
             <Grid Grid.Row="2" Margin="16,0,16,0">
                 <TextBlock x:Name="LblStatusBar" VerticalAlignment="Center" Text="준비 완료" Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="💾 설정 저장 및 적용" Style="{DynamicResource ThemeButtonStyle}" MinWidth="165" Height="34" Margin="0,0,8,0" Click="BtnSaveAndClose_Click"/>
-                    <Button Content="닫기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="85" Height="34" Click="BtnClose_Click"/>
+                    <Button Content="설정 저장 및 적용" Style="{DynamicResource ThemeButtonStyle}" MinWidth="150" Height="34" Margin="0,0,8,0" Click="BtnSaveAndClose_Click"/>
+                    <Button Content="닫기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="80" Height="34" Click="BtnClose_Click"/>
                 </StackPanel>
             </Grid>
         </Grid>
-                </Border>
-            </Border>
-        </Border>
     </Border>
 </Window>

@@ -25,7 +25,7 @@ public static class ConfigManagerTests
             var manager = new ConfigManager(testConfig);
             Assert(manager.Config != null, "Default Config must not be null.");
             Assert(manager.Config!.TriggerKey == "\\", "Default TriggerKey should be '\\'");
-            Assert(manager.Config.Theme == "Win98", "Default Theme should be 'Win98'");
+            Assert(manager.Config.Theme == "FluentLight", "Default Theme should be 'FluentLight'");
             Assert(manager.Config.WindowOpacity == 0.95, "Default WindowOpacity should be 0.95");
             Assert(manager.Config.MaxCandidatesCount == 5, "Default MaxCandidatesCount should be 5");
             Assert(File.Exists(testConfig), "Default config file should be created on disk");

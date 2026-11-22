@@ -307,27 +307,23 @@ public partial class MainWindow : Window
         {
             TxtTitleBar.Text = AppConstants.TitleStatusRunning;
             StatusDot.Fill = _isOfflineMode ? ThemeColors.StatusAmber : ThemeColors.StatusGreen;
-            LblRunningStatus.Text = _isOfflineMode
-                ? "⚠️ 오프라인 (로컬 캐시 사용 중)"
-                : AppConstants.StatusRunningText;
-            LblRunningStatus.Foreground = (Brush)FindResource("ThemeText");
-            BtnTogglePause.Content = "⏸️ 일시정지";
+            LblRunningStatus.Text = _isOfflineMode ? "OFFLINE" : "ON";
+            LblRunningStatus.Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black);
         }
         else
         {
             TxtTitleBar.Text = AppConstants.TitleStatusPaused;
             StatusDot.Fill = ThemeColors.StatusAmber;
-            LblRunningStatus.Text = AppConstants.StatusPausedText;
+            LblRunningStatus.Text = "OFF";
             LblRunningStatus.Foreground = ThemeColors.StatusDarkRed;
-            BtnTogglePause.Content = "▶️ 다시켜기";
             _suggestionBar.Hide();
         }
 
-        LblSubStatus.Text = $"👤 {userId} ({planInfo})  |  ⌨️ {keyHint}";
+        LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
 
-        // 스프레드시트 동기화 실시간 상태 표시
-        string profTag = DataSourceResolver.Active != null ? $" [{DataSourceResolver.ActiveName}]" : "";
-        LblSyncStatus.Text = $"🔄 시트{profTag}: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개)";
+        // 스프레드시트 동기화 실시간 상태 표시 (초슬림 도킹 바 포맷)
+        LblSyncStatus.Text = $"↻ {_templateManager.Templates.Count}";
+        LblSyncStatus.ToolTip = $"[{DataSourceResolver.ActiveName}] 마지막 동기화: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개) — 클릭 시 즉시 동기화";
         RefreshMainProfileCombo();
     }
 
@@ -409,8 +405,8 @@ public partial class MainWindow : Window
     {
         bool show = LogPanelBorder.Visibility != Visibility.Visible;
         LogPanelBorder.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        Height = show ? 426 : 302;
-        BtnToggleLog.Content = show ? "📋 닫기" : "📋 로그";
+        Height = show ? 196 : 64;
+        BtnToggleLog.Content = show ? "닫기" : "로그";
     }
 
     public void AddStatusLog(string message)
