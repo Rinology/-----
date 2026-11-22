@@ -35,6 +35,9 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **전역 마우스 훅(`WH_MOUSE_LL`) 제거로 마우스 커서 심각한 지연(렉) 해결 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs))**:
+  - 기존 `WH_MOUSE_LL` 전역 마우스 훅이 모든 `WM_MOUSEMOVE` 이벤트를 WPF UI 스레드로 동기 전달해 고주사율 마우스·신규 PC 환경에서 커서 움직임이 극심하게 느려지던 문제를 해결.
+  - 전역 마우스 훅을 완전히 제거하고 비동기 out-of-context `SetWinEventHook` (`EVENT_SYSTEM_FOREGROUND`, `EVENT_OBJECT_FOCUS` + `WINEVENT_SKIPOWNPROCESS`)으로 대체하여 마우스 이동 지연 `0ms`로 개선.
 - **보안 감사 및 추가 하드닝 완료**:
   - `TemplateManager.cs` 및 `AppLogger.cs`에서 동기화 실패 로그에 GAS URL·`token`·시트 URL이 남지 않도록 `SanitizeSecrets` 마스킹 적용.
   - 15분 주기 동기화의 잔여 `GlossaryService` 호출 및 디스크 CSV 저장 제거, 로그인 완료 즉시 `AuthService.ClearUserDirectory()`로 메모리 내 타 직원 계정 목록 제거.

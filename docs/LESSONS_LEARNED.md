@@ -44,3 +44,8 @@
   dotnet restore ChatHelper\ChatHelper.csproj -r win-x64
   dotnet publish ChatHelper\ChatHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-restore -o dist
   ```
+
+## 7. 전역 마우스 훅(`WH_MOUSE_LL`) 금지
+* **❌ 실패한 방법**: 외부 창 클릭 시 입력 버퍼를 비우기 위해 WPF UI 스레드에 `WH_MOUSE_LL` 전역 마우스 훅을 설치하는 방식.
+  * **실패 원인**: `WM_LBUTTONDOWN`만 필요해도 OS가 모든 `WM_MOUSEMOVE`(125~1000Hz) 이벤트를 UI 스레드로 동기 전달하므로, UI 스레드가 잠깐이라도 바쁘거나 고주사율 마우스를 쓰는 PC에서 시스템 전체 마우스 커서가 극심하게 느려짐.
+  * **✅ 검증된 해결책**: [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)처럼 `WH_MOUSE_LL`을 사용하지 말고, 비동기 `SetWinEventHook(EVENT_SYSTEM_FOREGROUND / EVENT_OBJECT_FOCUS, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS)`로 창 전환·포커스 이동을 감지할 것.

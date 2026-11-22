@@ -16,8 +16,9 @@ public class KeyboardHookService : IDisposable
 
     private IntPtr _hookId = IntPtr.Zero;
     private Win32Api.HookProc? _hookProc;
-    private IntPtr _mouseHookId = IntPtr.Zero;
-    private Win32Api.HookProc? _mouseHookProc;
+    private IntPtr _fgWinEventHook = IntPtr.Zero;
+    private IntPtr _focusWinEventHook = IntPtr.Zero;
+    private Win32Api.WinEventDelegate? _winEventProc;
 
     private readonly HangulAssembler.HangulImeBuffer _buffer = new();
     private readonly object _lock = new();
@@ -86,13 +87,21 @@ public class KeyboardHookService : IDisposable
         if (_hookId != IntPtr.Zero) return;
 
         _hookProc = HookCallback;
-        _mouseHookProc = MouseHookCallback;
+        _winEventProc = WinEventCallback;
         using var curProcess = Process.GetCurrentProcess();
         using var curModule = curProcess.MainModule;
         var hMod = Win32Api.GetModuleHandle(curModule?.ModuleName);
         _hookId = Win32Api.SetWindowsHookEx(Win32Api.WH_KEYBOARD_LL, _hookProc, hMod, 0);
-        _mouseHookId = Win32Api.SetWindowsHookEx(Win32Api.WH_MOUSE_LL, _mouseHookProc, hMod, 0);
-        Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. KB={_hookId}, Mouse={_mouseHookId}");
+        // WH_MOUSE_LL 전역 마우스 훅은 모든 WM_MOUSEMOVE를 UI 스레드로 동기 전달해 마우스 커서 지연을 유발하므로
+        // 비동기 out-of-context WinEventHook(창 전환/포커스 이동)으로 대체
+        uint flags = Win32Api.WINEVENT_OUTOFCONTEXT | Win32Api.WINEVENT_SKIPOWNPROCESS;
+        _fgWinEventHook = Win32Api.SetWinEventHook(
+            Win32Api.EVENT_SYSTEM_FOREGROUND, Win32Api.EVENT_SYSTEM_FOREGROUND,
+            IntPtr.Zero, _winEventProc, 0, 0, flags);
+        _focusWinEventHook = Win32Api.SetWinEventHook(
+            Win32Api.EVENT_OBJECT_FOCUS, Win32Api.EVENT_OBJECT_FOCUS,
+            IntPtr.Zero, _winEventProc, 0, 0, flags);
+        Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. KB={_hookId}, WinEventFG={_fgWinEventHook}, WinEventFocus={_focusWinEventHook}");
     }
 
     public void Stop()
@@ -103,31 +112,31 @@ public class KeyboardHookService : IDisposable
             Win32Api.UnhookWindowsHookEx(_hookId);
             _hookId = IntPtr.Zero;
         }
-        if (_mouseHookId != IntPtr.Zero)
+        if (_fgWinEventHook != IntPtr.Zero)
         {
-            Win32Api.UnhookWindowsHookEx(_mouseHookId);
-            _mouseHookId = IntPtr.Zero;
+            Win32Api.UnhookWinEvent(_fgWinEventHook);
+            _fgWinEventHook = IntPtr.Zero;
+        }
+        if (_focusWinEventHook != IntPtr.Zero)
+        {
+            Win32Api.UnhookWinEvent(_focusWinEventHook);
+            _focusWinEventHook = IntPtr.Zero;
         }
     }
 
-    private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    private void WinEventCallback(
+        IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
+        int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-        if (nCode >= 0 && wParam == (IntPtr)Win32Api.WM_LBUTTONDOWN && !_isReplacing)
+        if (_isReplacing || !_hasCandidates)
+            return;
+
+        // 외부 창 전환 또는 다른 입력 컨트롤로 포커스 이동 시 버퍼/알약 초기화
+        if (eventType == Win32Api.EVENT_SYSTEM_FOREGROUND ||
+            (eventType == Win32Api.EVENT_OBJECT_FOCUS && hwnd != IntPtr.Zero && hwnd != _lastTargetHwnd))
         {
-            // 마우스로 외부 창(다른 대화방/입력칸)을 클릭하면 이전 입력 버퍼 초기화 (SuggestionBar 자체 클릭은 예외)
-            int x = Marshal.ReadInt32(lParam);
-            int y = Marshal.ReadInt32(lParam + 4);
-            IntPtr clickedHwnd = Win32Api.WindowFromPoint(new Win32Api.POINT { X = x, Y = y });
-            if (clickedHwnd != IntPtr.Zero)
-            {
-                Win32Api.GetWindowThreadProcessId(clickedHwnd, out uint clickedPid);
-                if (clickedPid != Win32Api.CurrentProcessId)
-                {
-                    _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
-                }
-            }
+            _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
         }
-        return Win32Api.CallNextHookEx(_mouseHookId, nCode, wParam, lParam);
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
