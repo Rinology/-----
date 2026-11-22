@@ -146,20 +146,7 @@ public class TemplateManager
 
     private void SaveTemplatesToCsv()
     {
-        var csvPath = ResolveCachePath();
-
-        var sb = new StringBuilder();
-        sb.AppendLine("Keyword,ContentKeyword,Title,Content,Category");
-        foreach (var it in Templates)
-        {
-            sb.AppendLine($"{EscapeCsvField(it.Keyword)},{EscapeCsvField(it.ContentKeyword)},{EscapeCsvField(it.Title)},{EscapeCsvField(it.Content)},{EscapeCsvField(it.Category)}");
-        }
-
-        try
-        {
-            File.WriteAllText(csvPath, sb.ToString(), Encoding.UTF8);
-        }
-        catch { }
+        // 보안 및 실시간 시트 조회 정책에 따라 로컬 CSV 백업 파일을 디스크에 저장하지 않음
     }
 
     public async Task<(bool Success, string Message)> SyncFromRemoteAsync()
@@ -193,13 +180,6 @@ public class TemplateManager
                 }
 
                 var count = ParseTemplatesFromCsv(response);
-
-                // 로컬 캐시 파일 보관 (프로필별 분리)
-                try
-                {
-                    await File.WriteAllTextAsync(ResolveCachePath(), response, Encoding.UTF8);
-                }
-                catch { }
 
                 return (true, $"동기화 성공! {count}개 템플릿을 불러왔습니다.");
             }

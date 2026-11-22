@@ -29,8 +29,8 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
-- **로컬 평문 `users.csv` 저장 제거 (보안 강화)**:
-  - 전 직원 아이디·비밀번호가 실행 폴더에 평문 `users.csv` 파일로 저장되지 않도록 제거 (메모리 내 검증만 수행).
+- **로컬 평문 `users.csv` 및 `chat_templates*.csv` 디스크 백업 제거 (보안 강화)**:
+  - 전 직원 아이디·비밀번호(`users.csv`)와 시트 템플릿(`chat_templates*.csv`)을 실행 폴더에 파일로 남기지 않고, 항상 구글 스프레드시트(GAS)에서 메모리로만 직접 조회하도록 변경.
 - **GAS HTML/오류 응답 시 로컬 캐시 보호 (`TemplateManager.cs`)**:
   - GAS 권한 설정 오류 등으로 CSV 대신 HTML(`<!DOCTYPE html>`)이나 `Server error:`가 반환될 때 0개로 덮어쓰지 않고 기존 로컬 캐시를 유지하도록 방어 로직 추가.
 - **제안 알약(`SuggestionBar`) 위치 일관성 개선**:
