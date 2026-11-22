@@ -29,15 +29,9 @@ public partial class LoginWindow : Window
         }
         catch { }
 
-        // 이전 로그인 정보 복원
-        string lastUser = _configManager.Config.CurrentUserId ?? "";
-        TxtUserId.Text = lastUser;
+        // 이전 아이디만 복원 (비밀번호는 저장하지 않음)
         ChkKeepLoggedIn.IsChecked = _configManager.Config.KeepLoggedIn;
-
-        if (_configManager.Config.KeepLoggedIn && !string.IsNullOrEmpty(_configManager.Config.SavedPassword))
-        {
-            TxtPassword.Password = _configManager.Config.SavedPassword;
-        }
+        TxtUserId.Text = _configManager.Config.KeepLoggedIn ? (_configManager.Config.CurrentUserId ?? "") : "";
 
         Loaded += (s, e) =>
         {
@@ -128,9 +122,10 @@ public partial class LoginWindow : Window
             if (success)
             {
                 IsAuthenticated = true;
-                _configManager.Config.CurrentUserId = userId;
-                _configManager.Config.KeepLoggedIn = ChkKeepLoggedIn.IsChecked == true;
-                _configManager.Config.SavedPassword = ChkKeepLoggedIn.IsChecked == true ? password : "";
+                _authService.ClearUserDirectory(); // 로그인 완료 즉시 타 직원 계정 목록 메모리 제거
+                bool rememberId = ChkKeepLoggedIn.IsChecked == true;
+                _configManager.Config.KeepLoggedIn = rememberId;
+                _configManager.Config.CurrentUserId = rememberId ? userId : "";
                 _configManager.Save();
 
                 // 팝업 없이 즉시 프로그램 구동 진입

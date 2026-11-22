@@ -32,99 +32,26 @@ public class SuggestionEngine
     /// <summary>
     /// 사용자 입력(예: "화난 고객 달래주기", "반품안내")을 받아 관련 템플릿 알약들과 추천 답변을 반환합니다.
     /// </summary>
-    public async Task<(string Answer, List<TemplateItem> Pills, string InferredContentKeyword)> GenerateAsync(
+    public Task<(string Answer, List<TemplateItem> Pills, string InferredContentKeyword)> GenerateAsync(
         string userInput,
-        bool useAiFallback = true,
-        bool extractKeywordWithAi = true,
+        bool useAiFallback = false,
+        bool extractKeywordWithAi = false,
         CancellationToken cancellationToken = default)
     {
         string query = userInput?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(query))
         {
             _pendingSave = null;
-            return (string.Empty, new List<TemplateItem>(), string.Empty);
+            return Task.FromResult((string.Empty, new List<TemplateItem>(), string.Empty));
         }
 
-        // 1. 스프레드시트 템플릿에서 1차 로컬 퍼지/띄어쓰기 무시 검색
-        var localPills = SearchRelatedPills(query, maxResults: 5);
-        var mergedPills = new List<TemplateItem>();
-
-        // 2. Ollama가 실행 중이면 스프레드시트 전체 목록을 읽고 의미 기반으로 적절한 템플릿 추천
-        bool ollamaReady = false;
-        try
-        {
-            ollamaReady = await OllamaService.Instance.IsServerRespondingAsync();
-            if (ollamaReady && _templateManager.Templates.Count > 0)
-            {
-                var aiIndices = await OllamaService.Instance.RecommendTemplateIndicesAsync(
-                    query, _templateManager.Templates, maxCount: 5, cancellationToken);
-
-                foreach (int idx in aiIndices)
-                {
-                    if (idx >= 0 && idx < _templateManager.Templates.Count)
-                    {
-                        var item = _templateManager.Templates[idx];
-                        if (!mergedPills.Contains(item))
-                            mergedPills.Add(item);
-                    }
-                }
-            }
-        }
-        catch
-        {
-            // AI 추천 실패 시 로컬 검색 결과만 사용
-        }
-
-        foreach (var lp in localPills)
-        {
-            if (!mergedPills.Contains(lp))
-                mergedPills.Add(lp);
-        }
-
-        var pills = mergedPills.Take(5).ToList();
+        var pills = SearchRelatedPills(query, maxResults: 5);
         var topMatch = pills.FirstOrDefault();
         string answer = topMatch?.Content ?? string.Empty;
+        string inferredContentKw = !string.IsNullOrWhiteSpace(topMatch?.ContentKeyword)
+            ? topMatch.ContentKeyword
+            : (topMatch?.Title ?? query);
 
-        // 3. 일치하는 템플릿이 없고 AI 폴백이 켜져 있으면 로컬 LLM(+ 사내 용어집 RAG)으로 짧은 답변 생성
-        if (string.IsNullOrWhiteSpace(answer) && useAiFallback)
-        {
-            try
-            {
-                if (ollamaReady || await OllamaService.Instance.IsServerRespondingAsync())
-                {
-                    var glossaryMatches = _glossaryService?.FindRelevantTerms(query);
-                    answer = await OllamaService.Instance.GenerateCsAnswerAsync(query, glossaryMatches, cancellationToken);
-                }
-            }
-            catch
-            {
-                // Ollama 미실행/오류 시 빈 답변 유지
-            }
-        }
-
-        // 4. 답변 본문에서 contentKeyword(보조 키워드) 추출
-        string inferredContentKw = topMatch?.ContentKeyword ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(inferredContentKw) && extractKeywordWithAi && !string.IsNullOrWhiteSpace(answer))
-        {
-            try
-            {
-                if (ollamaReady || await OllamaService.Instance.IsServerRespondingAsync())
-                {
-                    inferredContentKw = await OllamaService.Instance.GenerateKeywordAsync(answer, cancellationToken);
-                }
-            }
-            catch
-            {
-                // Ollama 미실행 시 기존 키워드/입력어로 폴백
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(inferredContentKw))
-        {
-            inferredContentKw = topMatch?.Title ?? query;
-        }
-
-        // 5. 확정 시 저장할 대기 객체 준비
         _pendingSave = string.IsNullOrWhiteSpace(answer)
             ? null
             : new TemplateItem
@@ -133,20 +60,10 @@ public class SuggestionEngine
                 ContentKeyword = inferredContentKw,
                 Title = topMatch?.Title ?? query,
                 Content = answer,
-                Category = topMatch?.Category ?? "AI추천"
+                Category = topMatch?.Category ?? "일반"
             };
 
-        return (answer, pills, inferredContentKw);
-    }
-
-    public Task<TemplateItem> PrepareStructuredTemplateAsync(
-        string userQuery,
-        string answerContent,
-        CancellationToken cancellationToken = default)
-    {
-        var existingKeywords = _templateManager.Templates.Select(t => t.Keyword);
-        return OllamaService.Instance.StructureTemplateForSheetAsync(
-            userQuery, answerContent, existingKeywords, cancellationToken);
+        return Task.FromResult((answer, pills, inferredContentKw));
     }
 
     public List<TemplateItem> SearchRelatedPills(string query, int maxResults = 5)

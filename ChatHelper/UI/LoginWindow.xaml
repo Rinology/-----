@@ -82,7 +82,7 @@
                 </Grid>
 
                 <!-- 3. 아이디 저장 체크박스 -->
-                <CheckBox x:Name="ChkKeepLoggedIn" Grid.Row="3" Content="아이디 및 로그인 상태 유지"
+                <CheckBox x:Name="ChkKeepLoggedIn" Grid.Row="3" Content="아이디 기억하기 (비밀번호는 저장하지 않음)"
                           FontSize="12" Margin="66,2,0,8" Foreground="{DynamicResource ThemeSubText}" FontFamily="Malgun Gothic, Segoe UI"/>
 
                 <!-- 4. 프로그레스바 (원격 시트 인증 진행 시) -->

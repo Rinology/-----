@@ -40,17 +40,17 @@
             <!-- 본문 안내 -->
             <StackPanel Grid.Row="1" Margin="20,16,20,10" VerticalAlignment="Center">
                 <TextBlock Text="프로그램을 종료할까요?" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="Malgun Gothic, Segoe UI" Margin="0,0,0,6"/>
-                <TextBlock Text="다음 실행 시 자동 로그인을 유지하거나, 로그아웃 후 종료할 수 있습니다."
+                <TextBlock Text="현재 아이디를 기억한 채 종료하거나, 아이디 기록을 지우고 종료할 수 있습니다."
                            FontSize="12" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" FontFamily="Malgun Gothic, Segoe UI"/>
             </StackPanel>
 
             <!-- 하단 버튼 -->
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,4,18,16">
                 <Button Content="취소" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="12,0" Margin="0,0,6,0" Click="BtnCancel_Click"/>
-                <Button Content="로그아웃 후 종료" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="12,0" Margin="0,0,6,0" Click="BtnLogoutExit_Click"/>
-                <Button Content="로그인 유지 종료" Style="{DynamicResource ThemeButtonStyle}"
+                <Button Content="아이디 지우고 종료" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="12,0" Margin="0,0,6,0" Click="BtnLogoutExit_Click"/>
+                <Button Content="종료" Style="{DynamicResource ThemeButtonStyle}"
                         Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccent}" Foreground="#FFFFFF"
-                        Height="32" Padding="14,0" Click="BtnKeepExit_Click" IsDefault="True"/>
+                        Height="32" Padding="16,0" Click="BtnKeepExit_Click" IsDefault="True"/>
             </StackPanel>
         </Grid>
     </Border>

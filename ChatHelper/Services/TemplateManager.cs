@@ -187,7 +187,7 @@ public class TemplateManager
             {
                 if (attempt == 2)
                 {
-                    AppLogger.Warn("TemplateManager", $"시트 동기화 실패 ({url})", ex);
+                    AppLogger.Warn("TemplateManager", "시트 동기화 실패", ex);
                     return (false, $"동기화 실패: {ex.Message}");
                 }
                 await Task.Delay(800);
@@ -252,6 +252,18 @@ public class TemplateManager
     {
         var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
         return await registrationService.RegisterAsync(item);
+    }
+
+    public async Task<(bool Success, string Message)> UpdateTemplateOnRemoteSheetAsync(string originalKeyword, TemplateItem item)
+    {
+        var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
+        return await registrationService.UpdateAsync(originalKeyword, item);
+    }
+
+    public async Task<(bool Success, string Message)> DeleteTemplateFromRemoteSheetAsync(string keyword)
+    {
+        var registrationService = new KeywordRegistrationService(_configManager, _httpClient);
+        return await registrationService.DeleteAsync(keyword);
     }
 
     public List<TemplateItem> FindMatchingCandidates(string rawToken, out int matchedLen)

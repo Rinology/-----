@@ -363,42 +363,140 @@ public partial class SuggestionBar : Window
         var sheetItems = _candidates.Where(c => c.Category != "AI번역").ToList();
         string keyHint = sheetItems.Count == 0 ? $"{trigger}+Tab" : $"{trigger}+E";
 
-        var badge = new Border
-        {
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
-            CornerRadius = new CornerRadius(5),
-            Padding = new Thickness(7, 2, 7, 2),
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        badge.Child = new TextBlock
-        {
-            Text = keyHint,
-            Foreground = Brushes.White,
-            FontSize = 11.5,
-            FontWeight = FontWeights.SemiBold,
-            FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
-        };
-        BottomAiRowPanel.Children.Add(badge);
+        // 구글 번역기 스타일 2열 비교 카드 (원문 ↔ 영문) + 하단 액션 바
+        var outer = new StackPanel { MinWidth = 420, MaxWidth = 640 };
 
-        var preview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
-        if (preview.Length > 70) preview = preview[..70] + "...";
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        var btn = new Button
+        // 좌측: 한국어 원문 카드
+        var srcBox = new Border
         {
-            Content = $"EN — {preview}",
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8FAFC")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(9, 6, 9, 6)
+        };
+        var srcStack = new StackPanel();
+        srcStack.Children.Add(new TextBlock
+        {
+            Text = "한국어 원문",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")),
+            Margin = new Thickness(0, 0, 0, 3)
+        });
+        srcStack.Children.Add(new TextBlock
+        {
+            Text = item.Keyword,
+            FontSize = 12,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
+            TextWrapping = TextWrapping.Wrap,
+            MaxHeight = 64
+        });
+        srcBox.Child = srcStack;
+        Grid.SetColumn(srcBox, 0);
+        grid.Children.Add(srcBox);
+
+        // 우측: Google 영문 번역 카드
+        var dstBox = new Border
+        {
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6EE7B7")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(9, 6, 9, 6)
+        };
+        var dstStack = new StackPanel();
+        dstStack.Children.Add(new TextBlock
+        {
+            Text = "Google 영문 번역",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
+            Margin = new Thickness(0, 0, 0, 3)
+        });
+        dstStack.Children.Add(new TextBlock
+        {
+            Text = item.Content,
+            FontSize = 12.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#064E3B")),
+            TextWrapping = TextWrapping.Wrap,
+            MaxHeight = 64
+        });
+        dstBox.Child = dstStack;
+        Grid.SetColumn(dstBox, 2);
+        grid.Children.Add(dstBox);
+
+        outer.Children.Add(grid);
+
+        // 하단 액션 버튼 바
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 5, 0, 0) };
+
+        var btnEnOnly = new Button
+        {
+            Content = $"[{keyHint}] 영문만 입력",
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(9, 3, 9, 3),
+            Margin = new Thickness(0, 0, 5, 0),
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            Cursor = Cursors.Hand,
+            Focusable = false
+        };
+        btnEnOnly.Click += (s, e) => SelectItem(item);
+        actions.Children.Add(btnEnOnly);
+
+        var btnBoth = new Button
+        {
+            Content = "원문+영문 함께 입력",
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
             BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A7F3D0")),
             BorderThickness = new Thickness(1),
             Padding = new Thickness(8, 3, 8, 3),
-            Cursor = Cursors.Hand,
-            FontSize = 12.5,
+            Margin = new Thickness(0, 0, 5, 0),
+            FontSize = 11,
             FontWeight = FontWeights.SemiBold,
-            FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+            Cursor = Cursors.Hand,
             Focusable = false
         };
-        btn.Click += (s, e) => SelectItem(item);
-        BottomAiRowPanel.Children.Add(btn);
+        btnBoth.Click += (s, e) => SelectItem(new TemplateItem
+        {
+            Keyword = item.Keyword,
+            Title = item.Title,
+            Content = $"{item.Keyword}\n{item.Content}",
+            Category = item.Category
+        });
+        actions.Children.Add(btnBoth);
+
+        var btnCopy = new Button
+        {
+            Content = "복사",
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")),
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(8, 3, 8, 3),
+            FontSize = 11,
+            Cursor = Cursors.Hand,
+            Focusable = false
+        };
+        btnCopy.Click += (s, e) =>
+        {
+            try { Clipboard.SetText(item.Content); } catch { }
+            Hide();
+        };
+        actions.Children.Add(btnCopy);
+
+        outer.Children.Add(actions);
+        BottomAiRowPanel.Children.Add(outer);
     }
 
     private void Reposition(double caretX, double caretY)

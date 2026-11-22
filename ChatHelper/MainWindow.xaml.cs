@@ -21,7 +21,6 @@ public partial class MainWindow : Window
     private readonly SuggestionBar _suggestionBar;
     private QuickSearchWindow? _quickSearchWindow;
     private SymbolPickerWindow? _symbolPickerWindow;
-    private QuickAiWindow? _quickAiWindow;
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
@@ -153,22 +152,7 @@ public partial class MainWindow : Window
 
     private bool PerformInitialLogin()
     {
-        // 로그인 상태 유지가 켜져 있고 유효한 계정이면 자동 로그인
-        if (_configManager.Config.KeepLoggedIn)
-        {
-            string lastUser = _configManager.Config.CurrentUserId;
-            string lastPw = _configManager.Config.SavedPassword;
-            if (!string.IsNullOrWhiteSpace(lastUser))
-            {
-                var (success, _, _) = _authService.ValidateUser(lastUser, lastPw);
-                if (success)
-                {
-                    return true;
-                }
-            }
-        }
-
-        // 그 외에는 항상 로그인 창을 먼저 띄워 로그인 정보를 확인
+        // 비밀번호를 저장하지 않으므로 매 실행 시 로그인 창에서 인증 수행
         var loginWin = new LoginWindow(_authService, _configManager);
         var result = loginWin.ShowDialog();
         return result == true && loginWin.IsAuthenticated;
@@ -270,7 +254,6 @@ public partial class MainWindow : Window
             Task.Run(async () =>
             {
                 TextInjectionService.ReplaceText(matchedLen, item.Content, targetHwnd, useShiftHome);
-                await TryAutoUploadAiSelectionAsync(item);
             });
         };
 
@@ -279,10 +262,7 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(recognizedWord));
         };
 
-        _hookService.ItemAutoCompleted += (item) =>
-        {
-            _ = Task.Run(() => TryAutoUploadAiSelectionAsync(item));
-        };
+        _hookService.ItemAutoCompleted += (item) => { };
     }
 
     private void UpdateStatusUi()
@@ -402,12 +382,39 @@ public partial class MainWindow : Window
         UpdateStatusUi();
     }
 
+    private double _dockTopBeforeLog = double.NaN;
+
     private void BtnToggleLog_Click(object sender, RoutedEventArgs e)
     {
         bool show = LogPanelBorder.Visibility != Visibility.Visible;
-        LogPanelBorder.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        Height = show ? 196 : 64;
-        BtnToggleLog.Content = show ? "닫기" : "로그";
+        const double collapsedH = 64;
+        const double expandedH = 196;
+        double delta = expandedH - collapsedH;
+        var workArea = SystemParameters.WorkArea;
+
+        if (show)
+        {
+            _dockTopBeforeLog = Top;
+            LogPanelBorder.Visibility = Visibility.Visible;
+            Height = expandedH;
+            // 화면 하단 경계를 넘어가면 위로 자동 확장하여 잘리지 않게 함
+            if (Top + expandedH > workArea.Bottom - 8)
+            {
+                Top = Math.Max(workArea.Top + 8, Top - delta);
+            }
+            BtnToggleLog.Content = "닫기";
+        }
+        else
+        {
+            LogPanelBorder.Visibility = Visibility.Collapsed;
+            Height = collapsedH;
+            if (!double.IsNaN(_dockTopBeforeLog))
+            {
+                Top = Math.Min(workArea.Bottom - collapsedH - 8, _dockTopBeforeLog);
+                _dockTopBeforeLog = double.NaN;
+            }
+            BtnToggleLog.Content = "로그";
+        }
     }
 
     public void AddStatusLog(string message)
@@ -449,11 +456,6 @@ public partial class MainWindow : Window
         }
 
         _symbolPickerWindow.ShowForTarget(hwnd);
-    }
-
-    private void BtnQuickAi_Click(object sender, RoutedEventArgs e)
-    {
-        OpenQuickAi();
     }
 
     private void BtnGlossary_Click(object sender, RoutedEventArgs e)
@@ -580,29 +582,6 @@ public partial class MainWindow : Window
         var item = templates[idx];
         string trigger = _configManager.Config.TriggerKey ?? "\\";
         TxtRollingTicker.Text = $"{trigger}{item.Keyword}  ➔  {item.Title}";
-    }
-
-    private void OpenQuickAi(IntPtr? targetHwnd = null)
-    {
-        _suggestionBar.Hide();
-        IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
-            ? targetHwnd.Value
-            : Win32Api.GetForegroundWindow();
-
-        // 만약 포그라운드가 ChatHelper 자신이거나 없으면, 마지막 외부 작업 창으로 대체
-        uint myPid = (uint)Process.GetCurrentProcess().Id;
-        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
-        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
-        {
-            hwnd = _hookService.LastTargetHwnd;
-        }
-
-        if (_quickAiWindow == null || !_quickAiWindow.IsLoaded)
-        {
-            _quickAiWindow = new QuickAiWindow(_templateManager, _configManager, _glossaryService);
-        }
-
-        _quickAiWindow.ShowForTarget(hwnd);
     }
 
     private void OpenControlPanel()
@@ -806,8 +785,6 @@ public partial class MainWindow : Window
             try
             {
                 var (success, _) = await _templateManager.SyncFromRemoteAsync();
-                await _glossaryService.SyncFromRemoteAsync();
-                await OllamaService.Instance.SyncRemoteAiRulesAsync();
 
                 if (success)
                 {
@@ -834,42 +811,6 @@ public partial class MainWindow : Window
         InitPeriodicSyncTimer();
     }
 
-    private async Task TryAutoUploadAiSelectionAsync(TemplateItem item)
-    {
-        if (item.Category != "AI생성")
-            return;
-
-        // 영문 번역 결과는 스프레드시트 자동 업로드 보류
-        bool isTranslationItem = item.ContentKeyword != null && item.ContentKeyword.StartsWith("영문번역");
-        if (isTranslationItem || !_configManager.Config.AutoUploadAiSelection)
-            return;
-
-        try
-        {
-            var existingKeywords = _templateManager.Templates.Select(t => t.Keyword);
-            var structured = await OllamaService.Instance.StructureTemplateForSheetAsync(
-                item.Keyword, item.Content, existingKeywords);
-
-            _templateManager.AddTemplate(structured);
-            var (success, msg) = await _templateManager.UploadTemplateToRemoteSheetAsync(structured);
-            Dispatcher.BeginInvoke(() =>
-            {
-                UpdateStatusUi();
-                if (success)
-                {
-                    ShowNoticeBadge("✅ 업로드완료!", "#1D4ED8");
-                    _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록", $"'{structured.Title}' ({structured.Keyword}) 항목이 구글 시트에 추가되었습니다.");
-                }
-                else
-                {
-                    ShowNoticeBadge("⚠️ 업로드 실패", "#B91C1C");
-                    _trayIconService?.ShowBalloon("AI 추천 시트 자동 등록 실패", msg);
-                }
-            });
-        }
-        catch { }
-    }
-
     private void ExitApp()
     {
         if (_hwndSource != null)
@@ -884,10 +825,8 @@ public partial class MainWindow : Window
         _trayIconService?.Dispose();
         _suggestionBar.Close();
         _quickSearchWindow?.Close();
-        _quickAiWindow?.Close();
         _glossaryWindow?.Close();
         _controlPanelWindow?.Close();
-        OllamaService.Instance.Dispose();
         Application.Current.Shutdown();
     }
 

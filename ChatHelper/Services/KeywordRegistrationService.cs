@@ -37,7 +37,17 @@ public class KeywordRegistrationService
         return string.Empty;
     }
 
-    public async Task<(bool Success, string Message)> RegisterAsync(TemplateItem item, CancellationToken cancellationToken = default)
+    public Task<(bool Success, string Message)> RegisterAsync(TemplateItem item, CancellationToken cancellationToken = default) =>
+        SendTemplateActionAsync("append", item, null, cancellationToken);
+
+    public Task<(bool Success, string Message)> UpdateAsync(string originalKeyword, TemplateItem item, CancellationToken cancellationToken = default) =>
+        SendTemplateActionAsync("update", item, originalKeyword, cancellationToken);
+
+    public Task<(bool Success, string Message)> DeleteAsync(string keyword, CancellationToken cancellationToken = default) =>
+        SendTemplateActionAsync("delete", new TemplateItem { Keyword = keyword, Content = "-" }, null, cancellationToken);
+
+    private async Task<(bool Success, string Message)> SendTemplateActionAsync(
+        string action, TemplateItem item, string? originalKeyword, CancellationToken cancellationToken)
     {
         if (item == null) throw new ArgumentNullException(nameof(item));
 
@@ -47,7 +57,6 @@ public class KeywordRegistrationService
             return (false, ".env의 SHEET_WRITE_WEBHOOK_URL(또는 제어판 업로드 URL)이 설정되어 있지 않습니다.");
         }
 
-        // GAS doPost 필수 5개 필드(keyword, contentKeyword, title, content, category)가 비어있지 않도록 보정
         string keyword = !string.IsNullOrWhiteSpace(item.Keyword)
             ? item.Keyword.Trim()
             : (!string.IsNullOrWhiteSpace(item.Title) ? item.Title.Trim() : "자동등록");
@@ -61,7 +70,7 @@ public class KeywordRegistrationService
             : keyword;
 
         string content = item.Content?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(content))
+        if (action != "delete" && string.IsNullOrWhiteSpace(content))
         {
             return (false, "저장할 답변 내용(content)이 비어 있습니다.");
         }
@@ -72,6 +81,8 @@ public class KeywordRegistrationService
 
         var payload = new
         {
+            action,
+            originalKeyword = originalKeyword?.Trim() ?? keyword,
             keyword,
             contentKeyword,
             title,

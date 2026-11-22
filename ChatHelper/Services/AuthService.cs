@@ -164,14 +164,6 @@ public class AuthService
 
             ParseUserCsv(response);
 
-            // 로컬 파일 캐시 갱신
-            var path = _configManager.Config.LocalUserCsvPath;
-            if (!Path.IsPathRooted(path))
-            {
-                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
-            }
-            await File.WriteAllTextAsync(path, response, Encoding.UTF8);
-
             return (true, $"구글 스프레드시트에서 유저 라이선스 {Users.Count}건 동기화 성공!");
         }
         catch (Exception ex)
@@ -229,16 +221,13 @@ public class AuthService
         }
     }
 
-    private void SaveLocalUserCache(string csv)
+    /// <summary>로그인 완료 후 메모리에서 타 직원 계정 목록을 즉시 제거합니다.</summary>
+    public void ClearUserDirectory()
     {
-        try
+        lock (_userLock)
         {
-            var path = _configManager.Config.LocalUserCsvPath;
-            if (!Path.IsPathRooted(path))
-                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, path);
-            File.WriteAllText(path, csv, Encoding.UTF8);
+            Users.Clear();
         }
-        catch { }
     }
 
     public event Action<string>? LastLoginReported;
@@ -259,8 +248,9 @@ public class AuthService
             }
             else
             {
-                AppLogger.Warn("AuthService", $"last_login 응답 오류: {resp}");
-                LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 실패: {resp}");
+                string summary = AppLogger.SummarizeResponse(resp);
+                AppLogger.Warn("AuthService", $"last_login 응답 오류: {summary}");
+                LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 실패: {summary}");
             }
         }
         catch (Exception ex)

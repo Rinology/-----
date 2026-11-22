@@ -125,7 +125,6 @@ public class GlossaryService
                 return (false, "용어집 시트 응답이 비어 있습니다.");
 
             int count = ParseGlossaryCsv(csv);
-            try { await File.WriteAllTextAsync(ResolveCachePath(), csv, Encoding.UTF8, cancellationToken); } catch { }
             return (true, $"용어집 {count}개 동기화 완료");
         }
         catch (Exception ex)
@@ -273,17 +272,7 @@ public class GlossaryService
 
     private void SaveLocalCache()
     {
-        try
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("term,aliases,description,guide,category");
-            foreach (var t in Terms)
-            {
-                sb.AppendLine($"{Esc(t.Term)},{Esc(t.Aliases)},{Esc(t.Description)},{Esc(t.Guide)},{Esc(t.Category)}");
-            }
-            File.WriteAllText(ResolveCachePath(), sb.ToString(), Encoding.UTF8);
-        }
-        catch { }
+        // 보안 정책에 따라 로컬 CSV 캐시 파일을 디스크에 저장하지 않음
     }
 
     private static string Esc(string? s) => CsvHelperService.EscapeField(s);

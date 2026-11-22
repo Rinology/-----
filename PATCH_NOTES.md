@@ -7,6 +7,12 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **구글 번역기형 실시간 번역 패널 (`SuggestionBar`)**:
+  - 제어판에서 번역 옵션을 켰을 때 문장 입력 시 **좌측 `한국어 원문` ↔ 우측 `Google 영문 번역` 2열 비교 카드**와 `[\+Tab] 영문만 입력` / `원문+영문 함께 입력` / `복사` 버튼 제공.
+- **제어판 `커맨드 관리` 검색 필터 & 구글 시트 양방향 CRUD**:
+  - 상단 검색 필터(`TxtCmdFilter`) 및 더블클릭 수정, `신규 추가` / `수정 적용` / `선택 삭제` 시 구글 시트(`GAS update/delete/append`)에도 즉시 반영.
+- **마스터창(`MainWindow`) 로그 패널 상향 자동 확장**:
+  - 우측 하단 배치 상태에서 `로그`를 열 때 화면 아래로 잘리지 않도록 자동으로 위로 펼쳐지고, 닫으면 원래 위치로 복귀.
 - **단어(키워드 매칭) vs 문장(구글 영문 번역) 완벽 분리**:
   - 공백 없는 1단어 입력 시에는 오직 스프레드시트 키워드 매칭만 수행하고, 띄어쓰기 2어절 이상 문장 입력 시에는 시트 검색을 생략하고 오직 Google 번역(GAS)만 실행.
 - **GAS `last_login` 기록 안정화 (`doGet` 지원 + 실시간 로그 출력)**:
@@ -29,6 +35,12 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **보안 감사 및 추가 하드닝 완료**:
+  - `TemplateManager.cs` 및 `AppLogger.cs`에서 동기화 실패 로그에 GAS URL·`token`·시트 URL이 남지 않도록 `SanitizeSecrets` 마스킹 적용.
+  - 15분 주기 동기화의 잔여 `GlossaryService` 호출 및 디스크 CSV 저장 제거, 로그인 완료 즉시 `AuthService.ClearUserDirectory()`로 메모리 내 타 직원 계정 목록 제거.
+- **비밀번호 디스크 저장 완전 제거 (`config.json`) & 로그 가독성 개선**:
+  - `config.json`에서 `SavedPassword` 저장을 완전히 제거해 **아이디만 기억**하고 매번 비밀번호를 직접 입력하도록 보안 강화.
+  - `AppLogger`가 UTF-8 BOM으로 `ChatHelper.log`를 기록해 메모장에서 한글 깨짐을 방지하고, 긴 HTML 응답은 `[HTML 오류: ...]`로 자동 요약.
 - **로컬 평문 `users.csv` 및 `chat_templates*.csv` 디스크 백업 제거 (보안 강화)**:
   - 전 직원 아이디·비밀번호(`users.csv`)와 시트 템플릿(`chat_templates*.csv`)을 실행 폴더에 파일로 남기지 않고, 항상 구글 스프레드시트(GAS)에서 메모리로만 직접 조회하도록 변경.
 - **GAS HTML/오류 응답 시 로컬 캐시 보호 (`TemplateManager.cs`)**:
@@ -80,6 +92,8 @@
   - 존재하지 않던 `ThemeTextBoxStyle` 리소스 참조로 인해 등록 창 호출 시 발생하던 예외 해결.
 
 ### 🗑️ Removed (경량화 및 제거)
+- **Ollama 코드·AI 에이전트 프롬프트 완전 삭제**:
+  - `OllamaService.cs`, `QuickAiWindow.xaml(.cs)`, `Ollama/Modelfile`, `ChatHelper/Prompts/`, `docs/AI_PROMPT_GUIDE.md` 및 관련 설정(`EnableLocalAi`, `AiPlacement`, `AutoGenerateOnAltX`, `AutoUploadAiSelection`)을 코드베이스에서 완전히 삭제.
 - **로컬 AI(Ollama) / 용어집 / 톤앤매너 제거**:
   - 저사양 PC에서의 리소스 점유와 부정확한 생성 문제를 없애기 위해 Ollama 연동, `AI 답변 생성 중...` 알림, 용어집·톤앤매너 탭 동기화를 제거하고 **`채팅템플릿`(1번 시트) 단일 탭 초경량 구조**로 단순화.
   - 직원 PC 배포 시 `.env`나 Ollama 설치 없이 `publish` 폴더(exe) 단독으로 즉시 실행 가능.

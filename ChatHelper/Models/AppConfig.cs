@@ -6,10 +6,9 @@ public class AppConfig
     public string Version { get; set; } = "v2.2.0";
     public string BuildDate { get; set; } = "2026-11-20";
 
-    // 로그인 및 세션 관리
-    public string CurrentUserId { get; set; } = "taerin";
-    public string SavedPassword { get; set; } = ""; // 로그인 상태 유지 시 암호 보관
-    public bool KeepLoggedIn { get; set; } = false; // 로그인 상태 유지 여부
+    // 로그인 및 세션 관리 (비밀번호는 보안상 디스크에 저장하지 않고 아이디만 기억)
+    public string CurrentUserId { get; set; } = "";
+    public bool KeepLoggedIn { get; set; } = false; // 아이디 기억 여부
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
@@ -47,10 +46,6 @@ public class AppConfig
     public string CsvFilePath { get; set; } = "chat_templates.csv";
     public string RemoteCsvUrl { get; set; } = "";
     public string SheetUploadUrl { get; set; } = ""; // 스프레드시트 새 행 등록(웹훅/Apps Script) URL
-    public bool EnableLocalAi { get; set; } = false; // 로컬 AI 자연어 추천 기능 사용 여부 (저사양 PC 기본 OFF)
-    public string AiPlacement { get; set; } = "Bottom"; // AI 추천 칩 배치 위치: "Bottom" 또는 "Top"
-    public bool AutoGenerateOnAltX { get; set; } = false; // Alt+X 시 즉시 자동 생성하지 않고 사용자 확인 후 생성
-    public bool AutoUploadAiSelection { get; set; } = false; // AI 추천 채택 시 자동 시트 업로드 여부
 
     // 구글 스프레드시트 주기적 자동 동기화 (분 단위, 기본 15분, 0이면 비활성화)
     public int AutoSyncIntervalMinutes { get; set; } = 15;

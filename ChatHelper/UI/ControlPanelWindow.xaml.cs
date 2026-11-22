@@ -176,7 +176,18 @@ public partial class ControlPanelWindow : Window
         }
     }
 
-    // --- 템플릿 CRUD ---
+    // --- 템플릿 CRUD (필터 검색 + 구글 시트 즉시 동기화) ---
+    private void TxtCmdFilter_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        string q = TxtCmdFilter.Text.Trim();
+        if (string.IsNullOrEmpty(q))
+        {
+            DgTemplates.ItemsSource = _templatesObs;
+            return;
+        }
+        DgTemplates.ItemsSource = _templateManager.Search(q, "전체");
+    }
+
     private void DgTemplates_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DgTemplates.SelectedItem is TemplateItem item)
@@ -188,7 +199,17 @@ public partial class ControlPanelWindow : Window
         }
     }
 
-    private void BtnAdd_Click(object sender, RoutedEventArgs e)
+    private void DgTemplates_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DgTemplates.SelectedItem is TemplateItem)
+        {
+            TxtContent.Focus();
+            TxtContent.CaretIndex = TxtContent.Text.Length;
+            LblStatusBar.Text = "하단 입력란에서 수정 후 [✏️ 수정 적용 (시트 반영)]을 누르세요.";
+        }
+    }
+
+    private async void BtnAdd_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(TxtKw.Text) && string.IsNullOrWhiteSpace(TxtTitle.Text))
         {
@@ -199,6 +220,7 @@ public partial class ControlPanelWindow : Window
         var item = new TemplateItem
         {
             Keyword = TxtKw.Text.Trim(),
+            ContentKeyword = TxtKw.Text.Trim(),
             Title = TxtTitle.Text.Trim(),
             Category = string.IsNullOrWhiteSpace(TxtCat.Text) ? "일반" : TxtCat.Text.Trim(),
             Content = TxtContent.Text
@@ -207,45 +229,55 @@ public partial class ControlPanelWindow : Window
         _templateManager.AddTemplate(item);
         _templatesObs.Add(item);
         BtnClearForm_Click(sender, e);
-        LblStatusBar.Text = $"신규 커맨드 '{item.Title}' 추가 완료!";
+        LblStatusBar.Text = $"⏳ '{item.Title}' 구글 시트에 추가 중...";
+        var (ok, msg) = await _templateManager.UploadTemplateToRemoteSheetAsync(item);
+        LblStatusBar.Text = ok ? $"✅ '{item.Title}' 시트 추가 완료!" : $"⚠️ 로컬 추가됨 (시트 오류: {msg})";
     }
 
-    private void BtnUpdate_Click(object sender, RoutedEventArgs e)
+    private async void BtnUpdate_Click(object sender, RoutedEventArgs e)
     {
-        int idx = DgTemplates.SelectedIndex;
-        if (idx < 0 || idx >= _templatesObs.Count)
+        if (DgTemplates.SelectedItem is not TemplateItem selected)
         {
             MessageBox.Show("수정할 항목을 목록에서 먼저 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var item = _templatesObs[idx];
-        item.Keyword = TxtKw.Text.Trim();
-        item.Title = TxtTitle.Text.Trim();
-        item.Category = string.IsNullOrWhiteSpace(TxtCat.Text) ? "일반" : TxtCat.Text.Trim();
-        item.Content = TxtContent.Text;
+        int idx = _templatesObs.IndexOf(selected);
+        if (idx < 0) idx = _templateManager.Templates.IndexOf(selected);
+        string originalKw = selected.Keyword;
 
-        _templateManager.UpdateTemplate(idx, item);
+        selected.Keyword = TxtKw.Text.Trim();
+        selected.ContentKeyword = string.IsNullOrWhiteSpace(selected.ContentKeyword) ? selected.Keyword : selected.ContentKeyword;
+        selected.Title = TxtTitle.Text.Trim();
+        selected.Category = string.IsNullOrWhiteSpace(TxtCat.Text) ? "일반" : TxtCat.Text.Trim();
+        selected.Content = TxtContent.Text;
+
+        if (idx >= 0) _templateManager.UpdateTemplate(idx, selected);
         DgTemplates.Items.Refresh();
-        LblStatusBar.Text = $"'{item.Title}' 수정 적용 완료!";
+        LblStatusBar.Text = $"⏳ '{selected.Title}' 구글 시트 수정 반영 중...";
+        var (ok, msg) = await _templateManager.UpdateTemplateOnRemoteSheetAsync(originalKw, selected);
+        LblStatusBar.Text = ok ? $"✅ '{selected.Title}' 시트 수정 완료!" : $"⚠️ 로컬 수정됨 (시트 오류: {msg})";
     }
 
-    private void BtnDelete_Click(object sender, RoutedEventArgs e)
+    private async void BtnDelete_Click(object sender, RoutedEventArgs e)
     {
-        int idx = DgTemplates.SelectedIndex;
-        if (idx < 0 || idx >= _templatesObs.Count)
+        if (DgTemplates.SelectedItem is not TemplateItem item)
         {
             MessageBox.Show("삭제할 항목을 먼저 선택해 주세요.", "알림", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var item = _templatesObs[idx];
-        if (MessageBox.Show($"'{item.Title}' 항목을 정말 삭제하시겠습니까?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (MessageBox.Show($"'{item.Title}' 항목을 로컬 및 구글 시트에서 삭제할까요?", "삭제 확인", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
         {
-            _templateManager.DeleteTemplate(idx);
-            _templatesObs.RemoveAt(idx);
+            int idx = _templateManager.Templates.IndexOf(item);
+            if (idx >= 0) _templateManager.DeleteTemplate(idx);
+            _templatesObs.Remove(item);
+            TxtCmdFilter_TextChanged(sender, null!);
             BtnClearForm_Click(sender, e);
-            LblStatusBar.Text = $"'{item.Title}' 삭제 완료.";
+
+            LblStatusBar.Text = $"⏳ '{item.Title}' 구글 시트에서 삭제 중...";
+            var (ok, msg) = await _templateManager.DeleteTemplateFromRemoteSheetAsync(item.Keyword);
+            LblStatusBar.Text = ok ? $"✅ '{item.Title}' 시트 삭제 완료." : $"⚠️ 로컬 삭제됨 (시트 오류: {msg})";
         }
     }
 
