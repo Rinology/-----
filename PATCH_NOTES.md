@@ -29,6 +29,8 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **GAS HTML/오류 응답 시 로컬 캐시 보호 (`TemplateManager.cs`)**:
+  - GAS 권한 설정 오류 등으로 CSV 대신 HTML(`<!DOCTYPE html>`)이나 `Server error:`가 반환될 때 0개로 덮어쓰지 않고 기존 로컬 캐시를 유지하도록 방어 로직 추가.
 - **제안 알약(`SuggestionBar`) 위치 일관성 개선**:
   - `DesiredSize` 사전 측정 + 화면 하단 채팅 영역(`65%` 이하)에서는 `[미일치]`와 `[매칭]` 모두 항상 커서 위쪽에 일관되게 배치되도록 수정해 위치가 위아래로 튀던 현상 해결.
 - **실시간 영문 번역 로딩 안내 및 단독 치환 수정**:

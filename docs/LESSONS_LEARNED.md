@@ -37,6 +37,7 @@
 * **❌ 실패한 방법**: 8GB RAM 저사양 사내 PC에서 `qwen2.5:1.5b` / `3b` 로컬 LLM을 상시 예열·백그라운드 추론하는 방식.
   * **실패 원인**: 리소스 점유 대비 CS 답변 품질이 낮고 `"AI 답변 생성 중..."` 알림이 실무 흐름을 방해함.
   * **✅ 검증된 해결책**: 로컬 AI(Ollama) 제거, 정해진 키워드 템플릿 + 원클릭 시트 등록 구조 유지.
+* **❌ GAS 웹앱 액세스 권한 오류 (`<!DOCTYPE html>` 반환)**: Google Workspace(`@회사도메인`) 계정으로 GAS 웹앱을 배포할 때 **`액세스 권한이 있는 사용자`**가 `모든 사용자(Anyone)`가 아니라 `회사 내 모든 사용자` 또는 `나만`으로 되어 있으면, 비로그인 `HttpClient` 요청에 구글 로그인 HTML(`<!DOCTYPE html>`)이 반환됨. Workspace 정책상 `모든 사용자`가 막혀 있다면 개인 `@gmail.com` 계정으로 GAS를 배포하고 시트들에 편집자로 초대할 것.
 * **❌ 빌드 주의**: 샌드박스 환경에서 `dotnet restore` 실행 시 `NuGet.Config` 접근 권한 오류가 발생하므로, 빌드/테스트/배포 명령에는 반드시 **`--no-restore`** 옵션을 사용할 것.
 * **❌ Git 대용량 파일 커밋 금지 (`dist/`, `100MB+`)**: `Self-Contained + SingleFile`로 빌드한 `dist/ChatHelper.exe`(약 178MB)를 Git에 커밋하면 GitHub 100MB 파일 크기 제한으로 Push가 거부됨. `dist/`는 `.gitignore`로 제외하고, 다른 PC에서 받아 재빌드할 때는 아래 명령어를 실행할 것:
   ```powershell

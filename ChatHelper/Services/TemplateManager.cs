@@ -184,6 +184,14 @@ public class TemplateManager
                     return (false, "구글 스프레드시트 응답이 비어있습니다.");
                 }
 
+                string trimmedResp = response.TrimStart();
+                if (trimmedResp.StartsWith("<", StringComparison.Ordinal) ||
+                    trimmedResp.StartsWith("Server error:", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedResp.StartsWith("Unauthorized", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, "GAS 웹앱 접근 권한 오류(구글 로그인 페이지 또는 서버 오류 응답) — GAS '액세스: 모든 사용자(Anyone)' 배포 설정을 확인하세요.");
+                }
+
                 var count = ParseTemplatesFromCsv(response);
 
                 // 로컬 캐시 파일 보관 (프로필별 분리)
