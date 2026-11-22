@@ -204,12 +204,107 @@ public static class Win32Api
 
     public static readonly uint CurrentProcessId = (uint)Process.GetCurrentProcess().Id;
 
+    private const uint OBJID_CARET = 0xFFFFFFF8;
+
+    [ComImport]
+    [Guid("618736e0-3c3d-11cf-810c-00aa00389b71")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
+    private interface IAccessibleCaret
+    {
+        [DispId(-5015)]
+        void accLocation(out int pxLeft, out int pyTop, out int pcxWidth, out int pcyHeight, [Optional] object varChild);
+    }
+
+    [DllImport("oleacc.dll")]
+    private static extern int AccessibleObjectFromWindow(
+        IntPtr hwnd,
+        uint dwObjectID,
+        ref Guid riid,
+        [MarshalAs(UnmanagedType.Interface)] out IAccessibleCaret? ppvObject);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct COMPOSITIONFORM
+    {
+        public uint dwStyle;
+        public POINT ptCurrentPos;
+        public RECT rcArea;
+    }
+
+    [DllImport("imm32.dll")]
+    private static extern IntPtr ImmGetContext(IntPtr hWnd);
+
+    [DllImport("imm32.dll")]
+    private static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hIMC);
+
+    [DllImport("imm32.dll")]
+    private static extern bool ImmGetCompositionWindow(IntPtr hIMC, out COMPOSITIONFORM lpCompForm);
+
+    private static IntPtr _lastCaretWindow = IntPtr.Zero;
+    private static double _lastCaretX = 0;
+    private static double _lastCaretY = 0;
+
+    private static bool TryGetMsaaCaretPosition(IntPtr hwnd, out double cx, out double cy)
+    {
+        cx = 0;
+        cy = 0;
+        if (hwnd == IntPtr.Zero) return false;
+        try
+        {
+            Guid iid = new("618736e0-3c3d-11cf-810c-00aa00389b71");
+            if (AccessibleObjectFromWindow(hwnd, OBJID_CARET, ref iid, out var acc) == 0 && acc != null)
+            {
+                acc.accLocation(out int left, out int top, out int width, out int height, 0);
+                if (left > 0 && top > 0)
+                {
+                    cx = left;
+                    cy = top + Math.Max(height, 16);
+                    return true;
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    private static bool TryGetImeCaretPosition(IntPtr hwnd, out double cx, out double cy)
+    {
+        cx = 0;
+        cy = 0;
+        if (hwnd == IntPtr.Zero) return false;
+        try
+        {
+            IntPtr hImc = ImmGetContext(hwnd);
+            if (hImc != IntPtr.Zero)
+            {
+                try
+                {
+                    if (ImmGetCompositionWindow(hImc, out var comp) &&
+                        (comp.ptCurrentPos.X != 0 || comp.ptCurrentPos.Y != 0))
+                    {
+                        var pt = comp.ptCurrentPos;
+                        if (ClientToScreen(hwnd, ref pt) && pt.X > 0 && pt.Y > 0)
+                        {
+                            cx = pt.X;
+                            cy = pt.Y + 20;
+                            return true;
+                        }
+                    }
+                }
+                finally
+                {
+                    ImmReleaseContext(hwnd, hImc);
+                }
+            }
+        }
+        catch { }
+        return false;
+    }
+
     /// <summary>
-    /// 현재 포커스된 창이 유효한 외부 채팅/문서 입력 창인지 확인하고 위치를 구함.
-    /// 메모장뿐만 아니라 크롬, 구글 채팅(Google Chat), 엣지, 일렉트론, 슬랙 등 모던 웹 앱을 100% 지원합니다.
-    /// (바탕화면, 작업표시줄, 자기 자신 창만 안전하게 제외)
+    /// 현재 포커스된 채팅/문서 입력 창의 텍스트 입력 커서(Caret) 또는 마우스 포인터(preferMousePointer=true) 위치를 구함.
+    /// 기본값(preferMousePointer=false)은 채팅 텍스트 커서를 기준으로 동작합니다.
     /// </summary>
-    public static bool TryGetValidInputPosition(out double x, out double y, out IntPtr activeHwnd)
+    public static bool TryGetValidInputPosition(out double x, out double y, out IntPtr activeHwnd, bool preferMousePointer = false)
     {
         x = 0;
         y = 0;
@@ -230,46 +325,80 @@ public static class Win32Api
         if (className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "NotifyIconOverflowWindow")
             return false;
 
-        // 3. 표준 Win32 캐럿(Caret) 위치 시도 (메모장, 카카오톡 기본 입력창 등)
-        // ※ Chromium/Chrome 브라우저에서는 hwndCaret이 항상 IntPtr.Zero이며, rcCaret 더미 좌표가 상단 탭을 가리키므로 실제 hwndCaret이 있을 때만 적용
-        var gui = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
-        if (GetGUIThreadInfo(tid, ref gui) && gui.hwndCaret != IntPtr.Zero)
+        // 마우스 포인터 기준 모드를 사용자가 선택한 경우
+        if (preferMousePointer)
         {
-            if (gui.rcCaret.Left != 0 || gui.rcCaret.Top != 0 || gui.rcCaret.Bottom != 0)
+            GetCursorPos(out var mPt);
+            x = mPt.X;
+            y = mPt.Y + 16;
+            return true;
+        }
+
+        var gui = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
+        bool hasGui = GetGUIThreadInfo(tid, ref gui);
+        IntPtr focusHwnd = (hasGui && gui.hwndFocus != IntPtr.Zero) ? gui.hwndFocus : activeHwnd;
+
+        // 3. 표준 Win32 캐럿(Caret) 위치 (메모장, 표준 에디트 컨트롤 등)
+        if (hasGui && gui.hwndCaret != IntPtr.Zero &&
+            (gui.rcCaret.Left != 0 || gui.rcCaret.Top != 0 || gui.rcCaret.Bottom != 0))
+        {
+            var pt = new POINT { X = gui.rcCaret.Left, Y = gui.rcCaret.Bottom };
+            if (ClientToScreen(gui.hwndCaret, ref pt) && pt.X > 0 && pt.Y > 0)
             {
-                var pt = new POINT { X = gui.rcCaret.Left, Y = gui.rcCaret.Bottom };
-                if (ClientToScreen(gui.hwndCaret, ref pt) && pt.X > 0 && pt.Y > 0)
-                {
-                    x = pt.X;
-                    y = pt.Y;
-                    return true;
-                }
+                x = pt.X;
+                y = pt.Y;
+                _lastCaretWindow = activeHwnd;
+                _lastCaretX = x;
+                _lastCaretY = y;
+                return true;
             }
         }
 
-        // 4. Chromium, Chrome, Google Chat, Electron, Slack 등 모던 브라우저/웹 앱 지원 (Fallback)
-        GetCursorPos(out var mPt);
+        // 4. MSAA Caret (Chrome, Edge, Electron, Slack, 카카오톡 리치 에디터 등 실제 텍스트 커서 좌표)
+        if (TryGetMsaaCaretPosition(focusHwnd, out x, out y) ||
+            (focusHwnd != activeHwnd && TryGetMsaaCaretPosition(activeHwnd, out x, out y)))
+        {
+            _lastCaretWindow = activeHwnd;
+            _lastCaretX = x;
+            _lastCaretY = y;
+            return true;
+        }
+
+        // 5. 한글 IME 조합 커서 좌표 (ImmGetCompositionWindow)
+        if (TryGetImeCaretPosition(focusHwnd, out x, out y) ||
+            (focusHwnd != activeHwnd && TryGetImeCaretPosition(activeHwnd, out x, out y)))
+        {
+            _lastCaretWindow = activeHwnd;
+            _lastCaretX = x;
+            _lastCaretY = y;
+            return true;
+        }
+
+        // 6. 같은 창에서 직전에 확인된 유효 텍스트 커서가 있으면 그 위치 유지 (마우스 커서 이동에 영향받지 않음)
+        if (_lastCaretWindow == activeHwnd && _lastCaretX > 0 && _lastCaretY > 0)
+        {
+            x = _lastCaretX;
+            y = _lastCaretY;
+            return true;
+        }
+
+        // 7. 포커스된 자식 입력 컨트롤 영역 또는 활성 채팅창 하단 입력 영역 고정 (마우스 커서 미사용)
+        if (focusHwnd != activeHwnd && GetWindowRect(focusHwnd, out var rcFocus) &&
+            rcFocus.Right > rcFocus.Left && rcFocus.Bottom > rcFocus.Top)
+        {
+            x = Math.Max(rcFocus.Left + 30, 50);
+            y = Math.Max(rcFocus.Bottom - 20, rcFocus.Top + 20);
+            return true;
+        }
+
         if (GetWindowRect(activeHwnd, out var rcWin))
         {
-            // 마우스 커서가 해당 브라우저/채팅창 내에 있으면 마우스 위치 기준
-            if (mPt.X >= rcWin.Left && mPt.X <= rcWin.Right && mPt.Y >= rcWin.Top && mPt.Y <= rcWin.Bottom)
-            {
-                x = mPt.X;
-                // 채팅창 하단 입력창 영역에 마우스가 있으면 마우스 바로 위(45px 위)에 띄워 텍스트를 가리지 않음
-                y = mPt.Y > rcWin.Bottom - 180 ? mPt.Y - 45 : mPt.Y + 16;
-                return true;
-            }
-
-            // 마우스가 창 밖에 있거나 상단에 있으면 Google Chat 하단 입력창 위치(바닥에서 95px 위)로 자연스럽게 배치
             x = Math.Max(rcWin.Left + 80, 100);
             y = Math.Max(rcWin.Bottom - 95, rcWin.Top + 100);
             return true;
         }
 
-        // 기본 마우스 위치
-        x = mPt.X;
-        y = mPt.Y + 16;
-        return true;
+        return false;
     }
 
     /// <summary>

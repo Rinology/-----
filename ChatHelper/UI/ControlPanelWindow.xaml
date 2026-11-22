@@ -207,7 +207,8 @@
                                     <RadioButton x:Name="RadioPosNearby1" Content="옵션 1: 커서 바로 아래 밀착 (+15px)" Margin="8,5"/>
                                     <RadioButton x:Name="RadioPosNearby2" Content="옵션 2: 커서 아래 넉넉한 간격 (+35px, 기본 권장)" Margin="8,5" IsChecked="True"/>
                                     <RadioButton x:Name="RadioPosFar" Content="옵션 3: 채팅창 시야 확보용 원거리 (+65px)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioPosFixed" Content="옵션 4: 화면 우측 하단 고정 알림 형태" Margin="8,5"/>
+                                    <RadioButton x:Name="RadioPosMouse" Content="옵션 4: 마우스 포인터 위치 기준 (마우스 커서 근처에 표시)" Margin="8,5"/>
+                                    <RadioButton x:Name="RadioPosFixed" Content="옵션 5: 화면 우측 하단 고정 알림 형태" Margin="8,5"/>
                                 </StackPanel>
                             </Border>
 

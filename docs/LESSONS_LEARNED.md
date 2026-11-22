@@ -1,0 +1,40 @@
+# 🚫 ChatHelper 실패 이력 및 금지 패턴 (Lessons Learned & Anti-Patterns)
+
+> **에이전트 필독**: 코드를 수정하거나 새로운 기능을 구현하기 전에 반드시 이 문서를 확인하세요.
+> 아래 기록된 **실패한 접근법(❌)**은 이미 시행착오를 거쳐 폐기된 방식이므로 절대 다시 사용하지 마세요.
+
+---
+
+## 1. 한글 입력 & 키보드 후킹
+* **❌ 실패한 방법**: `StringBuilder`에 영문 QWERTY 키를 평면으로 쌓고 `VK_BACK` 시 `_buffer.Length--`로 1글자씩 지우는 방식.
+  * **실패 원인**: 윈도우 한글 IME는 조합 중일 때는 자모 1개씩 지우지만, 확정된 음절(예: 스페이스 뒤)을 지울 때는 **1음절 전체(2~5타)**를 한 번에 삭제함. 이로 인해 `"가로형 "` → `Backspace` × 2 → `"형"` 입력 시 `"가로형 형"`처럼 잔상이 남음.
+  * **✅ 검증된 해결책**: [HangulAssembler.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/HangulAssembler.cs)의 `HangulImeBuffer`처럼 조합 중(`_composingRaw`)과 확정 음절(`_committed`)을 분리해 상태 머신으로 관리할 것.
+
+## 2. 텍스트 치환 & 키 주입 (`SendInput`)
+* **❌ 실패한 방법**: `keybd_event` 또는 `KEYEVENTF_EXTENDEDKEY` / 하드웨어 스캔코드 없이 `VK_HOME`, `VK_RIGHT`를 보내는 방식.
+  * **실패 원인**: NumLock이 켜진 환경에서 `Shift + Home` 등이 무시되어 기존 텍스트가 지워지지 않고 끝에 잔여 글자가 남음.
+  * **✅ 검증된 해결책**: [TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs)의 `SendInput` + `KEYEVENTF_EXTENDEDKEY` + `MapVirtualKey` 스캔코드 방식 유지.
+
+## 3. 커서 위치 추적 (알약 표시 위치)
+* **❌ 실패한 방법**: `GetGUIThreadInfo`의 `hwndCaret`이 `IntPtr.Zero`인 모던 앱(Chrome, Edge, Electron)에서 무조건 `GetCursorPos()`(마우스 포인터)로 폴백하는 방식.
+  * **실패 원인**: 사용자가 마우스를 다른 곳에 두면 채팅 입력창이 아닌 마우스 포인터를 따라다니며 알약이 뜸.
+  * **✅ 검증된 해결책**: [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `TryGetValidInputPosition`에서 **Win32 Caret → MSAA `OBJID_CARET` → 한글 IME `ImmGetCompositionWindow` → 직전 커서/입력창 하단 고정** 순으로 탐색. 마우스 위치는 사용자가 제어판에서 `MousePointer` 옵션을 직접 켰을 때만 사용.
+
+## 4. 단축키 & UI 리소스
+* **❌ 실패한 방법 1**: `Alt+Q` 창 안에서 `Alt+1`~`9`로 특수기호를 입력하게 하는 방식.
+  * **실패 원인**: GeForce Experience 등 외부 오버레이 단축키(`Alt+1~9`)가 먼저 가로채거나, 한글 IME 상태에서 `Key.ImeProcessed`로 전달됨.
+  * **✅ 검증된 해결책**: 특수기호는 `Alt+X` 전용 창([SymbolPickerWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SymbolPickerWindow.xaml.cs))으로 분리하고, 창 내부에서는 `Alt` 없이 **단독 숫자키 `1`~`9`**(및 `ImeProcessedKey` 처리)로 입력.
+* **❌ 실패한 방법 2**: 코드 비하인드에서 `(Style)FindResource("ThemeTextBoxStyle")`처럼 존재 여부가 불확실한 리소스를 강제 캐스팅하는 방식.
+  * **실패 원인**: `InvalidCastException` / `ResourceReferenceKeyNotFoundException` 런타임 크래시 유발.
+  * **✅ 검증된 해결책**: `TryFindResource("...") as Style` 사용.
+
+## 5. 구글 시트(GAS) & 캐시 관리
+* **❌ 실패한 방법**: 모든 프로필이 하나의 `chat_templates.csv` 캐시 파일을 공유하거나, GAS 웹앱을 토큰 없이 열어두는 방식.
+  * **실패 원인**: 프로필(`물류` ↔ `CS상담`) 전환 직후 오프라인이 되면 이전 프로필 캐시가 노출됨. 또한 토큰 없는 GAS URL은 외부 유출 시 무단 읽기/쓰기 위험이 있음.
+  * **✅ 검증된 해결책**: [DataSourceResolver.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/DataSourceResolver.cs)의 `GetScopedCachePath`로 프로필별 캐시 분리 및 `API_TOKEN` 인증 유지.
+
+## 6. 로컬 AI(Ollama) & 빌드 환경
+* **❌ 실패한 방법**: 8GB RAM 저사양 사내 PC에서 `qwen2.5:1.5b` / `3b` 로컬 LLM을 상시 예열·백그라운드 추론하는 방식.
+  * **실패 원인**: 리소스 점유 대비 CS 답변 품질이 낮고 `"AI 답변 생성 중..."` 알림이 실무 흐름을 방해함.
+  * **✅ 검증된 해결책**: 로컬 AI(Ollama) 제거, 정해진 키워드 템플릿 + 원클릭 시트 등록 구조 유지.
+* **❌ 빌드 주의**: 샌드박스 환경에서 `dotnet restore` 실행 시 `NuGet.Config` 접근 권한 오류가 발생하므로, 빌드/테스트/배포 명령에는 반드시 **`--no-restore`** 옵션을 사용할 것.

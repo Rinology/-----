@@ -82,6 +82,8 @@ public partial class ControlPanelWindow : Window
         // 알약 위치 및 간격
         if (cfg.PillPlacement == "ScreenBottomRight")
             RadioPosFixed.IsChecked = true;
+        else if (cfg.PillPlacement == "MousePointer")
+            RadioPosMouse.IsChecked = true;
         else if (cfg.PillOffsetY >= 55)
             RadioPosFar.IsChecked = true;
         else if (cfg.PillOffsetY <= 20)
@@ -378,6 +380,10 @@ public partial class ControlPanelWindow : Window
         if (RadioPosFixed.IsChecked == true)
         {
             cfg.PillPlacement = "ScreenBottomRight";
+        }
+        else if (RadioPosMouse.IsChecked == true)
+        {
+            cfg.PillPlacement = "MousePointer";
         }
         else
         {

@@ -1,63 +1,58 @@
-# 💻 ChatHelper v2.0 (Windows 98 Millennium Edition)
+# 💻 ChatHelper v2.3 (Windows 98 Classic Edition)
 
-파이썬의 타이핑 지연을 완전히 극복한 **초경량 C# .NET 8 네이티브 · Zero-Lag(0ms) · 스마트폰형 커서 추적 · 로컬 AI 탑재 채팅 도우미**입니다.
+**C# .NET 8 네이티브 · Zero-Lag(0ms) · 한글 IME 정밀 동기화 · 구글 시트(GAS) 중앙 프로필 연동** 기반의 사내 CS/물류 실무용 초경량 채팅 도우미입니다.
+
+> 📄 버전별 상세 변경 이력은 [PATCH_NOTES.md](file:///C:/Users/taerin/Desktop/채팅도우미/PATCH_NOTES.md), 회귀 테스트 기준선은 [docs/BASELINE_STATUS.md](file:///C:/Users/taerin/Desktop/채팅도우미/docs/BASELINE_STATUS.md)를 참고하세요.
 
 ---
 
 ## 🌟 주요 기능
 
-1. **🤖 100% 로컬 AI 상담 비서 (Alt + X)**:
-   - **화면 캡처 자동 OCR**: 상대방 대화 말풍선이 여러 개일 때, `Win + Shift + S`로 화면 영역을 캡처하고 `Alt + X`만 누르면 **Windows 내장 OCR(0.05초)**이 글자를 자동 인식합니다.
-   - **복사 텍스트 지원**: 텍스트를 드래그해서 `Ctrl + C` 복사 후 `Alt + X`를 눌러도 즉시 분석합니다.
-   - **정중한 CS 한국어 답변**: 초경량 AI(Qwen 2.5 1.5B)가 사족 없이 바로 전송 가능한 친절한 상담원 문장을 1초 만에 완성합니다.
-   - **초고속 타이핑 주입**: 완성된 답변을 보고 **`[Tab]`** 키만 누르면 고객 채팅창에 0.01초 만에 자동 타이핑됩니다.
-   - **100% 로컬 & 보안 보장**: 인터넷이 끊겨도 작동하며 고객 상담 대화가 외부로 1바이트도 유출되지 않습니다.
-   - **규칙 커스텀**: [Prompts/ai_system_rules.json](file:///c:/Users/taerin/Desktop/채팅도우미/-----/ChatHelper/Prompts/ai_system_rules.json)에서 말투와 규칙을 언제든 자유롭게 수정 가능합니다.
+### 1. ⚡ 한글/영문 실시간 키워드 & 초성 자동완성
+- 채팅창에서 평소처럼 단축어(예: `\ed`)나 한글 키워드·초성(예: `ㅎㅂ` → 환불)을 입력하면 추천 알약이 즉시 표시됩니다.
+- **`\ + Tab`**(또는 설정한 완성키 / 번호 선택)으로 0.01초 만에 정해진 답변 문구로 치환합니다.
+- **윈도우 한글 IME 상태 머신(`HangulImeBuffer`)** 탑재로 글자 조합 중 백스페이스와 완성 음절 백스페이스를 정확히 구분합니다.
+- **사칙연산 자동 계산**: `5 * 10 =` 입력 시 `50`을 즉시 계산해 추천합니다.
 
-2. **화면 상태표시창 & 작업표시줄 실행 상태 표시**:
-   - 실행 시 화면 우측 하단 및 작업표시줄에 **`🟢 ChatHelper v2.0 ME - 실행 중`** 상태바가 표시됩니다.
-   - **[💻 제어판]**, **[🔍 검색 (Alt+Q)]**, **[🤖 AI비서 (Alt+X)]**, **[⏸️ 일시정지]**, **[🔽 트레이 이동]**을 클릭 한 번으로 조작할 수 있습니다.
+### 2. 🎯 채팅 텍스트 커서(Caret) 정밀 추적 (+ 마우스 포인터 옵션)
+- 기본값으로 마우스 포인터가 아닌 **실제 채팅 입력 커서(Caret)** 위치(Win32 Caret + MSAA `OBJID_CARET` + 한글 IME 조합 커서)에 추천 알약을 띄웁니다.
+- 사용자 취향에 따라 **제어판 > 🎨 디자인 & 표시**에서 **채팅(키보드) 커서 기준**, **마우스 포인터 위치 기준**, **우측 하단 고정** 중 선택할 수 있습니다.
 
-3. **비입력 화면 오작동 완전 차단 (스마트 필터링)**:
-   - `Ctrl+C`, `Ctrl+V`, `Ctrl+A` 등 단축키 입력 시 추천 알약이 뜨지 않도록 필터링합니다.
-   - 타이핑이 멈추면 **3.5초 뒤 자동으로 사라집니다.**
+### 3. 🔍 빠른 검색 (`Alt + Q`) & ⭐ 최근 사용 고정
+- `Alt + Q`로 전체 템플릿을 키워드·카테고리(`Tab` / `Shift+Tab`)별로 빠르게 검색하고 `Enter`로 즉시 입력합니다.
+- 최근 사용한 템플릿(최대 10개)이 목록 최상단에 자동 고정되며 **`⭐ 최근 사용`** 탭으로 모아볼 수 있습니다.
 
-4. **자연스러운 스마트폰 스타일 단축어 자동완성**:
-   - 평소처럼 한글 모드 그대로 **`ㅇㄴ`** (물리키 `ds`), **`ㅂㅅ`** (물리키 `qt`) 등을 치면 커서 옆에 추천 알약이 뜹니다.
-   - 마음에 들면 **`\ + Tab`**으로 0.01초 만에 문장을 완성합니다.
+### 4. ✨ 특수기호 전용 창 (`Alt + X`)
+- `Alt + X`를 누르면 특수기호·이모티콘 전용 창(`→`, `■`, `★`, `✔` 등)이 열립니다.
+- **`Alt` 없이 숫자키 `1`~`9` 단독 입력**(GeForce 등 외부 단축키 충돌 없음) 또는 **`←↑↓→` + `Enter`**로 즉시 입력합니다.
+- 하단 입력칸에서 사용자가 원하는 특수문자나 이모티콘을 직접 **추가 / 선택삭제 / 기본값 복원**할 수 있습니다.
 
-5. **윈도우 98 레트로 제어판 & 스프레드시트 연동**:
-   - **커맨드 관리**: 실전 CS 템플릿 추가/수정/삭제
-   - **구글 스프레드시트 연동**: 온라인 원격 동기화 지원
-
----
-
-## 💻 다른 컴퓨터에서 처음 세팅할 때 (개발 및 작업 환경)
-
-다른 컴퓨터에서 깃허브 코드를 내려받은 후 아래 2가지만 설치해 주시면 바로 작동합니다.
-
-### 1단계. .NET 8.0 런타임/SDK 설치
-* **실행용 데스크톱 런타임 다운로드**: [.NET Desktop Runtime 8.0 (Windows x64)](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-8.0.13-windows-x64-installer)
-* **개발/빌드용 SDK 다운로드**: [.NET 8.0 SDK (Windows x64)](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-8.0.406-windows-x64-installer)
-* 또는 파워셸(관리자)에서 명령어로 설치:
-  ```powershell
-  winget install Microsoft.DotNet.SDK.8
-  ```
-
-### 2단계. 로컬 AI 엔진 (Ollama) 및 모델 다운로드
-1. **Ollama 공식 사이트 접속 후 설치**:  
-   👉 [https://ollama.com/download/windows](https://ollama.com/download/windows) 에 접속하여 설치 파일을 받아 실행합니다.  
-   *(또는 파워셸에서 `irm https://ollama.com/install.ps1 | iex` 실행)*
-
-2. **터미널에서 한국어 경량 모델 1회 다운로드**:  
-   명령 프롬프트(CMD) 또는 파워셸을 열고 아래 명령어를 1회 실행합니다:
-   ```cmd
-   ollama run qwen2.5:1.5b
-   ```
-   *(용량 약 980MB, 다운로드가 끝나고 `>>>` 대화창이 뜨면 `/bye`를 입력해 종료하시면 됩니다. 컴퓨터에 한 번만 받아두면 이후에는 다시 받을 필요 없이 0.5초 만에 실행됩니다!)*
+### 5. ➕ 원클릭 답변 시트 등록 & 🗂 업무 프로필 전환 (`물류` / `CS상담`)
+- **알약에서 바로 등록**: 타이핑 중 알약 상단 배너 우측의 **`[➕ 시트 등록]`** 버튼을 누르면 인식된 단어가 단축어·제목에 자동 입력된 상태로 등록 창이 열립니다.
+- **복사한 답변 바로 등록**: 마음에 드는 답변을 복사(`Ctrl+C`)한 뒤 메인 창의 **`➕ 답변 시트 등록`**을 누르면 본문이 자동으로 채워져 구글 시트에 즉시 업로드됩니다.
+- **업무 프로필 1클릭 전환**: 메인 상태창의 **`🗂 업무 프로필`** 드롭다운에서 `물류` ↔ `CS상담` 시트를 즉시 전환할 수 있으며, 프로필별로 로컬 캐시(`chat_templates_<프로필>.csv`)가 분리 저장됩니다.
+- **1클릭 동기화**: 메인 상태창의 `🔄 시트 [...]` 텍스트를 클릭하면 언제든 즉시 최신 시트를 동기화합니다.
 
 ---
 
-## 🚀 실행 방법
+## 🔒 아키텍처 및 보안 (GAS v4 미들웨어)
 
-* [run.bat](file:///c:/Users/taerin/Desktop/채팅도우미/-----/run.bat) 더블클릭 (또는 [publish/ChatHelper.exe](file:///c:/Users/taerin/Desktop/채팅도우미/-----/publish/ChatHelper.exe) 직접 실행)
+- **단일 탭 경량 구조**: 각 업무 스프레드시트의 1번 탭(`채팅템플릿`)만 읽고 쓰며, 불필요한 외부 AI(Ollama) 설치 없이 `.exe` 단독으로 가볍게 동작합니다.
+- **시트 비공개 유지 & 토큰 인증**: 구글 시트를 '웹에 게시'하거나 '링크 공유'로 열지 않아도 [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs) 웹앱이 사내 전용 `API_TOKEN`을 검증한 뒤 읽기(`doGet`)와 쓰기(`doPost`)를 안전하게 중계합니다.
+- **중앙 프로필 관리**: 새 업무 시트가 추가될 때 직원 PC에 파일을 재배포할 필요 없이 [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)의 `PROFILES` 배열만 수정해 **새 버전으로 배포**하면 전 직원 앱에 자동 반영됩니다.
+
+---
+
+## 🚀 빌드 및 실행 방법
+
+### 실행
+- [publish/ChatHelper.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatHelper.exe) 실행 (직원 배포 시 `.env` 파일 불필요)
+
+### 개발 환경 테스트 및 배포 빌드
+```powershell
+# 단위 및 통합 테스트 실행
+dotnet run --no-restore --project ChatHelper.Tests\ChatHelper.Tests.csproj
+
+# Release 배포 빌드 (publish 폴더 갱신)
+dotnet publish ChatHelper\ChatHelper.csproj -c Release --no-restore -o publish
+```

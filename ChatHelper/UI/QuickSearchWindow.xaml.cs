@@ -364,12 +364,14 @@ public partial class QuickSearchWindow : Window
         Hide();
     }
 
-    public void OpenAddAndUploadDialog(Window? ownerWindow = null)
+    public void OpenAddAndUploadDialog(Window? ownerWindow = null, string? initialKeyword = null)
     {
         _isActionModalOpen = true;
         try
         {
-            string currentQuery = TxtSearch.Text.Trim();
+            string seedKw = !string.IsNullOrWhiteSpace(initialKeyword)
+                ? initialKeyword.Trim().TrimStart('\\', '/')
+                : TxtSearch.Text.Trim();
             string clipText = "";
             try { if (Clipboard.ContainsText()) clipText = Clipboard.GetText().Trim(); } catch { }
 
@@ -389,15 +391,15 @@ public partial class QuickSearchWindow : Window
             var sp = new StackPanel { Margin = new Thickness(16) };
 
             sp.Children.Add(new TextBlock { Text = "단축어 (keyword - 자동완성용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 0, 0, 10) };
+            var txtKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = seedKw, Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtKw);
 
             sp.Children.Add(new TextBlock { Text = "본문 키워드 (contentKeyword - 의미 검색용):", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtContentKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 0, 0, 10) };
+            var txtContentKw = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = seedKw, Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtContentKw);
 
             sp.Children.Add(new TextBlock { Text = "제목:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });
-            var txtTitle = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = currentQuery, Margin = new Thickness(0, 0, 0, 10) };
+            var txtTitle = new TextBox { Height = 30, Padding = new Thickness(6, 4, 6, 4), Text = seedKw, Margin = new Thickness(0, 0, 0, 10) };
             sp.Children.Add(txtTitle);
 
             sp.Children.Add(new TextBlock { Text = "카테고리:", FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) });

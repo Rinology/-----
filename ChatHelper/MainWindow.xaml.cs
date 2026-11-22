@@ -271,6 +271,19 @@ public partial class MainWindow : Window
             });
         };
 
+        _suggestionBar.QuickRegisterRequested += (recognizedWord) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
+                {
+                    _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
+                }
+                _quickSearchWindow.OpenAddAndUploadDialog(this, recognizedWord);
+                UpdateStatusUi();
+            });
+        };
+
         _hookService.ItemAutoCompleted += (item) =>
         {
             _ = Task.Run(() => TryAutoUploadAiSelectionAsync(item));

@@ -18,6 +18,7 @@ public partial class SuggestionBar : Window
     private string _recognizedToken = string.Empty;
 
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
+    public event Action<string>? QuickRegisterRequested;
 
     public void SetRecognizedToken(string token)
     {
@@ -32,7 +33,8 @@ public partial class SuggestionBar : Window
             return;
         }
 
-        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _, useMouse))
         {
             Hide();
             return;
@@ -85,6 +87,19 @@ public partial class SuggestionBar : Window
             string displayToken = string.IsNullOrWhiteSpace(token) ? $"{matchedLen}글자" : $"\"{token}\" ({matchedLen}글자 치환)";
             TxtRecognitionHeader.Text = $"🔎 인식 구간: {displayToken}";
         }
+
+        if (BtnQuickRegisterToken != null)
+        {
+            string clean = (token ?? string.Empty).Trim().TrimStart('\\', '/');
+            BtnQuickRegisterToken.Visibility = string.IsNullOrWhiteSpace(clean) ? Visibility.Collapsed : Visibility.Visible;
+        }
+    }
+
+    private void BtnQuickRegisterToken_Click(object sender, RoutedEventArgs e)
+    {
+        string clean = (_recognizedToken ?? string.Empty).Trim().TrimStart('\\', '/');
+        Hide();
+        QuickRegisterRequested?.Invoke(clean);
     }
 
     public SuggestionBar(ConfigManager configManager)
@@ -111,7 +126,8 @@ public partial class SuggestionBar : Window
         }
 
         // 유효한 텍스트 입력 창인지 확인 (바탕화면, 자기 자신 창 등 제외)
-        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _, useMouse))
         {
             Hide();
             return;
@@ -141,11 +157,9 @@ public partial class SuggestionBar : Window
             _ => $"{trigger}+Tab"
         };
 
-        var theme = _configManager.Config.Theme ?? "Win98";
         int scale = _configManager.Config.PillScale;
-        if (scale < 1) scale = 2; // 기본 2배(크게)
+        if (scale < 1) scale = 2;
 
-        // 3단계 크기 배율 계수
         double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
         double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
         Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
@@ -155,13 +169,11 @@ public partial class SuggestionBar : Window
         MainBorder.Padding = mainPadding;
 
         var sheetItems = candidates.Where(c => c.Category != "AI생성" && c.Category != "AI번역").ToList();
-        var aiItem = candidates.FirstOrDefault(c => c.Category == "AI생성") ?? candidates.FirstOrDefault(c => c.Category == "AI번역");
 
-        // '\' 단독 즉시 실행 모드이거나 InlinePill 모드인 경우 단일 알약으로 고정 (AI 추천은 별도 아래 줄에 표시)
         if (completeMode == "SlashOnly" || mode == "InlinePill")
         {
             MainBorder.CornerRadius = new CornerRadius(0);
-            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFE1")); // Win98 툴팁 크림 옐로우
+            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFE1"));
             MainBorder.BorderBrush = Brushes.Black;
 
             if (sheetItems.Count > 0)
@@ -170,12 +182,12 @@ public partial class SuggestionBar : Window
 
                 var badge = new Border
                 {
-                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")), // Win98 네이비
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")),
                     CornerRadius = new CornerRadius(0),
                     Padding = badgePadding,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
-                var badgeText = new TextBlock
+                badge.Child = new TextBlock
                 {
                     Text = tabKeyHint,
                     Foreground = Brushes.White,
@@ -183,7 +195,6 @@ public partial class SuggestionBar : Window
                     FontWeight = FontWeights.Bold,
                     FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
                 };
-                badge.Child = badgeText;
                 ItemsPanel.Children.Add(badge);
 
                 var preview = topItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
@@ -212,10 +223,9 @@ public partial class SuggestionBar : Window
         else
         {
             MainBorder.CornerRadius = new CornerRadius(0);
-            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0")); // Win98 실버 그레이
+            MainBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0"));
             MainBorder.BorderBrush = Brushes.Black;
 
-            // 유저가 설정한 최대 개수 (3 ~ 10개) 반영
             int maxAllowed = Math.Clamp(_configManager.Config.MaxCandidatesCount, 3, 10);
             var visibleSheetItems = sheetItems.Take(maxAllowed).ToList();
 
@@ -253,12 +263,6 @@ public partial class SuggestionBar : Window
             }
         }
 
-        // 🤖 AI 추천 전용 별도 라인 (설정에 따라 상단 또는 하단에 배치)
-        if (aiItem != null)
-        {
-            RenderAiRow(aiItem);
-        }
-
         UpdateLayout();
         Reposition(caretX, caretY);
         Show();
@@ -266,178 +270,12 @@ public partial class SuggestionBar : Window
 
     public void ShowAiGeneratingPlaceholder(string promptHint = "")
     {
-        if (!_configManager.Config.EnableLocalAi || !_configManager.Config.IsEnabled) return;
-
-        if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
-            return;
-
-        var targetPanel = (_configManager.Config.AiPlacement == "Top") ? TopAiRowPanel : BottomAiRowPanel;
-        var otherPanel = (_configManager.Config.AiPlacement == "Top") ? BottomAiRowPanel : TopAiRowPanel;
-
-        otherPanel.Children.Clear();
-        otherPanel.Visibility = Visibility.Collapsed;
-
-        targetPanel.Children.Clear();
-        targetPanel.Visibility = Visibility.Visible;
-
-        int scale = _configManager.Config.PillScale;
-        if (scale < 1) scale = 2;
-        double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
-        double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
-        Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
-
-        var aiBadge = new Border
-        {
-            Background = (Brush)new BrushConverter().ConvertFromString("#4F46E5")!,
-            BorderBrush = Brushes.Black,
-            BorderThickness = new Thickness(1),
-            Padding = badgePadding,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        aiBadge.Child = new TextBlock
-        {
-            Text = "AI",
-            Foreground = Brushes.White,
-            FontSize = badgeFontSize,
-            FontWeight = FontWeights.Bold,
-            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
-        };
-        targetPanel.Children.Add(aiBadge);
-
-        var placeholderBorder = new Border
-        {
-            Background = (Brush)new BrushConverter().ConvertFromString("#EEF2FF")!,
-            BorderBrush = (Brush)new BrushConverter().ConvertFromString("#6366F1")!,
-            BorderThickness = new Thickness(1),
-            Padding = badgePadding
-        };
-        string text = string.IsNullOrWhiteSpace(promptHint)
-            ? "⚡ 로컬 AI 답변 생성 중..."
-            : $"⚡ 로컬 AI 답변 생성 중... (\"{promptHint}\")";
-        var placeholderText = new TextBlock
-        {
-            Text = text,
-            Foreground = (Brush)new BrushConverter().ConvertFromString("#1E1B4B")!,
-            FontSize = contentFontSize - 1,
-            FontWeight = FontWeights.SemiBold,
-            FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
-        };
-        placeholderBorder.Child = placeholderText;
-        targetPanel.Children.Add(placeholderBorder);
-
-        UpdateLayout();
-        Reposition(caretX, caretY);
-        Show();
+        // Ollama 제거됨
     }
 
     public void UpdateAiCandidate(TemplateItem aiItem)
     {
-        if (aiItem == null) return;
-        int existingIdx = _candidates.FindIndex(c => c.Category == aiItem.Category);
-        if (existingIdx >= 0)
-        {
-            _candidates[existingIdx] = aiItem;
-        }
-        else
-        {
-            _candidates.Add(aiItem);
-        }
-
-        RenderAiRow(aiItem);
-        UpdateLayout();
-        if (Win32Api.TryGetValidInputPosition(out double cx, out double cy, out _))
-        {
-            Reposition(cx, cy);
-        }
-        Show();
-    }
-
-    private void RenderAiRow(TemplateItem _)
-    {
-        var targetPanel = (_configManager.Config.AiPlacement == "Top") ? TopAiRowPanel : BottomAiRowPanel;
-        var otherPanel = (_configManager.Config.AiPlacement == "Top") ? BottomAiRowPanel : TopAiRowPanel;
-
-        otherPanel.Children.Clear();
-        otherPanel.Visibility = Visibility.Collapsed;
-
-        targetPanel.Children.Clear();
-        var aiItems = _candidates.Where(c => c.Category == "AI생성" || c.Category == "AI번역").ToList();
-        if (aiItems.Count == 0)
-        {
-            targetPanel.Visibility = Visibility.Collapsed;
-            return;
-        }
-        targetPanel.Visibility = Visibility.Visible;
-
-        var trigger = _configManager.Config.TriggerKey ?? "\\";
-        var completeMode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
-        string tabKeyHint = completeMode switch
-        {
-            "SlashOnly" => trigger,
-            "ShiftSpace" => "Shift+Space",
-            _ => $"{trigger}+Tab"
-        };
-
-        int scale = _configManager.Config.PillScale;
-        if (scale < 1) scale = 2;
-        double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
-        double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
-        Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
-        int maxPreviewLen = scale switch { 1 => 35, 3 => 75, _ => 55 };
-
-        var sheetItems = _candidates.Where(c => c.Category != "AI생성" && c.Category != "AI번역").ToList();
-
-        foreach (var item in aiItems)
-        {
-            bool isTrans = item.Category == "AI번역";
-            string keyHint = (sheetItems.Count == 0 && item == aiItems[0])
-                ? tabKeyHint
-                : (isTrans ? $"{trigger}+E" : $"{trigger}+A");
-
-            string badgeHex = isTrans ? "#047857" : "#1D4ED8";
-            string bgHex = isTrans ? "#ECFDF5" : "#EFF6FF";
-            string prefixLabel = isTrans ? "🌐 영문 번역" : "🤖 AI 추천";
-
-            var aiBadge = new Border
-            {
-                Background = (Brush)new BrushConverter().ConvertFromString(badgeHex)!,
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(1),
-                Padding = badgePadding,
-                Margin = new Thickness(0, 0, 6, 0)
-            };
-            aiBadge.Child = new TextBlock
-            {
-                Text = keyHint,
-                Foreground = Brushes.White,
-                FontSize = badgeFontSize,
-                FontWeight = FontWeights.Bold,
-                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI")
-            };
-            targetPanel.Children.Add(aiBadge);
-
-            var aiPreview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
-            if (aiPreview.Length > maxPreviewLen) aiPreview = aiPreview[..maxPreviewLen] + "...";
-
-            var aiBtn = new Button
-            {
-                Content = $"{prefixLabel}: \"{aiPreview}\"",
-                Foreground = Brushes.Black,
-                Background = (Brush)new BrushConverter().ConvertFromString(bgHex)!,
-                BorderBrush = (Brush)new BrushConverter().ConvertFromString(badgeHex)!,
-                BorderThickness = new Thickness(1),
-                Padding = badgePadding,
-                Margin = new Thickness(0, 0, 10, 0),
-                Cursor = Cursors.Hand,
-                FontSize = contentFontSize - 1,
-                FontWeight = FontWeights.SemiBold,
-                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
-                Focusable = false
-            };
-            var captured = item;
-            aiBtn.Click += (s, e) => SelectItem(captured);
-            targetPanel.Children.Add(aiBtn);
-        }
+        // Ollama 제거됨
     }
 
     private void Reposition(double caretX, double caretY)
@@ -447,7 +285,6 @@ public partial class SuggestionBar : Window
         double w = ActualWidth > 0 ? ActualWidth : 320;
         double h = ActualHeight > 0 ? ActualHeight : 42;
 
-        // 창 투명도 (흐리게 조절)
         Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
 
         if (_configManager.Config.PillPlacement == "ScreenBottomRight")
