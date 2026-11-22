@@ -227,6 +227,31 @@ public static class DataSourceResolver
         return $"{webhook}{sep}action=users&token={Uri.EscapeDataString(ApiToken)}";
     }
 
+    /// <summary>GAS 내장 Google 번역(LanguageApp.translate)을 호출해 한글->영문 번역을 수행합니다.</summary>
+    public static async Task<string> TranslateViaGasAsync(string text, string from = "ko", string to = "en", CancellationToken ct = default)
+    {
+        string webhook = WebhookUrl;
+        if (string.IsNullOrWhiteSpace(webhook) || string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        try
+        {
+            string sep = webhook.Contains('?') ? "&" : "?";
+            string url = $"{webhook}{sep}action=translate&token={Uri.EscapeDataString(ApiToken)}&from={Uri.EscapeDataString(from)}&to={Uri.EscapeDataString(to)}&text={Uri.EscapeDataString(text)}";
+            string result = (await HttpService.ExternalClient.GetStringAsync(url, ct)).Trim();
+            if (string.IsNullOrWhiteSpace(result) ||
+                result.StartsWith("Server error:", StringComparison.OrdinalIgnoreCase) ||
+                result.StartsWith("ChatHelper GAS", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+            return result;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
     public static string BuildReadUrl(string spreadsheetUrl, string tabName) =>
         $"https://docs.google.com/spreadsheets/d/{ExtractId(spreadsheetUrl)}/gviz/tq?tqx=out:csv&headers=1&sheet={Uri.EscapeDataString(tabName)}";
 }

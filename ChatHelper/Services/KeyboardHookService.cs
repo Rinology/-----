@@ -518,9 +518,9 @@ public class KeyboardHookService : IDisposable
                 return;
             }
 
-            // 매칭된 템플릿이 없고 자모 나열(예: ㅁㄴㅇㄹ, ㅋㅋㅋ)이거나 AI가 꺼져 있으면 [알아듣지 못함] 알림 표시
+            // 매칭된 템플릿이 없고 자모 나열(예: ㅁㄴㅇㄹ, ㅋㅋㅋ)이거나 번역 기능이 꺼져 있으면 [미일치] 알림 표시
             LastRecognizedToken = hangul;
-            if (IsUnrecognizedGibberish(hangul) || !_configManager.Config.EnableLocalAi)
+            if (IsUnrecognizedGibberish(hangul) || !_configManager.Config.EnableKoToEnTranslation)
             {
                 ClearCandidates(cancelAi: true);
                 RecognitionStateChanged?.Invoke(hangul, "UNKNOWN");
@@ -558,8 +558,13 @@ public class KeyboardHookService : IDisposable
 
     private void ScheduleBackgroundAi(string raw, string hangul)
     {
-        // Ollama 로컬 AI 제거됨 — 키워드/템플릿 검색 전용으로 동작
-        return;
+        if (!_configManager.Config.EnableKoToEnTranslation)
+            return;
+        if (string.IsNullOrWhiteSpace(hangul) || hangul.Length < 2 || IsUnrecognizedGibberish(hangul))
+            return;
+
+        _pendingAiRaw = raw;
+        _aiDebounceTimer.Change(450, Timeout.Infinite);
     }
 
     private void ShowCandidateList(List<TemplateItem> list, int matchedLen, bool isNaturalLanguage)
@@ -586,9 +591,7 @@ public class KeyboardHookService : IDisposable
             targetHwnd = _lastTargetHwnd;
         }
 
-        if (hangul.Length < 2) return;
-
-        var glossaryMatches = _glossaryService?.FindRelevantTerms(hangul, maxResults: 5);
+        if (hangul.Length < 2 || !_configManager.Config.EnableKoToEnTranslation) return;
 
         _aiCts?.Cancel();
         _aiCts = new CancellationTokenSource();
@@ -598,54 +601,24 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
-                if (!await OllamaService.Instance.IsServerRespondingAsync())
-                    return;
-
-                bool wantTranslation = _configManager.Config.EnableKoToEnTranslation ||
-                                       hangul.StartsWith("영문 ") || hangul.StartsWith("번역 ");
-                bool wantCsAi = _configManager.Config.EnableLocalAi &&
-                                !hangul.StartsWith("영문 ") && !hangul.StartsWith("번역 ");
-
                 string cleanHangul = hangul;
                 if (cleanHangul.StartsWith("영문 ")) cleanHangul = cleanHangul[3..].Trim();
                 else if (cleanHangul.StartsWith("번역 ")) cleanHangul = cleanHangul[3..].Trim();
+                if (cleanHangul.Length < 2) return;
 
-                // 1) AI 추천 답변 (한국어 CS) 생성
-                if (wantCsAi)
+                string enAnswer = await DataSourceResolver.TranslateViaGasAsync(cleanHangul, "ko", "en", token);
+                if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(enAnswer))
                 {
-                    string csAnswer = await OllamaService.Instance.GenerateCsAnswerAsync(hangul, glossaryMatches, token);
-                    if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(csAnswer))
+                    var transItem = new TemplateItem
                     {
-                        var csItem = new TemplateItem
-                        {
-                            Keyword = hangul,
-                            ContentKeyword = hangul,
-                            Title = "🤖 AI 추천 답변",
-                            Content = csAnswer,
-                            Category = "AI생성"
-                        };
-                        AddOrUpdateDynamicCandidate(targetRaw, csItem);
-                        AiCandidateReady?.Invoke(csItem, hangul.Length, targetHwnd);
-                    }
-                }
-
-                // 2) 영문 번역 동시 생성 (AI 답변 추천과 영문 번역을 동시에 켜도 둘 다 함께 표시!)
-                if (wantTranslation && !token.IsCancellationRequested)
-                {
-                    string enAnswer = await OllamaService.Instance.TranslateKoToEnAsync(cleanHangul, token);
-                    if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(enAnswer))
-                    {
-                        var transItem = new TemplateItem
-                        {
-                            Keyword = cleanHangul,
-                            ContentKeyword = $"영문번역,{cleanHangul}",
-                            Title = $"🌐 영문 번역 ({cleanHangul})",
-                            Content = enAnswer,
-                            Category = "AI번역"
-                        };
-                        AddOrUpdateDynamicCandidate(targetRaw, transItem);
-                        AiCandidateReady?.Invoke(transItem, hangul.Length, targetHwnd);
-                    }
+                        Keyword = cleanHangul,
+                        ContentKeyword = $"영문번역,{cleanHangul}",
+                        Title = $"영문 번역 ({cleanHangul})",
+                        Content = enAnswer,
+                        Category = "AI번역"
+                    };
+                    AddOrUpdateDynamicCandidate(targetRaw, transItem);
+                    AiCandidateReady?.Invoke(transItem, hangul.Length, targetHwnd);
                 }
             }
             catch { }

@@ -7,6 +7,8 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **GAS 내장 Google 번역(`LanguageApp.translate`) 실시간 영문 번역 연동**:
+  - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)에 `action=translate` 엔드포인트를 추가해 Ollama 없이도 무료 Google 번역 품질로 한글 → 영문 실시간 번역 지원 (`\+E` 또는 시트 후보 없을 때 `\+Tab`으로 치환, 제어판 ON/OFF 토글).
 - **비공개 사용자 시트 GAS 통합 & 마지막 로그인 일시(`last_login`) 자동 기록**:
   - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs) v5에 `action=users`(토큰 인증 읽기)와 `action=update_last_login`(로그인 시 한국시간 `yyyy-MM-dd HH:mm:ss` 자동 기록) 추가.
   - 사용자 시트를 외부에 '웹에 게시'하거나 '링크 공유'로 열지 않고 100% 비공개 상태로 인증 및 접속 기록 관리 가능.

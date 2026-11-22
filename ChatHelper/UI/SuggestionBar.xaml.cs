@@ -311,7 +311,69 @@ public partial class SuggestionBar : Window
 
     public void UpdateAiCandidate(TemplateItem aiItem)
     {
-        // Ollama 제거됨
+        if (aiItem == null || aiItem.Category != "AI번역") return;
+
+        int existingIdx = _candidates.FindIndex(c => c.Category == "AI번역");
+        if (existingIdx >= 0) _candidates[existingIdx] = aiItem;
+        else _candidates.Add(aiItem);
+
+        RenderTranslationRow(aiItem);
+        UpdateLayout();
+        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        if (Win32Api.TryGetValidInputPosition(out double cx, out double cy, out _, useMouse))
+        {
+            StartCountdown();
+            Reposition(cx, cy);
+        }
+        Show();
+    }
+
+    private void RenderTranslationRow(TemplateItem item)
+    {
+        BottomAiRowPanel.Children.Clear();
+        BottomAiRowPanel.Visibility = Visibility.Visible;
+        BottomAiRowPanel.Margin = new Thickness(0, 6, 0, 0);
+
+        var trigger = _configManager.Config.TriggerKey ?? "\\";
+        var sheetItems = _candidates.Where(c => c.Category != "AI번역").ToList();
+        string keyHint = sheetItems.Count == 0 ? $"{trigger}+Tab" : $"{trigger}+E";
+
+        var badge = new Border
+        {
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(7, 2, 7, 2),
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        badge.Child = new TextBlock
+        {
+            Text = keyHint,
+            Foreground = Brushes.White,
+            FontSize = 11.5,
+            FontWeight = FontWeights.SemiBold,
+            FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
+        };
+        BottomAiRowPanel.Children.Add(badge);
+
+        var preview = item.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
+        if (preview.Length > 70) preview = preview[..70] + "...";
+
+        var btn = new Button
+        {
+            Content = $"EN — {preview}",
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A7F3D0")),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(8, 3, 8, 3),
+            Cursor = Cursors.Hand,
+            FontSize = 12.5,
+            FontWeight = FontWeights.SemiBold,
+            FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+            Focusable = false
+        };
+        btn.Click += (s, e) => SelectItem(item);
+        BottomAiRowPanel.Children.Add(btn);
     }
 
     private void Reposition(double caretX, double caretY)
