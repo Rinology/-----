@@ -57,7 +57,9 @@
                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
                         <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
+                        <!-- 바로등록 기능 임시 비활성화
                         <Button Content="+ 등록" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="새 답변 시트 등록" Click="BtnQuickAddTemplate_Click"/>
+                        -->
 
                         <Border Width="1" Height="16" Background="{DynamicResource ThemePanelBorder}" Margin="4,0"/>
 

@@ -116,6 +116,20 @@ public partial class MainWindow : Window
 
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
         AddStatusLog("🔄 앱 시작 - 시트 데이터 불러오는 중...");
+        if (!string.IsNullOrEmpty(_authService.LastLoginLogMessage))
+        {
+            AddStatusLog(_authService.LastLoginLogMessage);
+        }
+        else if (_authService.LastLoginReportTask != null)
+        {
+            var loginTask = _authService.LastLoginReportTask;
+            _ = Task.Run(async () =>
+            {
+                await loginTask;
+                if (!string.IsNullOrEmpty(_authService.LastLoginLogMessage))
+                    AddStatusLog(_authService.LastLoginLogMessage);
+            });
+        }
         _ = Task.Run(async () =>
         {
             await DataSourceResolver.RefreshRemoteProfilesAsync();

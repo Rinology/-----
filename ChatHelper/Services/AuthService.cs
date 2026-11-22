@@ -215,7 +215,7 @@ public class AuthService
             _configManager.Save();
 
             // 백그라운드로 마지막 로그인 일시(last_login) GAS 기록 (로그인 지연 0ms)
-            _ = ReportLastLoginAsync(user.UserId);
+            LastLoginReportTask = ReportLastLoginAsync(user.UserId);
 
             return (true, $"인증 성공! (만료일: {user.ExpireDate:yyyy-MM-dd}, {user.DaysRemaining}일 남음)", user);
         }
@@ -231,6 +231,8 @@ public class AuthService
     }
 
     public event Action<string>? LastLoginReported;
+    public Task? LastLoginReportTask { get; private set; }
+    public string? LastLoginLogMessage { get; private set; }
 
     private async Task ReportLastLoginAsync(string userId)
     {
@@ -244,19 +246,22 @@ public class AuthService
             string resp = (await _httpClient.GetStringAsync(url)).Trim();
             if (resp.Equals("OK", StringComparison.OrdinalIgnoreCase))
             {
-                LastLoginReported?.Invoke($"✅ 로그인 일시 기록 완료 ({userId})");
+                LastLoginLogMessage = $"✅ 로그인 일시 기록 완료 ({userId})";
+                LastLoginReported?.Invoke(LastLoginLogMessage);
             }
             else
             {
                 string summary = AppLogger.SummarizeResponse(resp);
                 AppLogger.Warn("AuthService", $"last_login 응답 오류: {summary}");
-                LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 실패: {summary}");
+                LastLoginLogMessage = $"⚠️ 로그인 일시 기록 실패: {summary}";
+                LastLoginReported?.Invoke(LastLoginLogMessage);
             }
         }
         catch (Exception ex)
         {
             AppLogger.Warn("AuthService", "last_login 기록 예외", ex);
-            LastLoginReported?.Invoke($"⚠️ 로그인 일시 기록 오류: {ex.Message}");
+            LastLoginLogMessage = $"⚠️ 로그인 일시 기록 오류: {ex.Message}";
+            LastLoginReported?.Invoke(LastLoginLogMessage);
         }
     }
 }

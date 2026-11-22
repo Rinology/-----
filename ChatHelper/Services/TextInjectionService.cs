@@ -46,6 +46,14 @@ public static class TextInjectionService
                 Thread.Sleep(90);
             }
 
+            // 혹시 Alt 키가 눌린 상태로 인식되어 있을 경우 안전하게 해제 후 Ctrl + V 전송
+            var releaseAlt = new[]
+            {
+                CreateKeyInput(Win32Api.VK_LMENU, keyUp: true, extended: false),
+                CreateKeyInput(Win32Api.VK_MENU, keyUp: true, extended: false)
+            };
+            Win32Api.SendInput((uint)releaseAlt.Length, releaseAlt, Marshal.SizeOf<Win32Api.INPUT>());
+
             // 3. SendInput으로 Ctrl + V 원자적 전송 (키 풀림/순서 꼬임 원천 차단)
             SendKeyCombo(Win32Api.VK_CONTROL, Win32Api.VK_V);
             Thread.Sleep(30);

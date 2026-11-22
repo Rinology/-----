@@ -185,11 +185,15 @@ public class KeyboardHookService : IDisposable
             // Alt + T 드래그 선택 문장 Google 영문 번역 호출 (왼쪽 Alt + T)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_T || scanCode == Win32Api.SCAN_T))
             {
+                // Alt 단독 입력으로 오인되어 대상 창의 Alt 메뉴바(기본 명령어)가 열리지 않도록 더미 키(VK_NONAME) 전송
+                Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
+                Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 TranslateHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
 
+            /* 바로등록 기능 임시 비활성화
             // Alt + R 드래그 선택 문장 시트 바로등록 호출 (왼쪽 Alt + R)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_R || scanCode == Win32Api.SCAN_R))
             {
@@ -197,6 +201,7 @@ public class KeyboardHookService : IDisposable
                 QuickRegisterHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
+            */
 
             // 자동완성이 일시정지(OFF) 상태이면 패스
             if (!_configManager.Config.IsEnabled)

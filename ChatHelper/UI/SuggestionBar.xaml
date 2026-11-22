@@ -27,7 +27,8 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="TxtRecognitionHeader" Grid.Column="0" Text="인식됨: " FontSize="11" FontWeight="SemiBold" Foreground="#334155" FontFamily="Malgun Gothic, Segoe UI" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <TextBlock x:Name="TxtAutoHideCountdown" Grid.Column="1" Text="12s" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" FontFamily="Consolas, Malgun Gothic" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button x:Name="BtnQuickRegisterToken" Grid.Column="2" Content="+ 시트 등록"
+                    <!-- 바로등록 기능 임시 비활성화 -->
+                    <Button x:Name="BtnQuickRegisterToken" Grid.Column="2" Content="+ 시트 등록" Visibility="Collapsed"
                             FontSize="10.5" FontWeight="SemiBold" Padding="7,2" Cursor="Hand" Focusable="False"
                             Background="{DynamicResource ThemeAccent}" Foreground="#FFFFFF" BorderThickness="0"
                             ToolTip="현재 인식된 단어를 단축어로 하여 구글 시트에 새 답변을 바로 등록합니다"
