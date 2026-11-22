@@ -58,6 +58,9 @@ public class AppConfig
     // 추천 알약 자동 숨김 시간 (초 단위, 3 ~ 20초, 기본 12초)
     public int AutoHideSeconds { get; set; } = 12;
 
+    // 시트 등록 시 상세 입력창을 띄우지 않고 즉시 저장 여부 (false: 상세 입력창, true: 즉시 저장)
+    public bool QuickSaveWithoutDialog { get; set; } = false;
+
     // 최근 사용한 템플릿 키워드 (Alt+Q 상단 우선 표시, 최대 10개)
     public List<string> RecentKeywords { get; set; } = new();
 

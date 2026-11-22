@@ -151,6 +151,7 @@ public partial class ControlPanelWindow : Window
             _ => 2 // 기본값 15분
         };
         CmbAutoSyncInterval.SelectedIndex = comboIdx;
+        ChkQuickSaveWithoutDialog.IsChecked = cfg.QuickSaveWithoutDialog;
         UpdateUserInfoDisplay();
 
         // 5. 하단 상태표시줄
@@ -420,6 +421,8 @@ public partial class ControlPanelWindow : Window
         {
             cfg.AutoSyncIntervalMinutes = minutes;
         }
+
+        cfg.QuickSaveWithoutDialog = ChkQuickSaveWithoutDialog.IsChecked == true;
 
         _configManager.Save();
         SettingsChanged?.Invoke();

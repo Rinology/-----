@@ -12,6 +12,8 @@ namespace ChatHelper.UI;
 public partial class SuggestionBar : Window
 {
     private readonly ConfigManager _configManager;
+    private readonly System.Windows.Threading.DispatcherTimer _countdownTimer;
+    private int _remainingSeconds;
     private List<TemplateItem> _candidates = new();
     private int _matchedLen = 0;
     private IntPtr _targetHwnd = IntPtr.Zero;
@@ -53,6 +55,7 @@ public partial class SuggestionBar : Window
         RecognitionHeaderBorder.BorderThickness = new Thickness(0);
 
         UpdateLayout();
+        StartCountdown();
         Reposition(caretX, caretY);
         Show();
     }
@@ -106,6 +109,36 @@ public partial class SuggestionBar : Window
     {
         InitializeComponent();
         _configManager = configManager;
+        _countdownTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _countdownTimer.Tick += (s, e) =>
+        {
+            if (_remainingSeconds > 0) _remainingSeconds--;
+            UpdateCountdownText();
+            if (_remainingSeconds <= 0) _countdownTimer.Stop();
+        };
+    }
+
+    private void StartCountdown()
+    {
+        _remainingSeconds = Math.Clamp(_configManager.Config.AutoHideSeconds, AppConstants.MinAutoHideSeconds, AppConstants.MaxAutoHideSeconds);
+        UpdateCountdownText();
+        _countdownTimer.Stop();
+        _countdownTimer.Start();
+    }
+
+    private void UpdateCountdownText()
+    {
+        if (TxtAutoHideCountdown != null)
+            TxtAutoHideCountdown.Text = $"⏱ {_remainingSeconds}s";
+    }
+
+    public new void Hide()
+    {
+        _countdownTimer.Stop();
+        base.Hide();
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -264,6 +297,7 @@ public partial class SuggestionBar : Window
         }
 
         UpdateLayout();
+        StartCountdown();
         Reposition(caretX, caretY);
         Show();
     }

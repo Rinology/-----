@@ -314,6 +314,10 @@
                                     </Border>
 
                                     <Button Content="🔄 지금 즉시 최신 정보 동기화 실행" Style="{DynamicResource ThemeButtonStyle}" MinWidth="230" Height="36" HorizontalAlignment="Left" Click="BtnSyncAll_Click"/>
+
+                                    <CheckBox x:Name="ChkQuickSaveWithoutDialog"
+                                              Content="시트 등록 시 상세 입력창을 묻지 않고 즉시 바로 저장 (단축어·클립보드 내용 바로 등록)"
+                                              Margin="0,12,0,0" FontSize="12.5" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Border>
 

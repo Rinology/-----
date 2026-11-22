@@ -115,10 +115,12 @@ public partial class MainWindow : Window
         InitRollingTicker();
 
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
+        AddStatusLog("🔄 앱 시작 - 시트 데이터 불러오는 중...");
         _ = Task.Run(async () =>
         {
             await DataSourceResolver.RefreshRemoteProfilesAsync();
             var (success, syncMsg) = await _templateManager.SyncFromRemoteAsync();
+            AddStatusLog(success ? $"✅ 시트 불러오기 완료 ({_templateManager.Templates.Count}개)" : $"⚠️ 시트 불러오기 실패: {syncMsg}");
             // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
             _isOfflineMode = !success && _templateManager.Templates.Count == 0;
             if (success) _lastSyncTime = DateTime.Now;
@@ -273,15 +275,7 @@ public partial class MainWindow : Window
 
         _suggestionBar.QuickRegisterRequested += (recognizedWord) =>
         {
-            Dispatcher.BeginInvoke(() =>
-            {
-                if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
-                {
-                    _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
-                }
-                _quickSearchWindow.OpenAddAndUploadDialog(this, recognizedWord);
-                UpdateStatusUi();
-            });
+            Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(recognizedWord));
         };
 
         _hookService.ItemAutoCompleted += (item) =>
@@ -362,12 +356,73 @@ public partial class MainWindow : Window
 
     private void BtnQuickAddTemplate_Click(object sender, RoutedEventArgs e)
     {
+        _ = HandleQuickRegisterAsync(null);
+    }
+
+    private async Task HandleQuickRegisterAsync(string? initialKeyword)
+    {
+        if (_configManager.Config.QuickSaveWithoutDialog)
+        {
+            string clip = "";
+            try { if (Clipboard.ContainsText()) clip = Clipboard.GetText().Trim(); } catch { }
+
+            if (string.IsNullOrWhiteSpace(clip))
+            {
+                AddStatusLog("⚠️ 즉시 저장 실패: 클립보드에 복사된 답변이 없습니다.");
+                ShowNoticeBadge("⚠️ 복사된 답변이 없습니다", "#B91C1C");
+                return;
+            }
+
+            string kw = !string.IsNullOrWhiteSpace(initialKeyword)
+                ? initialKeyword.Trim().TrimStart('\\', '/')
+                : (clip.Length > 10 ? clip[..10].Replace("\r", "").Replace("\n", " ").Trim() : clip);
+
+            var item = new Models.TemplateItem
+            {
+                Keyword = kw,
+                ContentKeyword = kw,
+                Title = kw,
+                Category = "일반",
+                Content = clip
+            };
+
+            AddStatusLog($"💾 '{kw}' 시트에 바로 저장 중...");
+            ShowNoticeBadge($"⏳ '{kw}' 시트 저장 중...", "#B45309");
+            _templateManager.AddTemplate(item);
+            var (ok, msg) = await _templateManager.UploadTemplateToRemoteSheetAsync(item);
+            AddStatusLog(ok ? $"✅ '{kw}' 시트 저장 완료!" : $"❌ '{kw}' 시트 저장 실패: {msg}");
+            ShowNoticeBadge(ok ? $"✅ '{kw}' 저장 완료!" : "❌ 시트 저장 실패", ok ? "#006000" : "#B91C1C");
+            UpdateStatusUi();
+            return;
+        }
+
         if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
         {
             _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
         }
-        _quickSearchWindow.OpenAddAndUploadDialog(this);
+        AddStatusLog("📝 새 답변 시트 등록 창 열림");
+        _quickSearchWindow.OpenAddAndUploadDialog(this, initialKeyword);
         UpdateStatusUi();
+    }
+
+    private void BtnToggleLog_Click(object sender, RoutedEventArgs e)
+    {
+        bool show = LogPanelBorder.Visibility != Visibility.Visible;
+        LogPanelBorder.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        Height = show ? 426 : 302;
+        BtnToggleLog.Content = show ? "📋 닫기" : "📋 로그";
+    }
+
+    public void AddStatusLog(string message)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (LstLiveLog == null) return;
+            string line = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            LstLiveLog.Items.Insert(0, line);
+            while (LstLiveLog.Items.Count > 50)
+                LstLiveLog.Items.RemoveAt(LstLiveLog.Items.Count - 1);
+        });
     }
 
     private void OpenSymbolPicker(IntPtr? targetHwnd = null)
@@ -730,11 +785,13 @@ public partial class MainWindow : Window
 
     private async Task SyncRemoteAsync()
     {
+        AddStatusLog($"🔄 '{DataSourceResolver.ActiveName}' 시트 불러오는 중...");
         await DataSourceResolver.RefreshRemoteProfilesAsync();
         var (success, msg) = await _templateManager.SyncFromRemoteAsync();
         _isOfflineMode = !success && _templateManager.Templates.Count == 0;
         _lastSyncTime = DateTime.Now;
         UpdateStatusUi();
+        AddStatusLog(success ? $"✅ 동기화 완료 ({_templateManager.Templates.Count}개)" : $"❌ 동기화 실패: {msg}");
         if (success)
         {
             ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
