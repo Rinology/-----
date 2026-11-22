@@ -29,6 +29,8 @@ public class KeyboardHookService : IDisposable
     public event Action? RequestCloseCandidates;
     public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
+    public event Action<IntPtr>? TranslateHotkeyTriggered;
+    public event Action<IntPtr>? QuickRegisterHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
     public event Action<string, string>? RecognitionStateChanged;
 
@@ -177,6 +179,22 @@ public class KeyboardHookService : IDisposable
             {
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 AiHotkeyTriggered?.Invoke(fgHwnd);
+                return (IntPtr)1;
+            }
+
+            // Alt + T 드래그 선택 문장 Google 영문 번역 호출 (왼쪽 Alt + T)
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_T || scanCode == Win32Api.SCAN_T))
+            {
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                TranslateHotkeyTriggered?.Invoke(fgHwnd);
+                return (IntPtr)1;
+            }
+
+            // Alt + R 드래그 선택 문장 시트 바로등록 호출 (왼쪽 Alt + R)
+            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_R || scanCode == Win32Api.SCAN_R))
+            {
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                QuickRegisterHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
 
@@ -502,29 +520,10 @@ public class KeyboardHookService : IDisposable
             return;
         }
 
-        // 2. 한글 입력: [문장 = Google 영문 번역 전용] vs [단어 = 스프레드시트 키워드 검색 전용] 완벽 분리
+        // 2. 한글 입력: 스프레드시트 키워드 검색 전용 (영문 번역은 Alt+T 드래그 선택으로 명확하게 분리)
         string hangul = hangulFull.Trim().TrimStart('\\', '/');
         if (!string.IsNullOrWhiteSpace(hangul) && hangul.Length >= 2)
         {
-            bool isSentence = IsKoreanSentence(hangul);
-
-            if (isSentence)
-            {
-                // 문장 모드: 시트 키워드 검색을 하지 않고 오직 Google 영문 번역만 수행
-                LastRecognizedToken = hangul;
-                if (!_configManager.Config.EnableKoToEnTranslation || IsUnrecognizedGibberish(hangul))
-                {
-                    ClearCandidates(cancelAi: true);
-                    return;
-                }
-
-                ClearCandidates(cancelAi: false);
-                RecognitionStateChanged?.Invoke(hangul, "WAITING");
-                ScheduleBackgroundAi(raw, hangul);
-                return;
-            }
-
-            // 단어 모드: 오직 스프레드시트 키워드 검색만 수행 (구글 번역 호출 안 함)
             var hangulList = _templateManager.FindMatchingCandidates(hangul, out int hMatchedLen);
             if (hangulList.Count > 0)
             {

@@ -50,8 +50,11 @@ public static class Win32Api
     public const int VK_8 = 0x38;
     public const int VK_9 = 0x39;
     public const int VK_A = 0x41;
+    public const int VK_C = 0x43;
     public const int VK_E = 0x45;
     public const int VK_Q = 0x51;
+    public const int VK_R = 0x52;
+    public const int VK_T = 0x54;
     public const int VK_V = 0x56;
     public const int VK_X = 0x58;
     public const int VK_Z = 0x5A;
@@ -73,6 +76,8 @@ public static class Win32Api
     public const int VK_OEM_5 = 0xDC;      // '\'
     public const int VK_PROCESSKEY = 0xE5;
     public const int SCAN_Q = 0x10;
+    public const int SCAN_R = 0x13;
+    public const int SCAN_T = 0x14;
     public const int SCAN_X = 0x2D;
 
     public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;

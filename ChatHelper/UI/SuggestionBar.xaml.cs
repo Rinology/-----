@@ -18,8 +18,10 @@ public partial class SuggestionBar : Window
     private int _matchedLen = 0;
     private IntPtr _targetHwnd = IntPtr.Zero;
     private string _recognizedToken = string.Empty;
+    private bool _isSelectionTranslationMode = false;
 
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
+    public event Action<TemplateItem, IntPtr>? SelectionReplaceRequested;
     public event Action<string>? QuickRegisterRequested;
 
     public void SetRecognizedToken(string token)
@@ -171,6 +173,7 @@ public partial class SuggestionBar : Window
         _matchedLen = matchedLen;
         _targetHwnd = targetHwnd;
 
+        _isSelectionTranslationMode = false;
         ApplyRecognitionBanner("MATCH", _recognizedToken, matchedLen);
 
         var screenWidthForWrap = SystemParameters.PrimaryScreenWidth;
@@ -305,22 +308,63 @@ public partial class SuggestionBar : Window
         Show();
     }
 
-    public void ShowAiGeneratingPlaceholder(string promptHint = "")
+    public void ShowAiGeneratingPlaceholder(string promptHint = "", IntPtr targetHwnd = default, bool isSelectionMode = false)
     {
         if (!_configManager.Config.EnableKoToEnTranslation || !_configManager.Config.IsEnabled) return;
 
+        _isSelectionTranslationMode = isSelectionMode;
+        if (targetHwnd != IntPtr.Zero) _targetHwnd = targetHwnd;
+
+        if (isSelectionMode)
+        {
+            _candidates.Clear();
+            _matchedLen = 0;
+            ItemsPanel.Children.Clear();
+            ItemsPanel.Visibility = Visibility.Collapsed;
+            if (RecognitionHeaderBorder != null)
+                RecognitionHeaderBorder.Visibility = Visibility.Collapsed;
+        }
+
         BottomAiRowPanel.Children.Clear();
         BottomAiRowPanel.Visibility = Visibility.Visible;
-        BottomAiRowPanel.Margin = new Thickness(0, 6, 0, 0);
+        BottomAiRowPanel.Margin = isSelectionMode ? new Thickness(0) : new Thickness(0, 6, 0, 0);
 
-        BottomAiRowPanel.Children.Add(new TextBlock
+        var loadingStack = new StackPanel { MinWidth = 300, MaxWidth = 480 };
+        loadingStack.Children.Add(new TextBlock
         {
-            Text = "EN 번역 중...",
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
-            FontSize = 11.5,
-            FontWeight = FontWeights.SemiBold,
-            FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
+            Text = "🌐 Google 영문 번역 중...",
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
+            FontSize = 12,
+            FontWeight = FontWeights.Bold,
+            FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+            Margin = new Thickness(0, 0, 0, 4)
         });
+
+        if (!string.IsNullOrWhiteSpace(promptHint))
+        {
+            string preview = promptHint.Trim().Replace("\r\n", " ").Replace("\n", " ");
+            if (preview.Length > 60) preview = preview[..60] + "...";
+            loadingStack.Children.Add(new TextBlock
+            {
+                Text = $"선택 원문: \"{preview}\"",
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")),
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                Margin = new Thickness(0, 0, 0, 6)
+            });
+        }
+
+        loadingStack.Children.Add(new ProgressBar
+        {
+            IsIndeterminate = true,
+            Height = 4,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")),
+            BorderThickness = new Thickness(0)
+        });
+
+        BottomAiRowPanel.Children.Add(loadingStack);
 
         bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
         if (Win32Api.TryGetValidInputPosition(out double cx, out double cy, out _, useMouse))
@@ -439,7 +483,7 @@ public partial class SuggestionBar : Window
 
         var btnEnOnly = new Button
         {
-            Content = $"[{keyHint}] 영문만 입력",
+            Content = _isSelectionTranslationMode ? "선택 영역을 영문으로 바꾸기" : $"[{keyHint}] 영문만 입력",
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
             Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
@@ -450,7 +494,18 @@ public partial class SuggestionBar : Window
             Cursor = Cursors.Hand,
             Focusable = false
         };
-        btnEnOnly.Click += (s, e) => SelectItem(item);
+        btnEnOnly.Click += (s, e) =>
+        {
+            if (_isSelectionTranslationMode)
+            {
+                Hide();
+                SelectionReplaceRequested?.Invoke(item, _targetHwnd);
+            }
+            else
+            {
+                SelectItem(item);
+            }
+        };
         actions.Children.Add(btnEnOnly);
 
         var btnBoth = new Button
@@ -467,13 +522,25 @@ public partial class SuggestionBar : Window
             Cursor = Cursors.Hand,
             Focusable = false
         };
-        btnBoth.Click += (s, e) => SelectItem(new TemplateItem
+        btnBoth.Click += (s, e) =>
         {
-            Keyword = item.Keyword,
-            Title = item.Title,
-            Content = $"{item.Keyword}\n{item.Content}",
-            Category = item.Category
-        });
+            var bothItem = new TemplateItem
+            {
+                Keyword = item.Keyword,
+                Title = item.Title,
+                Content = $"{item.Keyword}\n{item.Content}",
+                Category = item.Category
+            };
+            if (_isSelectionTranslationMode)
+            {
+                Hide();
+                SelectionReplaceRequested?.Invoke(bothItem, _targetHwnd);
+            }
+            else
+            {
+                SelectItem(bothItem);
+            }
+        };
         actions.Children.Add(btnBoth);
 
         var btnCopy = new Button

@@ -229,6 +229,21 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => OpenSymbolPicker(targetHwnd));
         };
 
+        _hookService.TranslateHotkeyTriggered += (targetHwnd) =>
+        {
+            _ = HandleSelectionTranslateAsync(targetHwnd);
+        };
+
+        _hookService.QuickRegisterHotkeyTriggered += (targetHwnd) =>
+        {
+            _ = HandleSelectionQuickRegisterAsync(targetHwnd);
+        };
+
+        _suggestionBar.SelectionReplaceRequested += (item, targetHwnd) =>
+        {
+            Task.Run(() => TextInjectionService.FastPasteText(item.Content, targetHwnd));
+        };
+
         _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
         {
             Dispatcher.BeginInvoke(() =>
@@ -336,17 +351,77 @@ public partial class MainWindow : Window
         _ = HandleQuickRegisterAsync(null);
     }
 
-    private async Task HandleQuickRegisterAsync(string? initialKeyword)
+    private async Task HandleSelectionTranslateAsync(IntPtr targetHwnd)
+    {
+        if (!_configManager.Config.EnableKoToEnTranslation)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                AddStatusLog("ℹ️ 영문 번역 기능이 꺼져 있습니다. 제어판에서 '구글 영문 번역'을 켜주세요.");
+                ShowNoticeBadge("ℹ️ 제어판에서 영문 번역을 켜주세요", "#B45309");
+            });
+            return;
+        }
+
+        string selected = await Task.Run(() => TextInjectionService.CaptureSelectedText(targetHwnd));
+        if (string.IsNullOrWhiteSpace(selected))
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                AddStatusLog("⚠️ 번역할 문장을 먼저 마우스로 드래그(선택)한 뒤 Alt+T를 눌러주세요.");
+                ShowNoticeBadge("⚠️ 번역할 문장을 드래그 후 Alt+T", "#B45309");
+            });
+            return;
+        }
+
+        await Dispatcher.InvokeAsync(() =>
+        {
+            AddStatusLog($"🌐 선택 문장 번역 중... (\"{selected}\")");
+            _suggestionBar.ShowAiGeneratingPlaceholder(selected, targetHwnd, isSelectionMode: true);
+        });
+
+        string enAnswer = await DataSourceResolver.TranslateViaGasAsync(selected, "ko", "en");
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (string.IsNullOrWhiteSpace(enAnswer))
+            {
+                _suggestionBar.Hide();
+                AddStatusLog("❌ Google 영문 번역 응답이 비어 있거나 실패했습니다.");
+                ShowNoticeBadge("❌ 번역 실패 (로그 확인)", "#B91C1C");
+                return;
+            }
+
+            var transItem = new Models.TemplateItem
+            {
+                Keyword = selected,
+                ContentKeyword = "영문번역",
+                Title = "Google 영문 번역",
+                Content = enAnswer,
+                Category = "AI번역"
+            };
+            _suggestionBar.UpdateAiCandidate(transItem, 0, targetHwnd);
+            AddStatusLog($"✅ 번역 완료: {enAnswer}");
+        });
+    }
+
+    private async Task HandleSelectionQuickRegisterAsync(IntPtr targetHwnd)
+    {
+        string selected = await Task.Run(() => TextInjectionService.CaptureSelectedText(targetHwnd));
+        await Dispatcher.InvokeAsync(() => _ = HandleQuickRegisterAsync(null, selected));
+    }
+
+    private async Task HandleQuickRegisterAsync(string? initialKeyword, string? initialContent = null)
     {
         if (_configManager.Config.QuickSaveWithoutDialog)
         {
-            string clip = "";
-            try { if (Clipboard.ContainsText()) clip = Clipboard.GetText().Trim(); } catch { }
+            string clip = !string.IsNullOrWhiteSpace(initialContent)
+                ? initialContent.Trim()
+                : TextInjectionService.GetClipboardTextSafe().Trim();
 
             if (string.IsNullOrWhiteSpace(clip))
             {
-                AddStatusLog("⚠️ 즉시 저장 실패: 클립보드에 복사된 답변이 없습니다.");
-                ShowNoticeBadge("⚠️ 복사된 답변이 없습니다", "#B91C1C");
+                AddStatusLog("⚠️ 즉시 저장 실패: 드래그 선택 또는 복사된 답변이 없습니다.");
+                ShowNoticeBadge("⚠️ 선택/복사된 답변이 없습니다", "#B91C1C");
                 return;
             }
 
@@ -373,13 +448,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_quickSearchWindow == null || !_quickSearchWindow.IsLoaded)
+        AddStatusLog("📝 시트 빠른 등록 창 열림");
+        QuickRegisterDialog.Show(_templateManager, this, initialKeyword, initialContent, (newItem, ok, msg) =>
         {
-            _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
-        }
-        AddStatusLog("📝 새 답변 시트 등록 창 열림");
-        _quickSearchWindow.OpenAddAndUploadDialog(this, initialKeyword);
-        UpdateStatusUi();
+            AddStatusLog(ok ? $"✅ '{newItem.Keyword}' 시트 저장 완료!" : $"⚠️ '{newItem.Keyword}' 시트 저장 실패: {msg}");
+            ShowNoticeBadge(ok ? $"✅ '{newItem.Keyword}' 저장 완료!" : "❌ 시트 저장 실패", ok ? "#006000" : "#B91C1C");
+            UpdateStatusUi();
+        });
     }
 
     private double _dockTopBeforeLog = double.NaN;

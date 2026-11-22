@@ -168,4 +168,81 @@ public static class TextInjectionService
 
         FastPasteText(newText, targetHwnd);
     }
+
+    /// <summary>
+    /// 사용자가 마우스/키보드로 드래그해 둔 텍스트를 Ctrl+C로 안전하게 읽어옵니다.
+    /// 선택 영역이 없으면 빈 문자열을 반환하고 기존 클립보드를 복원합니다.
+    /// </summary>
+    public static string CaptureSelectedText(IntPtr targetHwnd)
+    {
+        string prevClip = GetClipboardTextSafe();
+        try
+        {
+            ClearClipboardSafe();
+            if (targetHwnd != IntPtr.Zero)
+            {
+                Win32Api.ForceForegroundWindow(targetHwnd);
+                Thread.Sleep(55);
+            }
+
+            // Alt+T / Alt+R 직후 Alt 키 눌림 상태 해제
+            var releaseAlt = new[]
+            {
+                CreateKeyInput(Win32Api.VK_LMENU, keyUp: true, extended: false),
+                CreateKeyInput(Win32Api.VK_MENU, keyUp: true, extended: false)
+            };
+            Win32Api.SendInput((uint)releaseAlt.Length, releaseAlt, Marshal.SizeOf<Win32Api.INPUT>());
+            Thread.Sleep(25);
+
+            SendKeyCombo(Win32Api.VK_CONTROL, Win32Api.VK_C);
+            Thread.Sleep(110);
+
+            string copied = GetClipboardTextSafe();
+            if (string.IsNullOrWhiteSpace(copied))
+            {
+                if (!string.IsNullOrEmpty(prevClip))
+                    SetClipboardTextWithRetry(prevClip);
+                return string.Empty;
+            }
+            return copied.Trim();
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn("TextInjectionService", "선택 텍스트 캡처 실패", ex);
+            return string.Empty;
+        }
+    }
+
+    public static string GetClipboardTextSafe()
+    {
+        try
+        {
+            string result = string.Empty;
+            if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
+            {
+                if (Clipboard.ContainsText()) result = Clipboard.GetText();
+            }
+            else if (Application.Current != null)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (Clipboard.ContainsText()) result = Clipboard.GetText();
+                });
+            }
+            return result;
+        }
+        catch { return string.Empty; }
+    }
+
+    private static void ClearClipboardSafe()
+    {
+        try
+        {
+            if (Application.Current != null && Application.Current.Dispatcher.CheckAccess())
+                Clipboard.Clear();
+            else if (Application.Current != null)
+                Application.Current.Dispatcher.Invoke(() => Clipboard.Clear());
+        }
+        catch { }
+    }
 }
