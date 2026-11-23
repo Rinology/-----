@@ -60,7 +60,8 @@ public partial class SymbolPickerWindow : Window
         var workArea = SystemParameters.WorkArea;
         Left = workArea.Left + (workArea.Width - Width) / 2;
         Top = workArea.Top + (workArea.Height - Height) / 2;
-        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        Win32Api.SetWindowAlpha(this, winAlpha);
 
         Show();
         WindowState = WindowState.Normal;

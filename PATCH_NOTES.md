@@ -25,6 +25,12 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **제어판 통합 개편 (`커맨드 & 시트 관리` 2단 분할) · 포인트 컬러 선택 · Win32 진짜 반투명 · 중앙 하단 도킹 바**:
+  - **커맨드 & 시트 관리 통합**: `데이터 소스` 탭을 `커맨드 관리` 상단 1줄(`업무 프로필` + 접이식 `개인 시트 추가/삭제`)로 통합하고, 창 크기를 `1160 × 760`(화면 비율 자동 보정)으로 넓혀 **좌측 목록 ↔ 우측 긴 본문 전용 편집기(`GridSplitter` + 자동 스크롤 + 글자 수 표시)** 2단 레이아웃으로 개편.
+  - **동기화 실시간 반영**: [TemplateManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TemplateManager.cs) `TemplatesSynced` 이벤트를 통해 동기화 중/완료 직후 제어판 커맨드 목록이 자동 갱신됨.
+  - **Windows 11 Fluent 라이트 + 포인트 컬러 선택**: 다크 모드 대신 깔끔한 화이트 베이스 위에 **블루(기본) / 민트 그린 / 라벤더 / 코랄 피치 / 로즈 핑크** 포인트 컬러를 실시간 선택 가능([ThemeManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ThemeManager.cs)).
+  - **마우스 렉 없는 Win32 진짜 반투명 (`LWA_ALPHA`)**: `AllowsTransparency="False"` 상태에서 화면만 어두워지던 `Window.Opacity`를 [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs) `SetWindowAlpha`(`SetLayeredWindowAttributes`)로 교체해 실제 뒤 창이 비치도록 수정.
+  - **특수기호(`Alt+X`) 입력창 확대 & 마스터창 중앙 하단 배치**: `TxtNewSymbol` 높이 `36px`/`15pt`로 확대, [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs) 도킹 바를 메인 모니터 중앙 하단으로 배치.
 - **유저 개인 시트 동적 추가·삭제 지원 (GAS `프로필목록` 탭 로밍 + 로컬 PC 전용 시트) — ⚠️ GAS 재배포 1회 필요**:
   - [GAS/Code.gs](file:///C:/Users/taerin/Desktop/채팅도우미/GAS/Code.gs)에 `프로필목록` 탭 동적 로드(`loadProfiles_`) 및 `add_profile` / `delete_profile` 액션 추가 (`owner_id = ALL`은 공용 시트, `owner_id = 본인아이디`는 본인만 조회·추가·삭제 가능, 타인 시트·공용 시트 삭제 차단).
   - [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml) > **`🗂 데이터 소스`** 탭에서 **`☁️ GAS 클라우드(내 계정 로밍 · 비공개 시트 읽기/쓰기)`** 또는 **`💻 이 PC 로컬 전용(읽기 전용)`** 방식을 선택해 개인 시트를 직접 추가/삭제할 수 있습니다.

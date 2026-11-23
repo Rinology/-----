@@ -29,6 +29,10 @@ public partial class ControlPanelWindow : Window
 
         InitializeComponent();
 
+        var work = SystemParameters.WorkArea;
+        Width = Math.Min(1160, Math.Max(920, work.Width * 0.94));
+        Height = Math.Min(760, Math.Max(620, work.Height * 0.92));
+
         try
         {
             string iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "app.ico");
@@ -39,9 +43,31 @@ public partial class ControlPanelWindow : Window
         }
         catch { }
 
+        _templateManager.TemplatesSynced += OnTemplatesSynced;
+        Closed += (_, _) => _templateManager.TemplatesSynced -= OnTemplatesSynced;
+
         LoadData();
         LoadProfiles();
         _isInitializing = false;
+    }
+
+    private void OnTemplatesSynced()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            _templatesObs = new ObservableCollection<TemplateItem>(_templateManager.Templates);
+            TxtCmdFilter_TextChanged(this, null!);
+            LoadProfiles();
+            LblStatusBar.Text = $"템플릿: {_templatesObs.Count}개 동기화됨 | 로그인: {_configManager.Config.CurrentUserId}";
+        });
+    }
+
+    private void TxtContent_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (TxtContentLength != null && TxtContent != null)
+        {
+            TxtContentLength.Text = $"{TxtContent.Text.Length}자";
+        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -71,11 +97,15 @@ public partial class ControlPanelWindow : Window
         else
             RadioSlashTab.IsChecked = true;
 
-        // 3. UI 테마 및 알약 크기 설정 로드
-        if (string.Equals(cfg.Theme, ThemeManager.ThemeMinimalHud, StringComparison.OrdinalIgnoreCase))
-            RadioThemeMinimalHud.IsChecked = true;
-        else
-            RadioThemeFluentLight.IsChecked = true;
+        // 3. UI 포인트 컬러 및 알약 크기 설정 로드
+        switch ((cfg.AccentColor ?? "Blue").Trim())
+        {
+            case "Green": RadioAccentGreen.IsChecked = true; break;
+            case "Lavender": RadioAccentLavender.IsChecked = true; break;
+            case "Peach": RadioAccentPeach.IsChecked = true; break;
+            case "Pink": RadioAccentPink.IsChecked = true; break;
+            default: RadioAccentBlue.IsChecked = true; break;
+        }
 
         if (cfg.PillScale == 1)
             RadioPillScale1.IsChecked = true;
@@ -404,10 +434,9 @@ public partial class ControlPanelWindow : Window
             cfg.MaxCandidatesCount = CmbMaxCandidates.SelectedIndex + AppConstants.MinCandidatesCount;
         }
 
-        cfg.Theme = (RadioThemeMinimalHud.IsChecked == true)
-            ? ThemeManager.ThemeMinimalHud
-            : ThemeManager.ThemeFluentLight;
-        ThemeManager.ApplyTheme(cfg.Theme);
+        cfg.Theme = ThemeManager.ThemeFluentLight;
+        cfg.AccentColor = GetSelectedAccentColor();
+        ThemeManager.ApplyTheme(cfg.Theme, cfg.AccentColor);
 
         if (RadioPillScale1.IsChecked == true)
             cfg.PillScale = AppConstants.PillScaleNormal;
@@ -468,13 +497,19 @@ public partial class ControlPanelWindow : Window
         Close();
     }
 
-    private void RadioTheme_Checked(object sender, RoutedEventArgs e)
+    private string GetSelectedAccentColor()
+    {
+        if (RadioAccentGreen?.IsChecked == true) return "Green";
+        if (RadioAccentLavender?.IsChecked == true) return "Lavender";
+        if (RadioAccentPeach?.IsChecked == true) return "Peach";
+        if (RadioAccentPink?.IsChecked == true) return "Pink";
+        return "Blue";
+    }
+
+    private void RadioAccent_Checked(object sender, RoutedEventArgs e)
     {
         if (_isInitializing) return;
-        string theme = (RadioThemeMinimalHud.IsChecked == true)
-            ? ThemeManager.ThemeMinimalHud
-            : ThemeManager.ThemeFluentLight;
-        ThemeManager.ApplyTheme(theme);
+        ThemeManager.ApplyTheme(ThemeManager.ThemeFluentLight, GetSelectedAccentColor());
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

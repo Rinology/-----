@@ -8,6 +8,14 @@ namespace ChatHelper.UI;
 // 데이터 소스(업무 프로필) 선택 및 동기화 로딩 안내
 public partial class ControlPanelWindow
 {
+    private void BtnToggleUserSheetManager_Click(object sender, RoutedEventArgs e)
+    {
+        if (PanelUserSheetManager == null) return;
+        bool open = PanelUserSheetManager.Visibility != Visibility.Visible;
+        PanelUserSheetManager.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        BtnToggleUserSheetManager.Content = open ? "⚙ 개인 시트 추가/삭제 ▴" : "⚙ 개인 시트 추가/삭제 ▾";
+    }
+
     private void LoadProfiles(string? selectName = null)
     {
         var cfg = _configManager.Config;

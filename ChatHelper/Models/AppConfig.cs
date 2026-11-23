@@ -12,8 +12,9 @@ public class AppConfig
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
-    // UI 테마: FluentLight (기본) / MinimalHud (미니멀 글래스 HUD)
+    // UI 테마: FluentLight (Windows 11 Fluent 라이트 화이트 베이스) + 포인트 컬러
     public string Theme { get; set; } = "FluentLight";
+    public string AccentColor { get; set; } = "Blue"; // Blue(기본), Green, Lavender, Peach, Pink
 
     // 가로형 멀티 추천 바 최대 표시 개수 (3 ~ 10개, 기본 5개)
     public int MaxCandidatesCount { get; set; } = 5;

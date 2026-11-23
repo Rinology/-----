@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChatHelper 제어판" 
-        Height="704" Width="904"
+        Height="760" Width="1160"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         Background="{DynamicResource ThemeBg}"
@@ -34,87 +34,223 @@
             <!-- 2. 탭 컨트롤 (넓고 쾌적한 레이아웃) -->
             <TabControl Grid.Row="1" Margin="14,10,14,6" Background="{DynamicResource ThemeBg}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="13">
                 
-                <!-- 탭 1: 커맨드(템플릿) 입력 및 관리 -->
-                <TabItem Header="📋 커맨드 관리" Padding="16,8">
+                <!-- 탭 1: 커맨드 & 업무 시트 통합 관리 -->
+                <TabItem Header="📋 커맨드 &amp; 시트 관리" Padding="16,8">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- 빠른 검색 필터 -->
-                        <Grid Grid.Row="0" Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="검색 필터:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                            <TextBox x:Name="TxtCmdFilter" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="30"
-                                     ToolTip="단축어, 제목, 본문 내용으로 바로 검색합니다"
-                                     TextChanged="TxtCmdFilter_TextChanged"/>
-                        </Grid>
-
-                        <!-- 데이터 그리드 -->
-                        <DataGrid x:Name="DgTemplates" Grid.Row="1"
-                                  AutoGenerateColumns="False"
-                                  IsReadOnly="True"
-                                  SelectionMode="Single"
-                                  Background="{DynamicResource ThemeSurfaceBg}"
-                                  BorderBrush="{DynamicResource ThemeBorder}"
-                                  RowHeight="30"
-                                  FontSize="13"
-                                  SelectionChanged="DgTemplates_SelectionChanged"
-                                  MouseDoubleClick="DgTemplates_MouseDoubleClick">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="단축어(키워드)" Binding="{Binding Keyword}" Width="130"/>
-                                <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="220"/>
-                                <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="120"/>
-                                <DataGridTextColumn Header="내용 미리보기" Binding="{Binding Content}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <!-- 입력/수정 폼 -->
-                        <Border Grid.Row="2" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1"
-                                Background="{DynamicResource ThemeSurfaceBg}" CornerRadius="6" Padding="14" Margin="0,10,0,10">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="140"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="240"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Text="단축어:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0"/>
-                                <TextBox x:Name="TxtKw" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="34"/>
-
-                                <TextBlock Text="제목:" Grid.Column="2" VerticalAlignment="Center" FontWeight="Bold" Margin="16,0,8,0"/>
-                                <TextBox x:Name="TxtTitle" Grid.Column="3" Style="{DynamicResource ThemeTextBoxStyle}" Height="34"/>
-
-                                <TextBlock Text="카테고리:" Grid.Column="4" VerticalAlignment="Center" FontWeight="Bold" Margin="16,0,8,0"/>
-                                <TextBox x:Name="TxtCat" Grid.Column="5" Style="{DynamicResource ThemeTextBoxStyle}" Height="34"/>
-
-                                <TextBlock Text="본문 내용:" Grid.Row="1" VerticalAlignment="Top" FontWeight="Bold" Margin="0,12,8,0"/>
-                                <TextBox x:Name="TxtContent" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" 
-                                         Style="{DynamicResource ThemeTextBoxStyle}" Height="65" TextWrapping="Wrap" 
-                                         AcceptsReturn="True" Margin="0,10,0,0"/>
-                            </Grid>
+                        <!-- 1행: 업무 프로필 선택 & 개인 시트 토글 바 -->
+                        <Border Grid.Row="0" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="업무 프로필:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0"/>
+                                    <ComboBox x:Name="CmbActivePreset" Grid.Column="1" Width="200" Height="30" VerticalContentAlignment="Center"/>
+                                    <Button x:Name="BtnPresetSwitch" Grid.Column="2" Content="✅ 적용 및 동기화" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,0" Margin="8,0,0,0" Click="BtnPresetSwitch_Click"/>
+                                    <Button x:Name="BtnPresetRefresh" Grid.Column="3" Content="🔄 목록 새로고침" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="10,0" Margin="6,0,0,0" Click="BtnPresetRefresh_Click"/>
+                                    <TextBlock x:Name="LblActiveProfile" Grid.Column="4" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccent}" Margin="12,0,8,0" TextTrimming="CharacterEllipsis"/>
+                                    <Button x:Name="BtnToggleUserSheetManager" Grid.Column="5" Content="⚙ 개인 시트 추가/삭제 ▾" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,0" Click="BtnToggleUserSheetManager_Click"/>
+                                </Grid>
+                                <ProgressBar x:Name="PbarProfileSync" Height="5" IsIndeterminate="True" Visibility="Collapsed" Margin="0,8,0,2"/>
+                                <TextBlock x:Name="TxtProfileSyncStatus" Text="" FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" Visibility="Collapsed"/>
+                            </StackPanel>
                         </Border>
 
-                        <!-- 액션 버튼 (잘림 방지) -->
-                        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="➕ 신규 추가 (시트 반영)" Style="{DynamicResource ThemeButtonStyle}" MinWidth="145" Height="36" Margin="0,0,8,0" Click="BtnAdd_Click"/>
-                            <Button Content="✏️ 수정 적용 (시트 반영)" Style="{DynamicResource ThemeButtonStyle}" MinWidth="145" Height="36" Margin="0,0,8,0" Click="BtnUpdate_Click"/>
-                            <Button Content="🗑️ 선택 삭제 (시트 반영)" Style="{DynamicResource ThemeButtonStyle}" MinWidth="145" Height="36" Margin="0,0,8,0" Click="BtnDelete_Click"/>
-                            <Button Content="🧹 입력란 비우기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="120" Height="36" Click="BtnClearForm_Click"/>
-                        </StackPanel>
+                        <!-- 2행: 접이식 개인 시트 추가/삭제 패널 (서버 저장 vs 로컬 PC 저장) -->
+                        <Border x:Name="PanelUserSheetManager" Grid.Row="1" Visibility="Collapsed"
+                                Background="{DynamicResource ThemePanelBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                            <TabControl Background="Transparent" BorderThickness="0">
+                                <!-- 서브 탭 1: 서버 저장 (GAS 클라우드 · 계정 로밍) -->
+                                <TabItem Header="☁️ 서버 시트 (계정 로밍)" Padding="12,5">
+                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,6,0,0">
+                                        <StackPanel>
+                                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,0,8">
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,2">
+                                                        <TextBlock Text="1) 공유 안내: 구글 시트 우측 상단 [공유]에서 " FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                        <TextBox Text="taerin@qualisports.kr" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="Bold" FontSize="11.5" Foreground="#1D4ED8" VerticalAlignment="Center" Padding="2,0"/>
+                                                        <TextBlock Text=" 을(를) 편집자로 추가하세요." FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                        <Button Content="복사" Padding="6,1" Margin="6,0,0,0" FontSize="10.5" Cursor="Hand" Click="BtnCopyGasEmail_Click"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="2) 필수 1행 헤더 컬럼:  keyword  |  contentKeyword  |  title  |  content  |  category" FontSize="11.5" FontWeight="SemiBold" Foreground="#1E40AF"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="150"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="115"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="6"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="TxtGasProfileName" Grid.Column="0" Height="28" Padding="6,4" ToolTip="시트 이름 (예: 내 팀 시트)"/>
+                                                <TextBox x:Name="TxtGasProfileUrl" Grid.Column="2" Height="28" Padding="6,4" ToolTip="구글 시트 편집 URL"/>
+                                                <TextBox x:Name="TxtGasProfileTab" Grid.Column="4" Height="28" Padding="6,4" Text="채팅템플릿" ToolTip="시트 하단 탭 이름"/>
+                                                <Button x:Name="BtnAddGasProfile" Grid.Column="6" Content="☁️ 추가" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="12,0" Click="BtnAddGasProfile_Click"/>
+                                                <Button x:Name="BtnDeleteGasProfile" Grid.Column="8" Content="🗑 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="10,0" Click="BtnDeleteGasProfile_Click"/>
+                                            </Grid>
+
+                                            <ProgressBar x:Name="PbarGasProfile" Height="5" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,4"/>
+                                            <TextBlock x:Name="TxtGasProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,4"/>
+                                            <ListBox x:Name="LstGasUserProfiles" Height="72" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="11.5"/>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+
+                                <!-- 서브 탭 2: 로컬 PC 저장 (구글 시트 없이 이 PC에서만 바로 입력/사용) -->
+                                <TabItem Header="💻 로컬 PC 시트 (이 PC 전용)" Padding="12,5">
+                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,6,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="구글 시트 연결 없이 이 PC에서만 쓰는 나만의 문구 목록입니다. 목록 이름만 추가한 뒤 우측 커맨드 편집기에서 단축어와 답변을 바로 입력하세요." FontSize="11.5" Foreground="#334155" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="8"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="6"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox x:Name="TxtLocalProfileName" Grid.Column="0" Height="28" Padding="8,4" ToolTip="목록 이름 (예: 내 개인 문구)"/>
+                                                <Button x:Name="BtnAddLocalProfile" Grid.Column="2" Content="💻 내 PC 목록 추가 및 사용" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="12,0" Click="BtnAddLocalProfile_Click"/>
+                                                <Button x:Name="BtnDeleteLocalProfile" Grid.Column="4" Content="🗑 선택 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="10,0" Click="BtnDeleteLocalProfile_Click"/>
+                                            </Grid>
+
+                                            <TextBlock x:Name="TxtLocalProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,4"/>
+                                            <ListBox x:Name="LstLocalUserProfiles" Height="72" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="11.5"/>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+                            </TabControl>
+                        </Border>
+
+                        <!-- 3행: 좌측(목록) ↔ 우측(긴 본문 상세 편집기) 2단 분할 -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.15*" MinWidth="420"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="0.85*" MinWidth="360"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 좌측: 검색 필터 + DataGrid -->
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="검색 필터:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                                    <TextBox x:Name="TxtCmdFilter" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="30"
+                                             ToolTip="단축어, 제목, 본문 내용으로 바로 검색합니다"
+                                             TextChanged="TxtCmdFilter_TextChanged"/>
+                                </Grid>
+
+                                <DataGrid x:Name="DgTemplates" Grid.Row="1"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          SelectionMode="Single"
+                                          Background="{DynamicResource ThemeSurfaceBg}"
+                                          BorderBrush="{DynamicResource ThemeBorder}"
+                                          RowHeight="30"
+                                          FontSize="12.5"
+                                          SelectionChanged="DgTemplates_SelectionChanged"
+                                          MouseDoubleClick="DgTemplates_MouseDoubleClick">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="단축어" Binding="{Binding Keyword}" Width="105"/>
+                                        <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="170"/>
+                                        <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="90"/>
+                                        <DataGridTextColumn Header="내용 미리보기" Binding="{Binding Content}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+
+                            <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent" Cursor="SizeWE"/>
+
+                            <!-- 우측: 긴 본문 전용 상세 보기/편집기 (남은 세로 공간 전체 + 자동 스크롤) -->
+                            <Border Grid.Column="2" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1"
+                                    Background="{DynamicResource ThemeSurfaceBg}" CornerRadius="6" Padding="14">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="선택 항목 상세 보기 / 편집" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,10"/>
+
+                                    <Grid Grid.Row="1" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="단축어 (키워드)" FontSize="11.5" FontWeight="Bold" Margin="0,0,0,3"/>
+                                            <TextBox x:Name="TxtKw" Style="{DynamicResource ThemeTextBoxStyle}" Height="32"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="카테고리" FontSize="11.5" FontWeight="Bold" Margin="0,0,0,3"/>
+                                            <TextBox x:Name="TxtCat" Style="{DynamicResource ThemeTextBoxStyle}" Height="32"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                                        <TextBlock Text="제목" FontSize="11.5" FontWeight="Bold" Margin="0,0,0,3"/>
+                                        <TextBox x:Name="TxtTitle" Style="{DynamicResource ThemeTextBoxStyle}" Height="32"/>
+                                    </StackPanel>
+
+                                    <Grid Grid.Row="3" Margin="0,0,0,10">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0" Margin="0,0,0,4">
+                                            <TextBlock Text="본문 내용 (길면 자동 스크롤 생성)" FontSize="11.5" FontWeight="Bold"/>
+                                            <TextBlock x:Name="TxtContentLength" Text="0자" FontSize="11" Foreground="{DynamicResource ThemeSubText}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <TextBox x:Name="TxtContent" Grid.Row="1"
+                                                 Style="{DynamicResource ThemeTextBoxStyle}"
+                                                 VerticalContentAlignment="Top"
+                                                 Padding="8"
+                                                 FontSize="13"
+                                                 TextWrapping="Wrap"
+                                                 AcceptsReturn="True"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 TextChanged="TxtContent_TextChanged"/>
+                                    </Grid>
+
+                                    <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
+                                        <Button Content="➕ 신규 추가" Style="{DynamicResource ThemeButtonStyle}" MinWidth="95" Height="34" Margin="0,0,6,4" Click="BtnAdd_Click"/>
+                                        <Button Content="✏️ 수정 적용" Style="{DynamicResource ThemeButtonStyle}" MinWidth="95" Height="34" Margin="0,0,6,4" Click="BtnUpdate_Click"/>
+                                        <Button Content="🗑️ 선택 삭제" Style="{DynamicResource ThemeButtonStyle}" MinWidth="95" Height="34" Margin="0,0,6,4" Click="BtnDelete_Click"/>
+                                        <Button Content="🧹 비우기" Style="{DynamicResource ThemeButtonStyle}" MinWidth="78" Height="34" Margin="0,0,0,4" Click="BtnClearForm_Click"/>
+                                    </WrapPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </TabItem>
 
@@ -199,13 +335,18 @@
                 <TabItem Header="디자인 &amp; 표시" Padding="16,8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="16">
-                            <!-- UI 테마 선택 (Fluent 라이트 기본 / 미니멀 HUD 선택) -->
+                            <!-- UI 테마 포인트 컬러 선택 (Windows 11 Fluent 라이트 화이트 베이스) -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
                                 <StackPanel>
-                                    <TextBlock Text="0. UI 테마 스타일" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="원하는 디자인 스타일을 선택하면 즉시 미리보기로 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
-                                    <RadioButton x:Name="RadioThemeFluentLight" GroupName="UiThemeGroup" Content="Windows 11 Fluent 라이트 (기본 권장 — 깔끔한 밝은 카드 스타일)" Margin="8,5" IsChecked="True" Checked="RadioTheme_Checked"/>
-                                    <RadioButton x:Name="RadioThemeMinimalHud" GroupName="UiThemeGroup" Content="미니멀 글래스 HUD (반투명 슬레이트 · 절제된 미니멀 스타일)" Margin="8,5" Checked="RadioTheme_Checked"/>
+                                    <TextBlock Text="0. UI 포인트 컬러 (Windows 11 Fluent 라이트)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock Text="깔끔한 화이트 베이스 위에 원하는 파스텔/포인트 컬러를 선택하면 즉시 미리보기로 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="RadioAccentBlue" GroupName="UiAccentGroup" Content="🔵 화이트 &amp; 블루 (기본)" Margin="8,5,16,5" IsChecked="True" Checked="RadioAccent_Checked"/>
+                                        <RadioButton x:Name="RadioAccentGreen" GroupName="UiAccentGroup" Content="🟢 화이트 &amp; 민트 그린" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
+                                        <RadioButton x:Name="RadioAccentLavender" GroupName="UiAccentGroup" Content="🟣 화이트 &amp; 라벤더" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
+                                        <RadioButton x:Name="RadioAccentPeach" GroupName="UiAccentGroup" Content="🟠 화이트 &amp; 코랄 피치" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
+                                        <RadioButton x:Name="RadioAccentPink" GroupName="UiAccentGroup" Content="🩷 화이트 &amp; 로즈 핑크" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
+                                    </WrapPanel>
                                 </StackPanel>
                             </Border>
 
@@ -352,115 +493,6 @@
                                     <Button Content="👤 다른 사용자로 다시 로그온..." Style="{DynamicResource ThemeButtonStyle}" MinWidth="200" Height="34" HorizontalAlignment="Left" Click="BtnRelogin_Click"/>
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </TabItem>
-
-                <!-- 탭: 데이터 소스(업무 프로필) -->
-                <TabItem Header="🗂 데이터 소스" Padding="16,8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="16">
-                            <TextBlock Text="업무별 데이터 소스(스프레드시트) 선택" FontWeight="Bold" FontSize="15" Margin="0,0,0,6"/>
-                            <TextBlock Text="상황에 맞는 업무 프로필을 고르면 해당 키워드·용어집·톤앤매너가 적용되며, 새로 등록하는 키워드도 그 시트에 저장됩니다. (메인 상태창에서도 바로 바꿀 수 있습니다)" Foreground="{DynamicResource ThemeSubText}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                            <TextBlock x:Name="LblActiveProfile" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,12"/>
-
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,12">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="업무 프로필:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                                        <ComboBox x:Name="CmbActivePreset" Width="220" Height="32" VerticalContentAlignment="Center"/>
-                                        <Button x:Name="BtnPresetSwitch" Content="✅ 적용 및 동기화" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="14,0" Margin="10,0,0,0" Click="BtnPresetSwitch_Click"/>
-                                        <Button x:Name="BtnPresetRefresh" Content="🔄 목록 새로고침" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="10,0" Margin="6,0,0,0" Click="BtnPresetRefresh_Click"/>
-                                    </StackPanel>
-
-                                    <ProgressBar x:Name="PbarProfileSync" Height="8" IsIndeterminate="True" Visibility="Collapsed" Margin="0,12,0,4"/>
-                                    <TextBlock x:Name="TxtProfileSyncStatus" Text="" FontSize="12" Foreground="{DynamicResource ThemeSubText}" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </Border>
-
-                            <TextBlock Text="※ 공용 시트는 관리자가 GAS 시트의 '프로필목록' 탭에 등록하며, 아래 탭에서 내 개인 시트를 서버(계정 로밍) 또는 로컬(이 PC 전용)로 추가할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
-
-                            <!-- 개인 시트 관리 (서버 저장 vs 로컬 PC 저장 별도 탭 분리) -->
-                            <TabControl Background="Transparent" BorderThickness="0">
-                                <!-- 서브 탭 1: 서버 저장 (GAS 클라우드 · 계정 로밍) -->
-                                <TabItem Header="☁️ 서버 시트 (계정 로밍)" Padding="12,6">
-                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,6,0,0">
-                                        <StackPanel>
-                                            <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
-                                                <StackPanel>
-                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,4">
-                                                        <TextBlock Text="1) 공유 안내: 구글 시트 우측 상단 [공유]에서 " FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
-                                                        <TextBox Text="taerin@qualisports.kr" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="Bold" FontSize="11.5" Foreground="#1D4ED8" VerticalAlignment="Center" Padding="2,0"/>
-                                                        <TextBlock Text=" 을(를) 편집자로 추가하세요." FontSize="11.5" FontWeight="SemiBold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
-                                                        <Button Content="복사" Padding="6,1" Margin="6,0,0,0" FontSize="10.5" Cursor="Hand" Click="BtnCopyGasEmail_Click"/>
-                                                    </StackPanel>
-                                                    <TextBlock Text="2) 필수 1행 헤더 컬럼:  keyword  |  contentKeyword  |  title  |  content  |  category" FontSize="11.5" FontWeight="SemiBold" Foreground="#1E40AF"/>
-                                                </StackPanel>
-                                            </Border>
-
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="150"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="115"/>
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Text="시트 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                                    <TextBox x:Name="TxtGasProfileName" Height="28" Padding="6,4"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock Text="구글 시트 URL (편집 주소)" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                                    <TextBox x:Name="TxtGasProfileUrl" Height="28" Padding="6,4"/>
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="4">
-                                                    <TextBlock Text="탭 이름" FontSize="11.5" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                                    <TextBox x:Name="TxtGasProfileTab" Height="28" Padding="6,4" Text="채팅템플릿"/>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                <Button x:Name="BtnAddGasProfile" Content="☁️ 서버에 내 시트 추가" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Margin="0,0,8,0" Click="BtnAddGasProfile_Click"/>
-                                                <Button x:Name="BtnDeleteGasProfile" Content="🗑 선택 시트 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteGasProfile_Click"/>
-                                            </StackPanel>
-
-                                            <ProgressBar x:Name="PbarGasProfile" Height="6" IsIndeterminate="True" Visibility="Collapsed" Margin="0,0,0,4"/>
-                                            <TextBlock x:Name="TxtGasProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,6"/>
-
-                                            <ListBox x:Name="LstGasUserProfiles" Height="95" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
-                                        </StackPanel>
-                                    </Border>
-                                </TabItem>
-
-                                <!-- 서브 탭 2: 로컬 PC 저장 (구글 시트 없이 이 PC에서만 바로 입력/사용) -->
-                                <TabItem Header="💻 로컬 PC 시트 (이 PC 전용)" Padding="12,6">
-                                    <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,6,0,0">
-                                        <StackPanel>
-                                            <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,10">
-                                                <TextBlock Text="구글 시트 연결 없이 이 PC에서만 쓰는 나만의 문구 목록입니다. 아래에서 목록 이름만 만든 뒤 [📋 커맨드 관리] 탭에서 단축어와 답변을 바로 추가·수정하세요." FontSize="11.5" Foreground="#334155" TextWrapping="Wrap"/>
-                                            </Border>
-
-                                            <Grid Margin="0,0,0,8">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="8"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox x:Name="TxtLocalProfileName" Grid.Column="0" Height="30" Padding="8,5" ToolTip="예: 내 개인 자주쓰는 문구"/>
-                                                <Button x:Name="BtnAddLocalProfile" Grid.Column="2" Content="💻 내 PC 목록 추가 및 사용" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnAddLocalProfile_Click"/>
-                                                <Button x:Name="BtnDeleteLocalProfile" Grid.Column="4" Content="🗑 선택 삭제" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="14,0" Click="BtnDeleteLocalProfile_Click"/>
-                                            </Grid>
-
-                                            <TextBlock x:Name="TxtLocalProfileStatus" Text="" FontSize="11.5" Visibility="Collapsed" Margin="0,0,0,6"/>
-
-                                            <ListBox x:Name="LstLocalUserProfiles" Height="110" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" FontSize="12"/>
-                                        </StackPanel>
-                                    </Border>
-                                </TabItem>
-                            </TabControl>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

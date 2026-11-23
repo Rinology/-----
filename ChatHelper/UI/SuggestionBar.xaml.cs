@@ -647,7 +647,8 @@ public partial class SuggestionBar : Window
         double w = MainBorder.DesiredSize.Width > 0 ? MainBorder.DesiredSize.Width : (ActualWidth > 0 ? ActualWidth : 320);
         double h = MainBorder.DesiredSize.Height > 0 ? MainBorder.DesiredSize.Height : (ActualHeight > 0 ? ActualHeight : 42);
 
-        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        Win32Api.SetWindowAlpha(this, winAlpha);
 
         string placement = _configManager.Config.PillPlacement ?? "CursorNearby";
         int offsetY = _configManager.Config.PillOffsetY;

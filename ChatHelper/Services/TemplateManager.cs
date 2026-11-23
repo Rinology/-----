@@ -15,6 +15,7 @@ public class TemplateManager
     private readonly HttpClient _httpClient = HttpService.ExternalClient;
 
     public List<TemplateItem> Templates { get; private set; } = new();
+    public event Action? TemplatesSynced;
 
     public TemplateManager(ConfigManager configManager)
     {
@@ -191,6 +192,7 @@ public class TemplateManager
             {
                 AppLogger.Warn("TemplateManager", "로컬 전용 목록 로드 실패", ex);
             }
+            TemplatesSynced?.Invoke();
             return (true, $"내 PC 목록({DataSourceResolver.ActiveName}) {Templates.Count}개 불러옴");
         }
 
@@ -223,6 +225,7 @@ public class TemplateManager
                 }
 
                 var count = ParseTemplatesFromCsv(response);
+                TemplatesSynced?.Invoke();
 
                 return (true, $"동기화 성공! {count}개 템플릿을 불러왔습니다.");
             }

@@ -42,7 +42,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _configManager = new ConfigManager();
-        ThemeManager.ApplyTheme(_configManager.Config.Theme);
+        ThemeManager.ApplyTheme(_configManager.Config.Theme, _configManager.Config.AccentColor);
         _templateManager = new TemplateManager(_configManager);
         _glossaryService = new GlossaryService(_configManager);
         _authService = new AuthService(_configManager);
@@ -106,7 +106,8 @@ public partial class MainWindow : Window
         catch { }
 
         var workArea = SystemParameters.WorkArea;
-        Left = workArea.Right - Width - 16;
+        // 메인 모니터 중앙 하단 배치 (우측 하단 시스템 알림과 겹침 방지)
+        Left = workArea.Left + (workArea.Width - Width) / 2.0;
         Top = workArea.Bottom - Height - 16;
 
         InitTrayService();
@@ -315,8 +316,9 @@ public partial class MainWindow : Window
 
         bool isEnabled = _configManager.Config.IsEnabled;
 
-        // 활성 상태 프로그램창 투명도 적용 (바탕화면 은은하게 비침)
-        Opacity = Math.Clamp(_configManager.Config.StatusWindowOpacity, AppConstants.MinStatusWindowOpacity, AppConstants.MaxStatusWindowOpacity);
+        // 활성 상태 프로그램창 투명도 적용 (Win32 LWA_ALPHA로 바탕화면·뒤 창이 실제로 은은하게 비침)
+        double stAlpha = Math.Clamp(_configManager.Config.StatusWindowOpacity, AppConstants.MinStatusWindowOpacity, AppConstants.MaxStatusWindowOpacity);
+        Win32Api.SetWindowAlpha(this, stAlpha);
 
         if (isEnabled)
         {

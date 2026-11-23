@@ -115,7 +115,8 @@ public partial class QuickSearchWindow : Window
         BuildCategoryChips();
         UpdateList();
 
-        Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        Win32Api.SetWindowAlpha(this, winAlpha);
 
         Show();
         WindowState = WindowState.Normal;

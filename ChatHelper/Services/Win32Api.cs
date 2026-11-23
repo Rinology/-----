@@ -547,6 +547,47 @@ public static class Win32Api
     [DllImport("user32.dll")]
     public static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    public const int WS_EX_LAYERED = 0x00080000;
+    public const uint LWA_ALPHA = 0x00000002;
+
+    /// <summary>
+    /// AllowsTransparency=False 상태에서도 Win32 LWA_ALPHA로 뒤 창이 실제로 비치는 진짜 반투명을 적용합니다.
+    /// (WPF UpdateLayeredWindow를 쓰지 않아 DWM 마우스 스터터가 발생하지 않습니다.)
+    /// </summary>
+    public static void SetWindowAlpha(System.Windows.Window win, double opacity)
+    {
+        if (win == null) return;
+        try
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            double clamped = Math.Clamp(opacity, 0.25, 1.0);
+            int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            if (clamped >= 0.99)
+            {
+                if ((exStyle & WS_EX_LAYERED) != 0)
+                {
+                    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_LAYERED);
+                }
+            }
+            else
+            {
+                if ((exStyle & WS_EX_LAYERED) == 0)
+                {
+                    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
+                }
+                byte alpha = (byte)Math.Round(clamped * 255.0);
+                SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+            }
+        }
+        catch { }
+    }
+
     [DllImport("dwmapi.dll", PreserveSig = true)]
     public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
