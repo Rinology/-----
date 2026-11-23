@@ -30,8 +30,8 @@ public partial class ControlPanelWindow : Window
         InitializeComponent();
 
         var work = SystemParameters.WorkArea;
-        Width = Math.Min(1160, Math.Max(920, work.Width * 0.94));
-        Height = Math.Min(760, Math.Max(620, work.Height * 0.92));
+        Width = Math.Min(1320, Math.Max(980, work.Width * 0.94));
+        Height = Math.Min(840, Math.Max(660, work.Height * 0.92));
 
         try
         {
@@ -49,6 +49,7 @@ public partial class ControlPanelWindow : Window
         LoadData();
         LoadProfiles();
         _isInitializing = false;
+        UpdateDesignPreview();
     }
 
     private void OnTemplatesSynced()
@@ -92,10 +93,10 @@ public partial class ControlPanelWindow : Window
 
         if (cfg.CompleteKeyMode == "SlashOnly")
             RadioSlashOnly.IsChecked = true;
-        else if (cfg.CompleteKeyMode == "ShiftSpace")
-            RadioShiftSpace.IsChecked = true;
-        else
+        else if (cfg.CompleteKeyMode == "SlashTab")
             RadioSlashTab.IsChecked = true;
+        else
+            RadioShiftSpace.IsChecked = true;
 
         // 3. UI 포인트 컬러 및 알약 크기 설정 로드
         switch ((cfg.AccentColor ?? "Blue").Trim())
@@ -162,6 +163,8 @@ public partial class ControlPanelWindow : Window
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
         ChkEnableMathCalc.IsChecked = cfg.EnableMathCalc;
         ChkEnableTranslation.IsChecked = cfg.EnableKoToEnTranslation;
+        if (ChkLogoutOnExit != null)
+            ChkLogoutOnExit.IsChecked = cfg.LogoutOnExit;
 
         int hideSec = Math.Clamp(cfg.AutoHideSeconds, AppConstants.MinAutoHideSeconds, AppConstants.MaxAutoHideSeconds);
         foreach (System.Windows.Controls.ComboBoxItem item in CmbAutoHideSeconds.Items)
@@ -356,12 +359,15 @@ public partial class ControlPanelWindow : Window
             RadioModeInline.IsChecked = true;
             RadioModeHorizontal.IsEnabled = false;
             if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = false;
+            if (ChkNumbers != null) ChkNumbers.IsEnabled = false;
             if (TxtSlashOnlyNotice != null) TxtSlashOnlyNotice.Visibility = Visibility.Visible;
         }
         else
         {
             RadioModeHorizontal.IsEnabled = true;
-            if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = true;
+            bool isMulti = RadioModeHorizontal.IsChecked == true;
+            if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = isMulti;
+            if (ChkNumbers != null) ChkNumbers.IsEnabled = isMulti;
             if (TxtSlashOnlyNotice != null) TxtSlashOnlyNotice.Visibility = Visibility.Collapsed;
         }
     }
@@ -491,6 +497,10 @@ public partial class ControlPanelWindow : Window
         }
 
         cfg.QuickSaveWithoutDialog = ChkQuickSaveWithoutDialog.IsChecked == true;
+        if (ChkLogoutOnExit != null)
+        {
+            cfg.LogoutOnExit = ChkLogoutOnExit.IsChecked == true;
+        }
 
         _configManager.Save();
         SettingsChanged?.Invoke();
@@ -510,6 +520,104 @@ public partial class ControlPanelWindow : Window
     {
         if (_isInitializing) return;
         ThemeManager.ApplyTheme(ThemeManager.ThemeFluentLight, GetSelectedAccentColor());
+        UpdateDesignPreview();
+    }
+
+    private void DesignOption_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing) return;
+        UpdateSlashOnlyLock();
+        UpdateDesignPreview();
+    }
+
+    private void UpdateDesignPreview()
+    {
+        if (PreviewPillBorder == null || PreviewPillItemsPanel == null || PreviewDockBorder == null) return;
+
+        var (accentHex, _, softHex) = ThemeManager.GetAccentPalette(GetSelectedAccentColor());
+        var accentBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentHex));
+        var softBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(softHex));
+
+        double pillAlpha = RadioOpacity70?.IsChecked == true ? 0.70
+            : RadioOpacity80?.IsChecked == true ? 0.80
+            : RadioOpacity90?.IsChecked == true ? 0.90 : 1.0;
+
+        double statusAlpha = RadioStatusOpacity45?.IsChecked == true ? 0.45
+            : RadioStatusOpacity65?.IsChecked == true ? 0.65
+            : RadioStatusOpacity85?.IsChecked == true ? 0.85 : 1.0;
+
+        PreviewPillBorder.Opacity = pillAlpha;
+        PreviewPillBorder.BorderBrush = accentBrush;
+        PreviewDockBorder.Opacity = statusAlpha;
+
+        // 실제 메인 마스터창에도 투명도 실시간 미리보기 반영
+        if (Application.Current?.MainWindow != null)
+        {
+            Win32Api.SetWindowAlpha(Application.Current.MainWindow, statusAlpha);
+        }
+
+        int scale = RadioPillScale1?.IsChecked == true ? 1 : (RadioPillScale3?.IsChecked == true ? 3 : 2);
+        double chipFont = scale switch { 1 => 11, 3 => 15.5, _ => 13 };
+        Thickness chipPad = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 6, 12, 6), _ => new Thickness(9, 4, 9, 4) };
+
+        PreviewPillItemsPanel.Children.Clear();
+        bool isManual = RadioModeManual?.IsChecked == true;
+        bool isMulti = RadioModeHorizontal?.IsChecked == true;
+        bool useNum = ChkNumbers?.IsChecked == true;
+
+        if (isManual)
+        {
+            PreviewPillItemsPanel.Children.Add(new TextBlock
+            {
+                Text = "수동 검색 전용 모드 (타이핑 중 자동 알약 미표시 · Alt+Q 사용)",
+                FontSize = 11.5,
+                Foreground = Brushes.DimGray
+            });
+        }
+        else if (!isMulti)
+        {
+            var badge = new Border { Background = accentBrush, CornerRadius = new CornerRadius(5), Padding = chipPad, Margin = new Thickness(0, 0, 6, 0) };
+            badge.Child = new TextBlock { Text = "[Shift+Space] 배송안내 — 오늘 출고됩니다.", Foreground = Brushes.White, FontSize = chipFont, FontWeight = FontWeights.SemiBold };
+            PreviewPillItemsPanel.Children.Add(badge);
+        }
+        else
+        {
+            int count = (CmbMaxCandidates?.SelectedIndex >= 0) ? Math.Min(4, CmbMaxCandidates.SelectedIndex + 3) : 3;
+            string[] samples = { "배송안내", "출고일정", "송장조회", "배송지변경" };
+            for (int i = 0; i < count; i++)
+            {
+                string keyHint = i == 0 ? "Shift+Space" : (useNum ? $"\\+{i + 1}" : $"후보{i + 1}");
+                var chip = new Border
+                {
+                    Background = i == 0 ? accentBrush : softBrush,
+                    BorderBrush = accentBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(5),
+                    Padding = chipPad,
+                    Margin = new Thickness(0, 0, 6, 4)
+                };
+                chip.Child = new TextBlock
+                {
+                    Text = $"[{keyHint}] {samples[i % samples.Length]}",
+                    Foreground = i == 0 ? Brushes.White : Brushes.Black,
+                    FontSize = chipFont - 1,
+                    FontWeight = i == 0 ? FontWeights.SemiBold : FontWeights.Normal
+                };
+                PreviewPillItemsPanel.Children.Add(chip);
+            }
+        }
+
+        string posDesc = RadioPosFixed?.IsChecked == true ? "모니터 우측 하단 고정"
+            : RadioPosMouse?.IsChecked == true ? "마우스 포인터 옆 표시"
+            : RadioPosFar?.IsChecked == true ? "채팅 커서 기준 원거리 (+65px)"
+            : RadioPosNearby1?.IsChecked == true ? "채팅 커서 밀착 (+15px)"
+            : "채팅 커서 기준 (+35px 권장)";
+
+        if (PreviewLocationText != null)
+            PreviewLocationText.Text = $"표시 위치 ➔ [{posDesc}]";
+
+        if (PreviewSummaryText != null)
+            PreviewSummaryText.Text = $"현재 미리보기: 알약 투명도 {(int)(pillAlpha * 100)}% · 마스터창 투명도 {(int)(statusAlpha * 100)}% · 크기 {scale}단계 · {posDesc}";
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

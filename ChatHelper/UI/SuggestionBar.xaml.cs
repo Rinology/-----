@@ -159,6 +159,8 @@ public partial class SuggestionBar : Window
         int exStyle = Win32Api.GetWindowLong(helper.Handle, Win32Api.GWL_EXSTYLE);
         Win32Api.SetWindowLong(helper.Handle, Win32Api.GWL_EXSTYLE,
             exStyle | Win32Api.WS_EX_NOACTIVATE | Win32Api.WS_EX_TOOLWINDOW | Win32Api.WS_EX_TOPMOST);
+        double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        Win32Api.SetWindowAlpha(this, winAlpha);
     }
 
     public void ShowCandidates(List<TemplateItem> candidates, int matchedLen, IntPtr targetHwnd)
@@ -671,6 +673,7 @@ public partial class SuggestionBar : Window
         Left = adjLeft;
         Top = adjTop;
         Show();
+        Win32Api.SetWindowAlpha(this, winAlpha);
     }
 
     private void SelectItem(TemplateItem item)

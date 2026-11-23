@@ -556,34 +556,26 @@ public static class Win32Api
 
     /// <summary>
     /// AllowsTransparency=False 상태에서도 Win32 LWA_ALPHA로 뒤 창이 실제로 비치는 진짜 반투명을 적용합니다.
-    /// (WPF UpdateLayeredWindow를 쓰지 않아 DWM 마우스 스터터가 발생하지 않습니다.)
+    /// EnsureHandle()로 Show() 이전 호출 시에도 핸들을 보장하며, WS_EX_LAYERED를 유지한 채 알파값(64~255)만 갱신해
+    /// 동적 스타일 토글로 인한 미적용/깜빡임 및 DWM 마우스 스터터를 원천 차단합니다.
     /// </summary>
     public static void SetWindowAlpha(System.Windows.Window win, double opacity)
     {
         if (win == null) return;
         try
         {
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+            var helper = new System.Windows.Interop.WindowInteropHelper(win);
+            var hwnd = helper.Handle == IntPtr.Zero ? helper.EnsureHandle() : helper.Handle;
             if (hwnd == IntPtr.Zero) return;
 
             double clamped = Math.Clamp(opacity, 0.25, 1.0);
             int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-            if (clamped >= 0.99)
+            if ((exStyle & WS_EX_LAYERED) == 0)
             {
-                if ((exStyle & WS_EX_LAYERED) != 0)
-                {
-                    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle & ~WS_EX_LAYERED);
-                }
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
             }
-            else
-            {
-                if ((exStyle & WS_EX_LAYERED) == 0)
-                {
-                    SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED);
-                }
-                byte alpha = (byte)Math.Round(clamped * 255.0);
-                SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
-            }
+            byte alpha = (byte)Math.Clamp((int)Math.Round(clamped * 255.0), 64, 255);
+            SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
         }
         catch { }
     }

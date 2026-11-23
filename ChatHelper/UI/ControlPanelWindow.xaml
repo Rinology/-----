@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChatHelper 제어판" 
-        Height="760" Width="1160"
+        Height="840" Width="1320"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         Background="{DynamicResource ThemeBg}"
@@ -19,6 +19,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="42"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="52"/>
             </Grid.RowDefinitions>
@@ -31,8 +32,39 @@
                 </Grid>
             </Border>
 
-            <!-- 2. 탭 컨트롤 (넓고 쾌적한 레이아웃) -->
-            <TabControl Grid.Row="1" Margin="14,10,14,6" Background="{DynamicResource ThemeBg}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="13">
+            <!-- 1.5. 상단 통합 헤더: 로그인 계정 · 종료 시 로그아웃 체크 · 시트 자동 갱신 주기 (기존 동기화&계정 탭 통합) -->
+            <Border Grid.Row="1" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="14,10,14,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="LblCurrentUserInfo" Grid.Column="0" Text="로그인 정보 로드 중..." FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <CheckBox x:Name="ChkLogoutOnExit" Grid.Column="1" Content="종료 시 로그아웃 (다음 실행 시 아이디 새로 입력)" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Grid.Column="2" Content="다른 계정 로그온" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="10,0" Click="BtnRelogin_Click"/>
+
+                    <TextBlock Grid.Column="4" Text="시트 자동 갱신 주기:" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="CmbAutoSyncInterval" Grid.Column="5" Width="175" Height="28" VerticalContentAlignment="Center" FontSize="12" Margin="0,0,8,0">
+                        <ComboBoxItem Content="5분마다 자동 갱신" Tag="5"/>
+                        <ComboBoxItem Content="10분마다 자동 갱신" Tag="10"/>
+                        <ComboBoxItem Content="15분마다 자동 갱신 (권장)" Tag="15"/>
+                        <ComboBoxItem Content="30분마다 자동 갱신" Tag="30"/>
+                        <ComboBoxItem Content="60분(1시간)마다 갱신" Tag="60"/>
+                        <ComboBoxItem Content="자동 갱신 사용 안 함 (수동)" Tag="0"/>
+                    </ComboBox>
+                    <Button Grid.Column="6" Content="🔄 지금 동기화" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="12,0" Click="BtnSyncAll_Click"/>
+                    <CheckBox x:Name="ChkQuickSaveWithoutDialog" Visibility="Collapsed"/>
+                </Grid>
+            </Border>
+
+            <!-- 2. 탭 컨트롤 (3개 핵심 탭: 커맨드 & 시트 관리 / 단축키 & 기능 / 디자인 & 표시) -->
+            <TabControl Grid.Row="2" Margin="14,10,14,6" Background="{DynamicResource ThemeBg}" BorderBrush="{DynamicResource ThemeBorder}" FontSize="13">
                 
                 <!-- 탭 1: 커맨드 & 업무 시트 통합 관리 -->
                 <TabItem Header="📋 커맨드 &amp; 시트 관리" Padding="16,8">
@@ -254,36 +286,36 @@
                     </Grid>
                 </TabItem>
 
-                <!-- 탭 2: 단축키 & 충돌 경고 -->
-                <TabItem Header="⌨️ 단축키 설정" Padding="16,8">
+                <!-- 탭 2: 단축키 & 보조 기능 -->
+                <TabItem Header="⌨️ 단축키 &amp; 기능" Padding="16,8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="16">
                             <!-- 카드 1: 수동 팝업 단축키 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
                                 <StackPanel>
-                                    <TextBlock Text="1. 수동 검색 팝업 단축키 (Alt+Q)" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <TextBlock Text="수동 검색 팝업 단축키 (기본: Alt+Q)" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="150"/>
                                             <ColumnDefinition Width="160"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="전역 호출 단축키:" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                         <TextBox x:Name="TxtGlobalHotkey" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" FontSize="14" TextChanged="TxtGlobalHotkey_TextChanged"/>
-                                        <TextBlock x:Name="LblHotkeyWarning" Grid.Column="2" Text="" FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="LblHotkeyWarning" Grid.Column="2" Text="" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
                                     </Grid>
-                                    <TextBlock Text="• 언제 어디서든 이 키를 누르면 템플릿 검색창이 즉시 열리며 키보드 방향키와 Enter로 바로 입력됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
+                                    <TextBlock Text="• 언제 어디서든 이 키를 누르면 템플릿 검색창이 즉시 열리며, 변경 시 내부 단축키(Alt+X/T) 및 Windows 충돌을 실시간으로 검사합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                                 </StackPanel>
                             </Border>
 
-                            <!-- 카드 2: 자동완성 완성 키 모드 (겹침 버그 완전 해결) -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                            <!-- 카드 2: 자동완성 완성 키 모드 (Shift + Space 기본 권장) -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
                                 <StackPanel>
-                                    <TextBlock Text="2. 자동완성 추천 알약 완성 방식" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <TextBlock Text="자동완성 추천 알약 완성 트리거" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
 
-                                    <Grid Margin="0,0,0,14">
+                                    <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="150"/>
                                             <ColumnDefinition Width="160"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
@@ -292,14 +324,23 @@
                                         <TextBlock Grid.Column="2" Text="(한국어 키보드 원화 기호 ₩ 포함)" Foreground="{DynamicResource ThemeSubText}" FontSize="12" VerticalAlignment="Center" Margin="14,0,0,0"/>
                                     </Grid>
 
-                                    <TextBlock Text="완성 트리거 키 조합 선택:" FontWeight="SemiBold" Margin="0,6,0,8"/>
-                                    
-                                    <RadioButton x:Name="RadioSlashTab" Margin="8,6" IsChecked="True" Checked="CompleteKeyMode_Changed">
+                                    <TextBlock Text="완성 트리거 키 조합 선택:" FontWeight="SemiBold" Margin="0,4,0,8"/>
+
+                                    <RadioButton x:Name="RadioShiftSpace" Margin="8,6" IsChecked="True" Checked="CompleteKeyMode_Changed">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
+                                                <TextBlock Text="[ Shift + Space ]" Foreground="White" FontWeight="Bold"/>
+                                            </Border>
+                                            <TextBlock Text="추천 알약이 떴을 때 Shift와 스페이스바를 함께 누르면 완성 (가장 안정적인 기본 권장 모드)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </RadioButton>
+
+                                    <RadioButton x:Name="RadioSlashTab" Margin="8,6" Checked="CompleteKeyMode_Changed">
                                         <StackPanel Orientation="Horizontal">
                                             <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
                                                 <TextBlock Text="[ ₩ / \ ] + [ Tab ]" Foreground="White" FontWeight="Bold"/>
                                             </Border>
-                                            <TextBlock Text="추천 알약이 떴을 때 \와 Tab을 누르면 완성 (일반 Tab 기능 방해 없는 권장 모드)" VerticalAlignment="Center"/>
+                                            <TextBlock Text="추천 알약이 떴을 때 \와 Tab을 누르면 완성" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </RadioButton>
 
@@ -314,193 +355,234 @@
                                             <TextBlock x:Name="TxtSlashOnlyNotice" Text="※ '\' 단독 즉시 실행 모드에서는 1번 항목이 즉시 치환되므로 추천 알약 형태가 [단일 알약 툴팁]으로 자동 고정됩니다." Foreground="#B45309" FontWeight="SemiBold" FontSize="12" Margin="30,4,0,0" Visibility="Collapsed"/>
                                         </StackPanel>
                                     </RadioButton>
+                                </StackPanel>
+                            </Border>
 
-                                    <RadioButton x:Name="RadioShiftSpace" Margin="8,6" Checked="CompleteKeyMode_Changed">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
-                                                <TextBlock Text="[ Shift + Space ]" Foreground="White" FontWeight="Bold"/>
+                            <!-- 카드 3: 편의 보조 기능 (기존 디자인 탭에서 이동) -->
+                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="실시간 계산 및 드래그 영문 번역 기능" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <CheckBox x:Name="ChkEnableMathCalc" Content="🧮 사칙연산 자동 계산 기능 사용 (예: 5 * 10 = 입력 시 50 즉시 추천)" Margin="8,4,0,8" IsChecked="True" FontWeight="SemiBold"/>
+                                    <CheckBox x:Name="ChkEnableTranslation" Content="🌐 드래그 선택 Google 영문 번역 사용 (문장 드래그 후 Alt+T 입력 시 원문 ↔ 영문 비교 카드 표시)" Margin="8,4,0,2" IsChecked="False" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 탭 3: 디자인 & 표시 (좌측 설정 ↔ 우측 실시간 예시 화면 2단 구성) -->
+                <TabItem Header="🎨 디자인 &amp; 표시" Padding="16,8">
+                    <Grid Margin="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.2*"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="0.8*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 좌측: 직관적인 디자인 설정 카드들 (어색한 0~6 번호 제거) -->
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                            <StackPanel>
+                                <!-- 포인트 컬러 (실제 컬러 원형 스와치 표시) -->
+                                <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="UI 포인트 컬러 (Windows 11 Fluent 라이트)" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,4"/>
+                                        <TextBlock Text="화이트 베이스 위에 적용할 포인트 컬러를 선택하세요. 우측 예시 화면과 창에 즉시 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" Margin="0,0,0,10"/>
+                                        <WrapPanel Orientation="Horizontal">
+                                            <RadioButton x:Name="RadioAccentBlue" GroupName="UiAccentGroup" Margin="6,4,16,4" IsChecked="True" Checked="RadioAccent_Checked">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="16" Height="16" Fill="#2563EB" Stroke="#1E40AF" StrokeThickness="1" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="화이트 &amp; 블루 (기본)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="RadioAccentGreen" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="16" Height="16" Fill="#10B981" Stroke="#047857" StrokeThickness="1" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="화이트 &amp; 민트 그린" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="RadioAccentLavender" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="16" Height="16" Fill="#8B5CF6" Stroke="#6D28D9" StrokeThickness="1" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="화이트 &amp; 라벤더" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="RadioAccentPeach" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="16" Height="16" Fill="#F97316" Stroke="#C2410C" StrokeThickness="1" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="화이트 &amp; 코랄 피치" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </RadioButton>
+                                            <RadioButton x:Name="RadioAccentPink" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Ellipse Width="16" Height="16" Fill="#EC4899" Stroke="#BE185D" StrokeThickness="1" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="화이트 &amp; 로즈 핑크" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </RadioButton>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 추천 알약 모양 · 1~9 번호 선택 · 크기 · 자동 숨김 시간 통합 카드 -->
+                                <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="추천 알약(Suggestion Pill) 모양 및 크기" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,8"/>
+
+                                        <RadioButton x:Name="RadioModeInline" GroupName="DisplayModeGroup" Content="단일 스마트 알약 툴팁 (가장 정확도 높은 1개만 간결하게 표시)" Margin="6,4" IsChecked="True" Checked="DesignOption_Changed"/>
+
+                                        <StackPanel Orientation="Horizontal" Margin="6,4">
+                                            <RadioButton x:Name="RadioModeHorizontal" GroupName="DisplayModeGroup" Content="가로형 멀티 추천 바 — 최대 표시 개수:" VerticalAlignment="Center" Checked="DesignOption_Changed"/>
+                                            <ComboBox x:Name="CmbMaxCandidates" Width="72" Height="26" Margin="8,0,6,0" VerticalContentAlignment="Center" SelectionChanged="DesignOption_Changed">
+                                                <ComboBoxItem Content="3개"/>
+                                                <ComboBoxItem Content="4개"/>
+                                                <ComboBoxItem Content="5개" IsSelected="True"/>
+                                                <ComboBoxItem Content="6개"/>
+                                                <ComboBoxItem Content="7개"/>
+                                                <ComboBoxItem Content="8개"/>
+                                                <ComboBoxItem Content="9개"/>
+                                                <ComboBoxItem Content="10개"/>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- 1~9 숫자 키 선택 옵션 (알약 모양 설정 바로 아래로 통합) -->
+                                        <CheckBox x:Name="ChkNumbers" Content="멀티 알약 표시 중 트리거+숫자(1~9) 키로 번호 즉시 선택 허용" Margin="26,2,0,6" IsChecked="True" FontWeight="SemiBold" Checked="DesignOption_Changed" Unchecked="DesignOption_Changed"/>
+
+                                        <RadioButton x:Name="RadioModeManual" GroupName="DisplayModeGroup" Content="자동 알약 끄기 (수동 검색 Alt+Q 전용)" Margin="6,4" Checked="DesignOption_Changed"/>
+
+                                        <Border Height="1" Background="{DynamicResource ThemePanelBorder}" Margin="0,10"/>
+
+                                        <TextBlock Text="알약 글자 및 카드 크기:" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,0,6"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <RadioButton x:Name="RadioPillScale1" Content="보통 (1.0x)" Margin="6,3,16,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale2" Content="크게 (2.0x · 권장)" Margin="6,3,16,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale3" Content="아주 크게 (3.0x)" Margin="6,3,16,3" Checked="DesignOption_Changed"/>
+                                        </WrapPanel>
+
+                                        <StackPanel Orientation="Horizontal" Margin="6,2,0,0">
+                                            <TextBlock Text="추천 알약 자동 숨김 시간:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,10,0"/>
+                                            <ComboBox x:Name="CmbAutoHideSeconds" Width="130" Height="26" VerticalContentAlignment="Center">
+                                                <ComboBoxItem Content="5초" Tag="5"/>
+                                                <ComboBoxItem Content="8초" Tag="8"/>
+                                                <ComboBoxItem Content="12초 (기본)" Tag="12" IsSelected="True"/>
+                                                <ComboBoxItem Content="15초" Tag="15"/>
+                                                <ComboBoxItem Content="20초 (최대)" Tag="20"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 알약 표시 위치 및 간격 -->
+                                <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="추천 알약 표시 위치 및 커서 간격" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,8"/>
+                                        <RadioButton x:Name="RadioPosNearby1" Content="채팅 커서 바로 근처 밀착 (+15px)" Margin="6,4" Checked="DesignOption_Changed"/>
+                                        <RadioButton x:Name="RadioPosNearby2" Content="채팅 커서 기준 넉넉한 간격 (+35px · 기본 권장)" Margin="6,4" IsChecked="True" Checked="DesignOption_Changed"/>
+                                        <RadioButton x:Name="RadioPosFar" Content="채팅창 시야 확보용 원거리 (+65px)" Margin="6,4" Checked="DesignOption_Changed"/>
+                                        <RadioButton x:Name="RadioPosMouse" Content="마우스 포인터 위치 기준 (마우스 커서 옆에 표시)" Margin="6,4" Checked="DesignOption_Changed"/>
+                                        <RadioButton x:Name="RadioPosFixed" Content="모니터 우측 하단 고정 알림 위치" Margin="6,4" Checked="DesignOption_Changed"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 투명도 및 마스터창 표시 -->
+                                <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                    <StackPanel>
+                                        <TextBlock Text="창 투명도 (뒤 창 비침) 및 마스터창 표시" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,8"/>
+
+                                        <TextBlock Text="추천 알약 · 검색창 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <RadioButton x:Name="RadioOpacity100" Content="100% 불투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioOpacity90" Content="90% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioOpacity80" Content="80% 반투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioOpacity70" Content="70% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                        </WrapPanel>
+
+                                        <TextBlock Text="화면 중앙 하단 마스터 도킹 바 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <RadioButton x:Name="RadioStatusOpacity100" Content="100% 불투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioStatusOpacity85" Content="85% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioStatusOpacity65" Content="65% 반투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioStatusOpacity45" Content="45% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                        </WrapPanel>
+
+                                        <CheckBox x:Name="ChkShowStatusWindow" Content="화면 중앙 하단 및 작업표시줄에 마스터 도킹 바 항상 보이기" Margin="6,4,0,2" IsChecked="True" FontWeight="SemiBold"/>
+                                        <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- 우측: 실시간 예시 화면 (Live Preview) -->
+                        <Border Grid.Column="2" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="실시간 예시 화면 (미리보기)" FontWeight="Bold" FontSize="14.5" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,4"/>
+                                <TextBlock Text="좌측 옵션을 변경하면 아래 예시 화면에서 컬러·모양·크기·투명도·위치를 즉시 확인할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <!-- 가상 모니터 배경 캔버스 (투명도 비침 체감용 체크/채팅 배경) -->
+                                <Border Background="#DCE6F2" BorderBrush="#94A3B8" BorderThickness="2" CornerRadius="10" Padding="14" Height="370">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- 뒤편 가상 채팅창 배경 (투명도에 따라 알약 뒤로 비침) -->
+                                        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" Padding="10,7" Margin="0,0,0,8">
+                                            <StackPanel>
+                                                <TextBlock Text="[뒤편 채팅창 화면 예시]" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
+                                                <TextBlock Text="고객: 배송은 언제쯤 출발하나요?" FontSize="12" Foreground="#334155" Margin="0,2,0,2"/>
+                                                <TextBlock x:Name="PreviewLocationText" Text="상담원 입력 커서 위치 ➔ [채팅 커서 기준 +35px]" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccent}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- 중앙: 추천 알약 실시간 프리뷰 -->
+                                        <Grid Grid.Row="1" VerticalAlignment="Center">
+                                            <!-- 뒤편에 깔린 배경 텍스트 (반투명 체감용) -->
+                                            <Border Background="#CBD5E1" CornerRadius="6" Padding="10" Opacity="0.55" VerticalAlignment="Center">
+                                                <TextBlock Text="뒤편 작업창 텍스트가 투명도 설정에 따라 은은하게 비칩니다." FontSize="11.5" Foreground="#1E293B" HorizontalAlignment="Center"/>
                                             </Border>
-                                            <TextBlock Text="Shift와 스페이스바를 함께 누르면 완성" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </RadioButton>
 
-                                    <CheckBox x:Name="ChkNumbers" Content="트리거 활성 상태에서 1~9 숫자 키로 즉시 번호 선택 허용" Margin="8,12,0,0" IsChecked="True" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </TabItem>
+                                            <Border x:Name="PreviewPillBorder"
+                                                    Background="{DynamicResource ThemePillBg}"
+                                                    BorderBrush="{DynamicResource ThemeAccent}"
+                                                    BorderThickness="1.5"
+                                                    CornerRadius="8"
+                                                    Padding="12,8"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                <StackPanel>
+                                                    <TextBlock Text="인식됨: &quot;배송&quot;  (⏱ 12s)" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,5"/>
+                                                    <WrapPanel x:Name="PreviewPillItemsPanel" Orientation="Horizontal"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
 
-                <!-- 탭 3: 디자인 & 표시 -->
-                <TabItem Header="디자인 &amp; 표시" Padding="16,8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="16">
-                            <!-- UI 테마 포인트 컬러 선택 (Windows 11 Fluent 라이트 화이트 베이스) -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="0. UI 포인트 컬러 (Windows 11 Fluent 라이트)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="깔끔한 화이트 베이스 위에 원하는 파스텔/포인트 컬러를 선택하면 즉시 미리보기로 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
-                                    <WrapPanel Orientation="Horizontal">
-                                        <RadioButton x:Name="RadioAccentBlue" GroupName="UiAccentGroup" Content="🔵 화이트 &amp; 블루 (기본)" Margin="8,5,16,5" IsChecked="True" Checked="RadioAccent_Checked"/>
-                                        <RadioButton x:Name="RadioAccentGreen" GroupName="UiAccentGroup" Content="🟢 화이트 &amp; 민트 그린" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
-                                        <RadioButton x:Name="RadioAccentLavender" GroupName="UiAccentGroup" Content="🟣 화이트 &amp; 라벤더" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
-                                        <RadioButton x:Name="RadioAccentPeach" GroupName="UiAccentGroup" Content="🟠 화이트 &amp; 코랄 피치" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
-                                        <RadioButton x:Name="RadioAccentPink" GroupName="UiAccentGroup" Content="🩷 화이트 &amp; 로즈 핑크" Margin="8,5,16,5" Checked="RadioAccent_Checked"/>
-                                    </WrapPanel>
-                                </StackPanel>
-                            </Border>
+                                        <!-- 하단: 중앙 하단 마스터 도킹 바 프리뷰 -->
+                                        <Border x:Name="PreviewDockBorder" Grid.Row="2"
+                                                Background="{DynamicResource ThemeHudBg}"
+                                                BorderBrush="{DynamicResource ThemeHudBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Padding="10,6"
+                                                HorizontalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="8" Height="8" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="ON" FontSize="11" FontWeight="Bold" Margin="0,0,8,0"/>
+                                                <TextBlock Text="▲ 1/3 ▼  |  CS상담  ·  검색  ·  기호  ·  로그  ·  설정" FontSize="11" Foreground="{DynamicResource ThemeText}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
 
-                            <!-- 알약 크기 3단계 조절 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="1. 추천 알약(Suggestion Pill) 크기 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <RadioButton x:Name="RadioPillScale1" Content="1단계: 보통 크기 (1.0x 배율 - 미니멀한 크기)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioPillScale2" Content="2단계: 크게 (2.0x 배율 - 시원하고 가독성이 뛰어난 2배 크기, 권장)" Margin="8,5" IsChecked="True"/>
-                                    <RadioButton x:Name="RadioPillScale3" Content="3단계: 아주 크게 (3.0x 배율 - 고해상도 모니터 및 대형 폰트)" Margin="8,5"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 알약 위치 및 간격 설정 (채팅 방해 방지) -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="3. 알약 표시 위치 및 커서 간격 (채팅창 방해 방지)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="커서와 알약 사이의 거리를 조절하여 현재 입력 중인 채팅 글자가 가려지지 않게 합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
-
-                                    <RadioButton x:Name="RadioPosNearby1" Content="옵션 1: 커서 바로 아래 밀착 (+15px)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioPosNearby2" Content="옵션 2: 커서 아래 넉넉한 간격 (+35px, 기본 권장)" Margin="8,5" IsChecked="True"/>
-                                    <RadioButton x:Name="RadioPosFar" Content="옵션 3: 채팅창 시야 확보용 원거리 (+65px)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioPosMouse" Content="옵션 4: 마우스 포인터 위치 기준 (마우스 커서 근처에 표시)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioPosFixed" Content="옵션 5: 화면 우측 하단 고정 알림 형태" Margin="8,5"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 창 투명도 (흐리게) 조절 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="4. 알약 및 검색창 투명도 (흐리게 조절)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="배경 화면이 은은하게 비치도록 투명도를 조절할 수 있습니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
-
-                                    <RadioButton x:Name="RadioOpacity100" Content="100% 불투명 (완전 선명하게, 또렷함)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioOpacity90" Content="90% 약한 투명도 (자연스럽게 은은함, 기본 권장)" Margin="8,5" IsChecked="True"/>
-                                    <RadioButton x:Name="RadioOpacity80" Content="80% 반투명 (뒤편 채팅창이 자연스럽게 비침)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioOpacity70" Content="70% 높은 투명도 (배경 텍스트가 훤히 보이는 흐린 모드)" Margin="8,5"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 활성 상태 프로그램창 투명도 (바탕화면 비침 조절) -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="5. 활성 상태 프로그램창 투명도 (바탕화면 비침 조절)" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="화면 우측 하단 프로그램창이 바탕화면 위에서 은은하게 비치도록 투명도를 조절합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,10"/>
-
-                                    <RadioButton x:Name="RadioStatusOpacity100" Content="100% 불투명 (선명하게)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioStatusOpacity85" Content="85% 은은한 투명도 (바탕화면이 자연스럽게 비침, 기본 권장)" Margin="8,5" IsChecked="True"/>
-                                    <RadioButton x:Name="RadioStatusOpacity65" Content="65% 반투명 (배경이 훤히 비침)" Margin="8,5"/>
-                                    <RadioButton x:Name="RadioStatusOpacity45" Content="45% 높은 투명도 (유리처럼 투명)" Margin="8,5"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 추천 바 형태 및 상태창 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="6. 추천 바 형태 및 작업표시줄 설정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <RadioButton x:Name="RadioModeInline" GroupName="DisplayModeGroup" Content="인라인 스마트 알약 툴팁 (1개 칩 형태)" Margin="8,4" IsChecked="True"/>
-                                    
-                                    <StackPanel Orientation="Horizontal" Margin="8,4">
-                                        <RadioButton x:Name="RadioModeHorizontal" GroupName="DisplayModeGroup" Content="가로형 멀티 추천 바 — 표시 개수: " VerticalAlignment="Center"/>
-                                        <ComboBox x:Name="CmbMaxCandidates" Width="75" Height="28" Margin="6,0,8,0" VerticalContentAlignment="Center">
-                                            <ComboBoxItem Content="3개"/>
-                                            <ComboBoxItem Content="4개"/>
-                                            <ComboBoxItem Content="5개" IsSelected="True"/>
-                                            <ComboBoxItem Content="6개"/>
-                                            <ComboBoxItem Content="7개"/>
-                                            <ComboBoxItem Content="8개"/>
-                                            <ComboBoxItem Content="9개"/>
-                                            <ComboBoxItem Content="10개"/>
-                                        </ComboBox>
-                                        <TextBlock Text="(3 ~ 최대 10개 선택 가능)" Foreground="{DynamicResource ThemeSubText}" FontSize="12" VerticalAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <RadioButton x:Name="RadioModeManual" GroupName="DisplayModeGroup" Content="수동 검색 모드만 사용 (Alt+Q 전용)" Margin="8,4"/>
-
-                                    <CheckBox x:Name="ChkShowStatusWindow" Content="화면 우측 하단 및 작업표시줄에 실행 상태표시창 항상 보이기" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
-                                    <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 우측 하단 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="8,0,0,0"/>
-
-                                    <StackPanel Orientation="Horizontal" Margin="8,10,0,0">
-                                        <TextBlock Text="추천 알약 자동 숨김 시간:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
-                                        <ComboBox x:Name="CmbAutoHideSeconds" Width="130" Height="28" VerticalContentAlignment="Center">
-                                            <ComboBoxItem Content="5초" Tag="5"/>
-                                            <ComboBoxItem Content="8초" Tag="8"/>
-                                            <ComboBoxItem Content="12초 (기본)" Tag="12" IsSelected="True"/>
-                                            <ComboBoxItem Content="15초" Tag="15"/>
-                                            <ComboBoxItem Content="20초 (최대)" Tag="20"/>
-                                        </ComboBox>
-                                    </StackPanel>
-
-                                    <CheckBox x:Name="ChkEnableMathCalc" Content="🧮 사칙연산 자동 계산 기능 사용 (예: 5 * 10 = 입력 시 50 즉시 추천)" Margin="8,12,0,2" IsChecked="True" FontWeight="SemiBold"/>
-                                    <CheckBox x:Name="ChkEnableTranslation" Content="구글 번역기형 실시간 번역 패널 사용 (문장 입력 시 원문 ↔ 영문 나란히 표시)" Margin="8,8,0,2" IsChecked="False" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
-                </TabItem>
-
-                <!-- 탭 4: 데이터 동기화 & 계정 -->
-                <TabItem Header="🔄 동기화 &amp; 계정" Padding="16,8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="16">
-                            <!-- 구글 스프레드시트 주기적 자동 동기화 설정 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
-                                <StackPanel>
-                                    <TextBlock Text="1. 구글 스프레드시트 최신 정보 자동 동기화 주기" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock Text="관리자가 구글 스프레드시트에서 수정한 단축키, 답변 문구, 용어집을 백그라운드에서 자동으로 다운로드하여 항상 최신 상태로 유지합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12" Margin="0,0,0,12" TextWrapping="Wrap"/>
-
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <TextBlock Text="자동 갱신 주기:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,12,0"/>
-                                        <ComboBox x:Name="CmbAutoSyncInterval" Width="200" Height="32" VerticalContentAlignment="Center" FontSize="13">
-                                            <ComboBoxItem Content="5분마다 자동 갱신" Tag="5"/>
-                                            <ComboBoxItem Content="10분마다 자동 갱신" Tag="10"/>
-                                            <ComboBoxItem Content="15분마다 자동 갱신 (권장)" Tag="15"/>
-                                            <ComboBoxItem Content="30분마다 자동 갱신" Tag="30"/>
-                                            <ComboBoxItem Content="60분(1시간)마다 갱신" Tag="60"/>
-                                            <ComboBoxItem Content="자동 갱신 사용 안 함 (수동)" Tag="0"/>
-                                        </ComboBox>
-                                    </StackPanel>
-
-                                    <Border Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
-                                        <StackPanel>
-                                            <TextBlock Text="💡 무소음 &amp; Zero-Lag 보장" FontWeight="Bold" FontSize="12" Foreground="#374151" Margin="0,0,0,4"/>
-                                            <TextBlock Text="• 상담원이 고객과 대화 중일 때도 키보드 타이핑 렉이 전혀 발생하지 않도록 백그라운드 스레드에서 조용히 갱신됩니다." FontSize="11" Foreground="#6B7280" TextWrapping="Wrap"/>
-                                            <TextBlock Text="• 동기화 주기와 상관없이 아래 버튼을 누르면 언제든지 지금 즉시 최신 정보를 가져올 수 있습니다." FontSize="11" Foreground="#6B7280" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Button Content="🔄 지금 즉시 최신 정보 동기화 실행" Style="{DynamicResource ThemeButtonStyle}" MinWidth="230" Height="36" HorizontalAlignment="Left" Click="BtnSyncAll_Click"/>
-
-                                    <!-- 바로등록 기능 임시 비활성화 -->
-                                    <CheckBox x:Name="ChkQuickSaveWithoutDialog"
-                                              Visibility="Collapsed"
-                                              Content="시트 등록 시 상세 입력창을 묻지 않고 즉시 바로 저장 (단축어·클립보드 내용 바로 등록)"
-                                              Margin="0,12,0,0" FontSize="12.5" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- 사용자 라이선스 -->
-                            <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
-                                <StackPanel>
-                                    <TextBlock Text="2. 현재 로그온 사용자 계정" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
-                                    <TextBlock x:Name="LblCurrentUserInfo" Text="로그인 정보 로드 중..." FontSize="13" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,10"/>
-                                    <Button Content="👤 다른 사용자로 다시 로그온..." Style="{DynamicResource ThemeButtonStyle}" MinWidth="200" Height="34" HorizontalAlignment="Left" Click="BtnRelogin_Click"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
+                                <TextBlock x:Name="PreviewSummaryText" Text="" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeSubText}" Margin="0,12,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </TabItem>
 
                 </TabControl>
 
             <!-- 3. 하단 상태 바 및 저장 버튼 (잘림 방지) -->
-            <Grid Grid.Row="2" Margin="16,0,16,0">
+            <Grid Grid.Row="3" Margin="16,0,16,0">
                 <TextBlock x:Name="LblStatusBar" VerticalAlignment="Center" Text="준비 완료" Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="설정 저장 및 적용" Style="{DynamicResource ThemeButtonStyle}" MinWidth="150" Height="34" Margin="0,0,8,0" Click="BtnSaveAndClose_Click"/>

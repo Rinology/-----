@@ -247,6 +247,28 @@ public partial class SymbolPickerWindow : Window
         Keyboard.Focus(this);
     }
 
+    private void BtnMoveSymbolUp_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedIndex <= 0 || _selectedIndex >= Symbols.Count) return;
+        (Symbols[_selectedIndex - 1], Symbols[_selectedIndex]) = (Symbols[_selectedIndex], Symbols[_selectedIndex - 1]);
+        _selectedIndex--;
+        _configManager.Save();
+        RebuildGrid();
+        Focus();
+        Keyboard.Focus(this);
+    }
+
+    private void BtnMoveSymbolDown_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedIndex < 0 || _selectedIndex >= Symbols.Count - 1) return;
+        (Symbols[_selectedIndex + 1], Symbols[_selectedIndex]) = (Symbols[_selectedIndex], Symbols[_selectedIndex + 1]);
+        _selectedIndex++;
+        _configManager.Save();
+        RebuildGrid();
+        Focus();
+        Keyboard.Focus(this);
+    }
+
     private void BtnDeleteSelected_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedIndex < 0 || _selectedIndex >= Symbols.Count) return;

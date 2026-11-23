@@ -9,6 +9,7 @@ public class AppConfig
     // 로그인 및 세션 관리 (비밀번호는 보안상 디스크에 저장하지 않고 아이디만 기억)
     public string CurrentUserId { get; set; } = "";
     public bool KeepLoggedIn { get; set; } = false; // 아이디 기억 여부
+    public bool LogoutOnExit { get; set; } = false; // 종료 시 자동 로그아웃(아이디 기억 해제) 여부
     public string UserCsvUrl { get; set; } = "";
     public string LocalUserCsvPath { get; set; } = "users.csv";
 
@@ -38,7 +39,7 @@ public class AppConfig
 
     // 단축키 설정
     public string TriggerKey { get; set; } = "\\";
-    public string CompleteKeyMode { get; set; } = "SlashTab"; // SlashTab(\+Tab), SlashOnly(\), ShiftSpace
+    public string CompleteKeyMode { get; set; } = "ShiftSpace"; // ShiftSpace(기본 권장), SlashTab(\+Tab), SlashOnly(\)
     public bool EnableNumberSelection { get; set; } = true;
     public string GlobalHotkey { get; set; } = "Alt+Q";
 

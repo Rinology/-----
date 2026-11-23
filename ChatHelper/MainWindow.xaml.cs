@@ -114,6 +114,7 @@ public partial class MainWindow : Window
         _hookService.Start();
         InitPeriodicSyncTimer();
         InitRollingTicker();
+        UpdateStatusUi();
 
         // 앱 시작 시 구글 스프레드시트 최신 템플릿 비동기 동기화
         AddStatusLog("🔄 앱 시작 - 시트 데이터 불러오는 중...");
@@ -210,18 +211,21 @@ public partial class MainWindow : Window
 
                 if (statusMode == "UNKNOWN")
                 {
-                    LblRunningStatus.Text = $"❓ [알아듣지 못함] 인식됨: \"{token}\"";
+                    if (TxtDockRecognitionStatus != null)
+                        TxtDockRecognitionStatus.Text = $"❓ [미일치] 입력됨: \"{token}\"";
                     _suggestionBar.ShowStatusNotice(token, "UNKNOWN");
                 }
                 else if (statusMode == "WAITING")
                 {
-                    LblRunningStatus.Text = string.IsNullOrWhiteSpace(token)
-                        ? "자동완성 작동 중 [⏳ 대기중]"
-                        : $"⏳ [대기중] 입력 감지: \"{token}\"";
+                    if (TxtDockRecognitionStatus != null)
+                        TxtDockRecognitionStatus.Text = string.IsNullOrWhiteSpace(token)
+                            ? $"⏳ 대기중 — 현재 시트({DataSourceResolver.ActiveName}) {_templateManager.Templates.Count}개"
+                            : $"⏳ [입력 감지] \"{token}\"";
                 }
                 else if (statusMode == "MATCH")
                 {
-                    LblRunningStatus.Text = $"🔎 인식됨: \"{token}\"";
+                    if (TxtDockRecognitionStatus != null)
+                        TxtDockRecognitionStatus.Text = $"🔎 [매칭 인식됨] \"{token}\"";
                 }
             });
         };
@@ -513,6 +517,30 @@ public partial class MainWindow : Window
         }
     }
 
+    private int _dockViewIndex = 0; // 0: 메뉴&시트, 1: 인식현황, 2: 최근로그
+
+    private void BtnDockViewPrev_Click(object sender, RoutedEventArgs e)
+    {
+        _dockViewIndex = (_dockViewIndex + 2) % 3;
+        ApplyDockView();
+    }
+
+    private void BtnDockViewNext_Click(object sender, RoutedEventArgs e)
+    {
+        _dockViewIndex = (_dockViewIndex + 1) % 3;
+        ApplyDockView();
+    }
+
+    private void ApplyDockView()
+    {
+        if (DockViewMenu == null || DockViewRecognition == null || DockViewLogSummary == null) return;
+        DockViewMenu.Visibility = _dockViewIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        DockViewRecognition.Visibility = _dockViewIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        DockViewLogSummary.Visibility = _dockViewIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+        if (TxtDockViewIndex != null)
+            TxtDockViewIndex.Text = $"{_dockViewIndex + 1}/3";
+    }
+
     public void AddStatusLog(string message)
     {
         Dispatcher.BeginInvoke(() =>
@@ -522,6 +550,8 @@ public partial class MainWindow : Window
             LstLiveLog.Items.Insert(0, line);
             while (LstLiveLog.Items.Count > 50)
                 LstLiveLog.Items.RemoveAt(LstLiveLog.Items.Count - 1);
+            if (TxtDockLastLog != null)
+                TxtDockLastLog.Text = line;
         });
     }
 
@@ -588,7 +618,7 @@ public partial class MainWindow : Window
 
     private void PromptExitAndLogout()
     {
-        var dlg = new ExitConfirmWindow();
+        var dlg = new ExitConfirmWindow(_configManager.Config.LogoutOnExit);
         dlg.ShowDialog();
 
         if (dlg.Choice == ExitConfirmWindow.ExitChoice.Cancel)

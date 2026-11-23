@@ -120,6 +120,7 @@ public partial class QuickSearchWindow : Window
 
         Show();
         WindowState = WindowState.Normal;
+        Win32Api.SetWindowAlpha(this, winAlpha);
 
         // 외부 창(Chrome/카톡/메모장)으로부터 AttachThreadInput 기반 강제 포커스 전환 -> 즉시 Tab/입력 가능
         var helper = new WindowInteropHelper(this);

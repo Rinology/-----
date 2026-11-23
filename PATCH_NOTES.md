@@ -25,6 +25,17 @@
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed
+- **환경설정 3탭 통합(상단 계정/동기화 바) · 디자인 실시간 미리보기 · 마스터창 `▲/▼` 전환 바 · `Shift+Space` 기본화**:
+  - **단축키 충돌 검사 고도화 ([HotkeyValidator.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/HotkeyValidator.cs))**: 조합키 형식 검사, 내부 단축키(`Alt+X`, `Alt+T`) 중복 검사 및 Win32 `RegisterHotKey` 실시간 선점 검사 추가.
+  - **완성 트리거 기본값 `Shift + Space` 전환 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs))**: 가장 안정적인 `Shift + Space`를 기본 완성 키로 설정.
+  - **환경설정(`1320 × 840`) 상단 통합 헤더 & 3탭 개편 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**:
+    - 상단에 `로그인 계정` · **`종료 시 로그아웃` 체크박스** · `시트 자동 갱신 주기` · `지금 동기화`를 고정 배치하고 기존 `동기화 & 계정` 탭을 통합 제거.
+    - `1~9 숫자 선택` 옵션을 `🎨 디자인 & 표시 > 추천 알약 모양` 카드로 통합하고, `사칙연산/영문번역` 토글을 `⌨️ 단축키 & 기능` 탭으로 이동.
+    - `🎨 디자인 & 표시`에서 포인트 컬러에 실제 컬러 원형 스와치(`Ellipse`)를 표시하고, 우측에 **실시간 예시 화면(Live Preview)** 패널을 추가.
+  - **Win32 `LWA_ALPHA` 투명도 즉시 반영 수정 ([Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs))**: `EnsureHandle()` 및 `Show()` 이후 `SetWindowAlpha` 호출, `WS_EX_LAYERED` 상시 유지(`alpha=64..255`)로 마스터창·알약창 투명도가 즉시 반영되도록 수정.
+  - **특수기호(`Alt+X`) `▲ 앞으로` / `▼ 뒤로` 순서 이동 버튼 추가 ([SymbolPickerWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SymbolPickerWindow.xaml))**.
+  - **마스터창(`MainWindow`) `▲ / ▼` 수동 전환형 1줄 바 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml))**: 사용자가 `▲ / ▼`를 누를 때만 `1/3 메뉴 & 시트` ↔ `2/3 실시간 인식 현황` ↔ `3/3 최근 로그` 화면으로 전환.
+  - **종료 확인 창 간결화 ([ExitConfirmWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ExitConfirmWindow.xaml))**: `취소` / `종료` 2개 버튼만 남기고 로그아웃 여부는 환경설정 상단 체크박스에 따르도록 개선.
 - **제어판 통합 개편 (`커맨드 & 시트 관리` 2단 분할) · 포인트 컬러 선택 · Win32 진짜 반투명 · 중앙 하단 도킹 바**:
   - **커맨드 & 시트 관리 통합**: `데이터 소스` 탭을 `커맨드 관리` 상단 1줄(`업무 프로필` + 접이식 `개인 시트 추가/삭제`)로 통합하고, 창 크기를 `1160 × 760`(화면 비율 자동 보정)으로 넓혀 **좌측 목록 ↔ 우측 긴 본문 전용 편집기(`GridSplitter` + 자동 스크롤 + 글자 수 표시)** 2단 레이아웃으로 개편.
   - **동기화 실시간 반영**: [TemplateManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TemplateManager.cs) `TemplatesSynced` 이벤트를 통해 동기화 중/완료 직후 제어판 커맨드 목록이 자동 갱신됨.

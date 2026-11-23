@@ -25,7 +25,7 @@
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
 
             <StackPanel>
-                <!-- 1행: 초슬림 1줄 HUD 도킹 바 -->
+                <!-- 1행: 초슬림 1줄 HUD 도킹 바 (▲/▼ 수동 전환형 롤링 뷰) -->
                 <Grid Height="34">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -37,48 +37,88 @@
 
                     <!-- 상태 점 + ON/OFF 토글 -->
                     <Button x:Name="BtnTogglePause" Grid.Column="0" Style="{DynamicResource ThemeDockButtonStyle}"
-                            Padding="6,3" Margin="0,0,6,0" ToolTip="클릭하여 자동완성 ON/OFF 전환" Click="BtnTogglePause_Click">
+                            Padding="6,3" Margin="0,0,4,0" ToolTip="클릭하여 자동완성 ON/OFF 전환" Click="BtnTogglePause_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock x:Name="LblRunningStatus" Text="ON" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="Malgun Gothic, Segoe UI"/>
                         </StackPanel>
                     </Button>
 
-                    <!-- 업무 프로필 드롭다운 -->
-                    <ComboBox x:Name="CmbMainProfile" Grid.Column="1" Width="92" Height="26" FontSize="11.5"
-                              VerticalContentAlignment="Center" Margin="0,0,8,0"
-                              ToolTip="업무 프로필(스프레드시트) 즉시 전환"
-                              SelectionChanged="CmbMainProfile_SelectionChanged"/>
+                    <!-- ▲/▼ 화면(뷰) 전환 컨트롤 (유저가 직접 선택할 때만 화면 전환) -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
+                        <Button Content="▲" Style="{DynamicResource ThemeDockButtonStyle}" Padding="5,2" FontSize="9.5" ToolTip="이전 화면 보기 (메뉴 ↔ 인식 상태 ↔ 최근 로그)" Click="BtnDockViewPrev_Click"/>
+                        <TextBlock x:Name="TxtDockViewIndex" Text="1/3" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center" Margin="3,0"/>
+                        <Button Content="▼" Style="{DynamicResource ThemeDockButtonStyle}" Padding="5,2" FontSize="9.5" ToolTip="다음 화면 보기 (메뉴 ↔ 인식 상태 ↔ 최근 로그)" Click="BtnDockViewNext_Click"/>
+                    </StackPanel>
 
                     <!-- 세로 구분선 -->
                     <Border Grid.Column="2" Width="1" Height="18" Background="{DynamicResource ThemePanelBorder}" Margin="0,0,8,0"/>
 
-                    <!-- 핵심 액션 툴바 (이모지 제거, 깔끔한 텍스트/기호) -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
-                        <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
-                        <!-- 바로등록 기능 임시 비활성화
-                        <Button Content="+ 등록" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="새 답변 시트 등록" Click="BtnQuickAddTemplate_Click"/>
-                        -->
+                    <!-- 중앙 전환 영역 (▲/▼ 버튼에 따라 3개 뷰 중 1개만 표시) -->
+                    <Grid Grid.Column="3" VerticalAlignment="Center">
+                        <!-- 뷰 1 (기본): 시트 선택 & 빠른 메뉴 (검색 · 기호 · 동기화 · 로그 · 설정) -->
+                        <Grid x:Name="DockViewMenu" Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="CmbMainProfile" Grid.Column="0" Width="100" Height="26" FontSize="11.5"
+                                      VerticalContentAlignment="Center" Margin="0,0,6,0"
+                                      ToolTip="업무 프로필(스프레드시트) 즉시 전환"
+                                      SelectionChanged="CmbMainProfile_SelectionChanged"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
+                                <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
+                                <TextBlock x:Name="LblSyncStatus" Text="↻ 0" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"
+                                           Padding="6,4" Cursor="Hand"
+                                           ToolTip="클릭하여 지금 즉시 구글 시트 동기화"
+                                           MouseLeftButtonUp="LblSyncStatus_MouseLeftButtonUp"/>
+                                <Button x:Name="BtnToggleLog" Content="로그" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="실시간 상태 로그 열기/닫기" Click="BtnToggleLog_Click"/>
+                                <Button Content="설정" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="제어판 열기" Click="BtnControlPanel_Click"/>
+                                <Border x:Name="BadgeNotice" Visibility="Collapsed" Background="#16A34A" CornerRadius="10" Padding="7,2" VerticalAlignment="Center" Margin="4,0,0,0">
+                                    <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="Malgun Gothic, Segoe UI"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
 
-                        <Border Width="1" Height="16" Background="{DynamicResource ThemePanelBorder}" Margin="4,0"/>
+                        <!-- 뷰 2: 실시간 타이핑 인식 현황 (어디까지 인식되었는지 한눈에 확인) -->
+                        <Grid x:Name="DockViewRecognition" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <TextBlock Text="인식 현황" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}"/>
+                            </Border>
+                            <TextBlock x:Name="TxtDockRecognitionStatus" Grid.Column="1"
+                                       Text="⏳ 대기중 — 채팅창에 단축어 또는 키워드를 입력하세요"
+                                       FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource ThemeText}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="2" Content="설정" Style="{DynamicResource ThemeDockButtonStyle}" Margin="6,0,0,0" Click="BtnControlPanel_Click"/>
+                        </Grid>
 
-                        <TextBlock x:Name="LblSyncStatus" Text="↻ 0" FontSize="11" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"
-                                   Padding="6,4" Cursor="Hand"
-                                   ToolTip="클릭하여 지금 즉시 구글 시트 동기화"
-                                   MouseLeftButtonUp="LblSyncStatus_MouseLeftButtonUp"/>
+                        <!-- 뷰 3: 최근 동기화/상태 로그 1줄 요약 & 로그 펼치기 -->
+                        <Grid x:Name="DockViewLogSummary" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0" VerticalAlignment="Center">
+                                <TextBlock Text="최근 로그" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource ThemeSubText}"/>
+                            </Border>
+                            <TextBlock x:Name="TxtDockLastLog" Grid.Column="1"
+                                       Text="준비 완료"
+                                       FontSize="11.5" Foreground="{DynamicResource ThemeText}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="2" Content="전체 로그" Style="{DynamicResource ThemeDockButtonStyle}" Margin="6,0,0,0" Click="BtnToggleLog_Click"/>
+                        </Grid>
+                    </Grid>
 
-                        <!-- 실시간 알림 배지 (갱신/저장/인식 표시) -->
-                        <Border x:Name="BadgeNotice" Visibility="Collapsed" Background="#16A34A" CornerRadius="10" Padding="8,2" VerticalAlignment="Center" Margin="4,0,0,0">
-                            <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="Malgun Gothic, Segoe UI"/>
-                        </Border>
-                    </StackPanel>
-
-                    <!-- 우측: 로그 / 설정 / 최소화 / 닫기 -->
+                    <!-- 우측 고정: 최소화 / 닫기 -->
                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="BtnToggleLog" Content="로그" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="실시간 상태 로그 열기/닫기" Click="BtnToggleLog_Click"/>
-                        <Button Content="설정" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="제어판 열기" Click="BtnControlPanel_Click"/>
                         <Button Style="{DynamicResource ThemeMinimizeButtonStyle}" ToolTip="트레이로 숨기기" Margin="4,0,2,0" Click="BtnHideToTray_Click"/>
                         <Button Style="{DynamicResource ThemeCloseButtonStyle}" ToolTip="종료" Click="BtnExit_Click"/>
                     </StackPanel>

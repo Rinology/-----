@@ -34,7 +34,7 @@
 
             <!-- 안내 배너 -->
             <TextBlock Grid.Row="1" Margin="14,8,14,6"
-                       Text="숫자 1~9 즉시입력  ·  방향키 + Enter  ·  클릭 입력  ·  Esc 닫기"
+                       Text="클릭: 즉시입력  ·  우클릭: 기호 선택(▲/▼ 순서 이동·삭제)  ·  숫자 1~9 즉시입력"
                        FontSize="11" Foreground="{DynamicResource ThemeSubText}" FontWeight="SemiBold" FontFamily="Malgun Gothic, Segoe UI"/>
 
             <!-- 특수기호 그리드 영역 -->
@@ -44,10 +44,12 @@
                 </ScrollViewer>
             </Border>
 
-            <!-- 하단: 사용자 기호 직접 추가/삭제 바 -->
+            <!-- 하단: 사용자 기호 직접 추가/순서이동/삭제 바 -->
             <Grid Grid.Row="3" Margin="12,0,12,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -56,9 +58,11 @@
                          FontSize="15" Padding="8,4" VerticalContentAlignment="Center"
                          ToolTip="추가할 특수문자나 기호를 입력/붙여넣기 후 추가"
                          KeyDown="TxtNewSymbol_KeyDown"/>
-                <Button Grid.Column="1" Content="+ 추가" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="12,0" Margin="6,0,0,0" Click="BtnAddSymbol_Click"/>
-                <Button Grid.Column="2" Content="삭제" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="12,0" Margin="4,0,0,0" Click="BtnDeleteSelected_Click"/>
-                <Button Grid.Column="3" Content="기본값" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="12,0" Margin="4,0,0,0" ToolTip="기본 특수문자 목록으로 복원" Click="BtnResetSymbols_Click"/>
+                <Button Grid.Column="1" Content="+ 추가" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="10,0" Margin="6,0,0,0" Click="BtnAddSymbol_Click"/>
+                <Button Grid.Column="2" Content="▲ 앞으로" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="8,0" Margin="4,0,0,0" ToolTip="선택한 기호(우클릭 또는 방향키 선택) 순서를 앞으로 이동 (1~9 번호 변경)" Click="BtnMoveSymbolUp_Click"/>
+                <Button Grid.Column="3" Content="▼ 뒤로" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="8,0" Margin="4,0,0,0" ToolTip="선택한 기호 순서를 뒤로 이동" Click="BtnMoveSymbolDown_Click"/>
+                <Button Grid.Column="4" Content="삭제" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="10,0" Margin="4,0,0,0" Click="BtnDeleteSelected_Click"/>
+                <Button Grid.Column="5" Content="기본값" Style="{DynamicResource ThemeButtonStyle}" Height="36" Padding="10,0" Margin="4,0,0,0" ToolTip="기본 특수문자 목록으로 복원" Click="BtnResetSymbols_Click"/>
             </Grid>
         </Grid>
     </Border>

@@ -12,11 +12,19 @@ public partial class ExitConfirmWindow : Window
         LogoutAndExit
     }
 
+    private readonly bool _logoutOnExit;
     public ExitChoice Choice { get; private set; } = ExitChoice.Cancel;
 
-    public ExitConfirmWindow()
+    public ExitConfirmWindow(bool logoutOnExit = false)
     {
+        _logoutOnExit = logoutOnExit;
         InitializeComponent();
+        if (TxtExitDesc != null)
+        {
+            TxtExitDesc.Text = _logoutOnExit
+                ? "설정에 따라 종료 시 자동 로그아웃(저장된 아이디 초기화)됩니다."
+                : "현재 로그인 아이디를 유지한 채 프로그램을 종료합니다.";
+        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -34,16 +42,9 @@ public partial class ExitConfirmWindow : Window
         }
     }
 
-    private void BtnKeepExit_Click(object sender, RoutedEventArgs e)
+    private void BtnConfirmExit_Click(object sender, RoutedEventArgs e)
     {
-        Choice = ExitChoice.KeepLoginAndExit;
-        DialogResult = true;
-        Close();
-    }
-
-    private void BtnLogoutExit_Click(object sender, RoutedEventArgs e)
-    {
-        Choice = ExitChoice.LogoutAndExit;
+        Choice = _logoutOnExit ? ExitChoice.LogoutAndExit : ExitChoice.KeepLoginAndExit;
         DialogResult = true;
         Close();
     }

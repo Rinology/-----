@@ -30,6 +30,10 @@ public static class ConfigManagerTests
             Assert(!string.IsNullOrWhiteSpace(SecretVault.GasApiToken), "SecretVault GasApiToken should decrypt");
             Assert(manager.Config.WindowOpacity == 0.95, "Default WindowOpacity should be 0.95");
             Assert(manager.Config.MaxCandidatesCount == 5, "Default MaxCandidatesCount should be 5");
+            Assert(manager.Config.CompleteKeyMode == "ShiftSpace", "Default CompleteKeyMode should be 'ShiftSpace'");
+            Assert(HotkeyValidator.ValidateHotkey("Q").IsConflict, "Single key without modifier must report conflict");
+            Assert(HotkeyValidator.ValidateHotkey("Alt+X").IsConflict, "Internal hotkey Alt+X must report conflict");
+            Assert(!HotkeyValidator.ValidateHotkey("Alt+Q").IsConflict, "Default Alt+Q must be valid");
             Assert(File.Exists(testConfig), "Default config file should be created on disk");
         }
         finally
