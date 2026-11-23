@@ -151,7 +151,12 @@ public class KeyboardHookService : IDisposable
             // Chrome, Google Chat, Edge 등 브라우저의 한글 IME 조합 중(VK_PROCESSKEY)일 때 물리 키코드로 복원
             if (vkCode == Win32Api.VK_PROCESSKEY)
             {
-                int mapped = Win32Api.MapVirtualKey((uint)scanCode, Win32Api.MAPVK_VSC_TO_VK_EX);
+                uint cleanScan = (uint)(scanCode & 0xFF);
+                int mapped = Win32Api.MapVirtualKey(cleanScan, Win32Api.MAPVK_VSC_TO_VK);
+                if (mapped <= 0)
+                {
+                    mapped = Win32Api.MapVirtualKey((uint)scanCode, Win32Api.MAPVK_VSC_TO_VK_EX);
+                }
                 if (mapped > 0)
                 {
                     vkCode = mapped;
@@ -445,7 +450,7 @@ public class KeyboardHookService : IDisposable
 
             if (inputChar.HasValue)
             {
-                if (!skipPositionCheck && !Win32Api.TryGetValidInputPosition(out _, out _, out _))
+                if (!skipPositionCheck && !Win32Api.IsValidTargetWindow(out _))
                 {
                     _buffer.Clear();
                     ClearCandidates();

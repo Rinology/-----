@@ -306,6 +306,29 @@ public static class Win32Api
     }
 
     /// <summary>
+    /// 현재 포커스된 창이 ChatHelper 자신이나 바탕화면/작업표시줄이 아닌 유효한 외부 입력 대상 창인지 빠르게 확인합니다.
+    /// (크로스-프로세스 COM 호출 없이 즉시 반환되므로 백그라운드 키 채널에서도 지연이 없습니다.)
+    /// </summary>
+    public static bool IsValidTargetWindow(out IntPtr activeHwnd)
+    {
+        activeHwnd = GetForegroundWindow();
+        if (activeHwnd == IntPtr.Zero)
+            return false;
+
+        GetWindowThreadProcessId(activeHwnd, out uint pid);
+        if (pid == CurrentProcessId)
+            return false;
+
+        var sbClass = new StringBuilder(128);
+        GetClassName(activeHwnd, sbClass, sbClass.Capacity);
+        string className = sbClass.ToString();
+        if (className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "NotifyIconOverflowWindow")
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
     /// 현재 포커스된 채팅/문서 입력 창의 텍스트 입력 커서(Caret) 또는 마우스 포인터(preferMousePointer=true) 위치를 구함.
     /// 기본값(preferMousePointer=false)은 채팅 텍스트 커서를 기준으로 동작합니다.
     /// </summary>
@@ -313,22 +336,10 @@ public static class Win32Api
     {
         x = 0;
         y = 0;
-        activeHwnd = GetForegroundWindow();
-        if (activeHwnd == IntPtr.Zero)
+        if (!IsValidTargetWindow(out activeHwnd))
             return false;
 
-        uint tid = GetWindowThreadProcessId(activeHwnd, out uint pid);
-
-        // 1. 자기 자신(ChatHelper 제어판 등) 창이면 추천 알약 띄우지 않음
-        if (pid == CurrentProcessId)
-            return false;
-
-        // 2. 바탕화면, 작업표시줄, 탐색기 배경 등 비입력 시스템 창 제외
-        var sbClass = new StringBuilder(128);
-        GetClassName(activeHwnd, sbClass, sbClass.Capacity);
-        string className = sbClass.ToString();
-        if (className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "NotifyIconOverflowWindow")
-            return false;
+        uint tid = GetWindowThreadProcessId(activeHwnd, out _);
 
         // 마우스 포인터 기준 모드를 사용자가 선택한 경우
         if (preferMousePointer)
@@ -531,4 +542,60 @@ public static class Win32Api
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    /// <summary>
+    /// 물리 픽셀 좌표(physicalX, physicalY)가 속한 모니터의 작업 영역(rcWork)을 WPF 논리 좌표(DIP)로 반환합니다.
+    /// 다중 모니터 및 Windows 배율(125%, 150%, 175% 등) 환경에서 창이 화면 밖으로 벗어나는 현상을 방지합니다.
+    /// </summary>
+    public static (double DipX, double DipY, double WorkLeft, double WorkTop, double WorkRight, double WorkBottom)
+        ConvertPhysicalPointAndGetWorkArea(System.Windows.Window window, double physicalX, double physicalY)
+    {
+        var helper = new System.Windows.Interop.WindowInteropHelper(window);
+        helper.EnsureHandle();
+
+        var source = System.Windows.PresentationSource.FromVisual(window);
+        System.Windows.Media.Matrix transform = source?.CompositionTarget?.TransformFromDevice
+            ?? System.Windows.Media.Matrix.Identity;
+
+        if (transform.IsIdentity)
+        {
+            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(window);
+            if (dpi.DpiScaleX > 0 && dpi.DpiScaleY > 0)
+            {
+                transform = new System.Windows.Media.Matrix(1.0 / dpi.DpiScaleX, 0, 0, 1.0 / dpi.DpiScaleY, 0, 0);
+            }
+        }
+
+        var dipPt = transform.Transform(new System.Windows.Point(physicalX, physicalY));
+
+        var pt = new POINT { X = (int)Math.Round(physicalX), Y = (int)Math.Round(physicalY) };
+        IntPtr hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        var mi = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+        if (hMon != IntPtr.Zero && GetMonitorInfo(hMon, ref mi))
+        {
+            var topLeft = transform.Transform(new System.Windows.Point(mi.rcWork.Left, mi.rcWork.Top));
+            var bottomRight = transform.Transform(new System.Windows.Point(mi.rcWork.Right, mi.rcWork.Bottom));
+            return (dipPt.X, dipPt.Y, topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y);
+        }
+
+        return (dipPt.X, dipPt.Y, 0, 0, System.Windows.SystemParameters.PrimaryScreenWidth, System.Windows.SystemParameters.PrimaryScreenHeight);
+    }
 }

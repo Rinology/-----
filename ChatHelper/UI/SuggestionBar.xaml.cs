@@ -568,11 +568,14 @@ public partial class SuggestionBar : Window
 
     private void Reposition(double caretX, double caretY)
     {
-        var screenWidth = SystemParameters.PrimaryScreenWidth;
-        var screenHeight = SystemParameters.PrimaryScreenHeight;
+        var (dipX, dipY, workLeft, workTop, workRight, workBottom) =
+            Win32Api.ConvertPhysicalPointAndGetWorkArea(this, caretX, caretY);
+
+        double workW = Math.Max(300, workRight - workLeft);
+        double workH = Math.Max(300, workBottom - workTop);
 
         // 현재 콘텐츠의 정확한 크기를 먼저 측정 (이전 상태의 ActualWidth/Height로 위치가 튀는 현상 방지)
-        MainBorder.Measure(new Size(screenWidth, screenHeight));
+        MainBorder.Measure(new Size(workW, workH));
         double w = MainBorder.DesiredSize.Width > 0 ? MainBorder.DesiredSize.Width : (ActualWidth > 0 ? ActualWidth : 320);
         double h = MainBorder.DesiredSize.Height > 0 ? MainBorder.DesiredSize.Height : (ActualHeight > 0 ? ActualHeight : 42);
 
@@ -580,25 +583,25 @@ public partial class SuggestionBar : Window
 
         if (_configManager.Config.PillPlacement == "ScreenBottomRight")
         {
-            Left = screenWidth - w - 24;
-            Top = screenHeight - h - 64;
+            Left = workRight - w - 24;
+            Top = workBottom - h - 24;
         }
         else
         {
             int offsetY = _configManager.Config.PillOffsetY;
             if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
 
-            Left = Math.Max(10, Math.Min(caretX, screenWidth - w - 10));
+            Left = Math.Max(workLeft + 10, Math.Min(dipX, workRight - w - 10));
 
-            // 화면 하단 35% 영역(일반 채팅 입력창 위치)에서는 UNKNOWN(1줄)이든 MATCH(여러 줄)든 항상 커서 위쪽에 일관되게 배치
-            bool preferAbove = caretY > screenHeight * 0.65 || (caretY + offsetY + h > screenHeight - 10);
+            // 현재 모니터 하단 35% 영역(일반 채팅 입력창 위치)에서는 UNKNOWN(1줄)이든 MATCH(여러 줄)든 항상 커서 위쪽에 일관되게 배치
+            bool preferAbove = dipY > workTop + workH * 0.65 || (dipY + offsetY + h > workBottom - 10);
             if (preferAbove)
             {
-                Top = Math.Max(10, caretY - h - 12);
+                Top = Math.Max(workTop + 10, dipY - h - 12);
             }
             else
             {
-                Top = caretY + offsetY;
+                Top = dipY + offsetY;
             }
         }
 

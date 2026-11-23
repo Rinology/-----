@@ -4,6 +4,19 @@
 
 ---
 
+## [v2.4.1] — 2026-11-23 (DPI 배율 · 다중 모니터 알약 미노출 및 구글채팅/카톡 키훅 안정화)
+
+### 🐛 Fixed
+- **PC 환경별(고배율 DPI 125~175%, 다중 모니터) 알약메모 화면 이탈/미노출 현상 해결**:
+  - `Win32Api.TryGetValidInputPosition`의 물리 픽셀 좌표를 WPF `SystemParameters.PrimaryScreenWidth/Height`(주 모니터 논리 DIP)에 그대로 비교·클램핑해 노트북 고배율(125%/150%)이나 보조 모니터에서 알약(`SuggestionBar`)과 빠른 검색창(`QuickSearchWindow`)이 화면 밖으로 밀려나 보이지 않던 문제를 해결.
+  - [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)에 `ConvertPhysicalPointAndGetWorkArea`(`MonitorFromPoint` + `GetMonitorInfo` + `TransformFromDevice`)를 추가해 현재 커서가 위치한 모니터의 실제 작업 영역 기준으로 정확하게 배치되도록 수정.
+- **구글 채팅/카톡 타이핑 중 백그라운드 MTA 스레드 COM 호출 제거**:
+  - [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)의 키 입력 처리 루프에서 매 타건마다 크로스-프로세스 MSAA COM(`AccessibleObjectFromWindow`)이 포함됐던 `TryGetValidInputPosition` 대신 경량 `Win32Api.IsValidTargetWindow`만 호출하도록 분리하여 타이핑 지연 및 COM 실패 가능성을 제거.
+  - `VK_PROCESSKEY(0xE5)` 복원 시 드라이버별 상위 비트 간섭을 막기 위해 `scanCode & 0xFF` 마스킹(`MAPVK_VSC_TO_VK`) 우선 적용.
+- **GAS 재배포 필요 여부**: 불필요 (클라이언트 코드만 수정).
+
+---
+
 ## [v2.4.0] — 2026-11-22 (현대적 UI/UX 전면 개편 — Fluent 라이트 & 미니멀 HUD 도킹 바)
 
 ### ✨ Added / Changed

@@ -64,25 +64,25 @@ public partial class QuickSearchWindow : Window
             targetY = pt.Y;
         }
 
-        double screenW = SystemParameters.PrimaryScreenWidth;
-        double screenH = SystemParameters.PrimaryScreenHeight;
+        var (dipX, dipY, workLeft, workTop, workRight, workBottom) =
+            Win32Api.ConvertPhysicalPointAndGetWorkArea(this, targetX, targetY);
 
-        // X 위치: 커서 인근에서 시작하되, 화면 너비를 벗어나지 않도록 보정
-        double desiredX = targetX - 40;
-        Left = Math.Max(10, Math.Min(desiredX, screenW - Width - 10));
+        // X 위치: 커서 인근에서 시작하되, 해당 모니터 작업 영역 너비를 벗어나지 않도록 보정
+        double desiredX = dipX - 40;
+        Left = Math.Max(workLeft + 10, Math.Min(desiredX, workRight - Width - 10));
 
         // Y 위치: 커서 아래 +30px 위치하되, 너무 하단에 치우치면 커서 상단으로 보정
-        double desiredY = targetY + 30;
-        if (desiredY + Height > screenH - 50)
+        double desiredY = dipY + 30;
+        if (desiredY + Height > workBottom - 20)
         {
             // 하단 공간 부족 -> 커서 위쪽으로 보정
-            desiredY = targetY - Height - 15;
+            desiredY = dipY - Height - 15;
         }
-        
+
         // 너무 상단에 치우치면 상단 최소 여백 10px로 보정
-        if (desiredY < 10)
+        if (desiredY < workTop + 10)
         {
-            desiredY = 10;
+            desiredY = workTop + 10;
         }
 
         Top = desiredY;

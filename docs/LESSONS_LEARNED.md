@@ -52,3 +52,10 @@
 * **❌ 실패한 방법 2**: `MainWindow`·`SuggestionBar` 등 상시/빈번 노출 창에 `AllowsTransparency="True"` + `DropShadowEffect` + 기본 D3D9 하드웨어 가속을 사용하는 방식.
   * **실패 원인**: 고주사율 모니터(120Hz+), 주사율 불일치 듀얼 모니터, 하이브리드 GPU(Optimus/Intel) 환경에서 `WS_EX_LAYERED` + D3D9 창이 Windows DWM/MPO와 충돌해 마우스 커서 스터터를 유발함.
   * **✅ 검증된 해결책**: `AllowsTransparency="True"` 및 `<DropShadowEffect>`를 제거하고, [App.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/App.xaml.cs)에서 `RenderMode.SoftwareOnly` + Windows 11 네이티브 `DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE)`를 적용할 것.
+
+## 8. 물리 픽셀 좌표와 WPF DIP / 다중 모니터 좌표 혼용 금지
+* **❌ 실패한 방법**: Win32 API(`ClientToScreen`, `accLocation`, `GetCursorPos`, `GetWindowRect`)가 반환하는 **물리 픽셀(Physical Pixels)** 좌표를 WPF `SystemParameters.PrimaryScreenWidth/Height`(주 모니터 DIP)와 직접 비교·클램핑하는 방식.
+  * **실패 원인**: Windows 배율 125%·150% 노트북이나 듀얼 모니터 환경에서 물리 좌표가 논리 해상도보다 크거나 음수 좌표(왼쪽 모니터)가 되어, 알약(`SuggestionBar`)과 검색창(`QuickSearchWindow`)이 화면 밖으로 밀려나거나 주 모니터로 강제 이동해 안 보이는 현상이 발생함.
+  * **✅ 검증된 해결책**: [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `ConvertPhysicalPointAndGetWorkArea`로 `TransformFromDevice` 변환 및 `MonitorFromPoint`/`GetMonitorInfo` 기반 해당 모니터 작업 영역을 구해 배치할 것.
+* **❌ 실패한 방법 2**: 백그라운드 MTA 워커 스레드에서 매 키 입력마다 `AccessibleObjectFromWindow` 등 크로스-프로세스 COM이 포함된 `TryGetValidInputPosition`을 호출하는 방식.
+  * **✅ 검증된 해결책**: 백그라운드 키 워커에서는 순수 Win32 `IsValidTargetWindow`로 대상 창 여부만 즉시 판별하고, 좌표 계산(`TryGetValidInputPosition`)은 UI STA 스레드에서 알약을 표시할 때만 실행할 것.
