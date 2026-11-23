@@ -96,6 +96,23 @@ public static class AiAndOcrIntegrationTests
         Assert(MathCalcHelper.TryEvaluate("50000 * 0.9 =", out string decRes, out _) && decRes == "45000",
             $"Expected '45000', got '{decRes}'");
         Console.WriteLine($"  [MathCalc Direct Test] '5 * 10 =' => '{calcRes}' ('{calcEq}'), '(100 - 20) / 4 =' => '{divRes}', '50000 * 0.9 =' => '{decRes}'");
+
+        // 4. SuggestionBar 화면 밖 커서 -> 마우스 폴백 & 경계 잘림 보정 안내 검증
+        var (nL, nT, nNotice) = ChatHelper.UI.SuggestionBar.ComputeAdjustedPosition(
+            400, 300, 500, 500, 260, 44, 0, 0, 1920, 1040, "CursorNearby", 26);
+        Assert(nNotice == null && nL == 400 && nT == 326,
+            $"Normal inside-screen position should not trigger notice, got L={nL}, T={nT}, notice={nNotice}");
+
+        var (outL, outT, outNotice) = ChatHelper.UI.SuggestionBar.ComputeAdjustedPosition(
+            2500, 300, 600, 400, 260, 44, 0, 0, 1920, 1040, "CursorNearby", 26);
+        Assert(outNotice != null && outNotice.Contains("마우스 위치") && outL == 600,
+            $"Off-screen caret should fallback to mouse X=600 with notice, got L={outL}, notice={outNotice}");
+
+        var (clipL, clipT, clipNotice) = ChatHelper.UI.SuggestionBar.ComputeAdjustedPosition(
+            1850, 300, 1850, 300, 420, 44, 0, 0, 1920, 1040, "CursorNearby", 26);
+        Assert(clipNotice != null && clipNotice.Contains("일시 조정") && clipL <= 1920 - 420 - 10,
+            $"Edge-clipped large pill should clamp inward with notice, got L={clipL}, notice={clipNotice}");
+        Console.WriteLine("  [SuggestionBar Bounds Test] Normal / Off-Screen Mouse Fallback / Edge-Clamp Notice verified.");
     }
 
     private static void Assert(bool condition, string message)

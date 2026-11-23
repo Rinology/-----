@@ -23,6 +23,7 @@ public partial class SuggestionBar : Window
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
     public event Action<TemplateItem, IntPtr>? SelectionReplaceRequested;
     public event Action<string>? QuickRegisterRequested;
+    public event Action? AutoHideExpired;
 
     public void SetRecognizedToken(string token)
     {
@@ -120,7 +121,15 @@ public partial class SuggestionBar : Window
         {
             if (_remainingSeconds > 0) _remainingSeconds--;
             UpdateCountdownText();
-            if (_remainingSeconds <= 0) _countdownTimer.Stop();
+            if (_remainingSeconds <= 0)
+            {
+                _countdownTimer.Stop();
+                if (!_isSelectionTranslationMode)
+                {
+                    Hide();
+                    AutoHideExpired?.Invoke();
+                }
+            }
         };
     }
 
@@ -566,13 +575,72 @@ public partial class SuggestionBar : Window
         BottomAiRowPanel.Children.Add(outer);
     }
 
+    /// <summary>
+    /// 커서/알약 크기가 작업 영역을 벗어나는지 계산하고, 필요 시 마우스 커서 폴백 및 경계 보정 여부(notice)를 반환합니다.
+    /// </summary>
+    public static (double Left, double Top, string? PositionNotice) ComputeAdjustedPosition(
+        double dipX, double dipY,
+        double mouseDipX, double mouseDipY,
+        double w, double h,
+        double workLeft, double workTop, double workRight, double workBottom,
+        string placement, int offsetY)
+    {
+        if (placement == "ScreenBottomRight")
+        {
+            return (Math.Max(workLeft + 10, workRight - w - 24),
+                    Math.Max(workTop + 10, workBottom - h - 24),
+                    null);
+        }
+
+        double workW = Math.Max(300, workRight - workLeft);
+        double workH = Math.Max(300, workBottom - workTop);
+        if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
+
+        string? notice = null;
+        double anchorX = dipX;
+        double anchorY = dipY;
+
+        // 입력 커서가 현재 모니터 작업 영역을 벗어났거나 표시하기 애매한 경우 마우스 커서로 폴백
+        bool caretOutOfScreen = dipX < workLeft - 10 || dipX > workRight + 10 || dipY < workTop - 10 || dipY > workBottom + 10;
+        if (caretOutOfScreen && placement != "MousePointer")
+        {
+            anchorX = mouseDipX;
+            anchorY = mouseDipY + 16;
+            notice = "📍 입력창이 화면 밖에 있어 마우스 위치로 일시 조정되었습니다.";
+        }
+
+        double rawLeft = anchorX;
+        double clampedLeft = Math.Max(workLeft + 10, Math.Min(rawLeft, workRight - w - 10));
+
+        bool preferAbove = anchorY > workTop + workH * 0.65 || (anchorY + offsetY + h > workBottom - 10);
+        double rawTop = preferAbove ? (anchorY - h - 12) : (anchorY + offsetY);
+        double clampedTop = Math.Max(workTop + 10, Math.Min(rawTop, workBottom - h - 10));
+
+        if (notice == null && (Math.Abs(clampedLeft - rawLeft) > 2 || Math.Abs(clampedTop - rawTop) > 2))
+        {
+            notice = "📍 화면 경계에 닿아 잘림 방지를 위해 표시 위치가 일시 조정되었습니다.";
+        }
+
+        return (clampedLeft, clampedTop, notice);
+    }
+
     private void Reposition(double caretX, double caretY)
     {
         var (dipX, dipY, workLeft, workTop, workRight, workBottom) =
             Win32Api.ConvertPhysicalPointAndGetWorkArea(this, caretX, caretY);
 
+        Win32Api.GetCursorPos(out var mPt);
+        var (mouseDipX, mouseDipY, _, _, _, _) =
+            Win32Api.ConvertPhysicalPointAndGetWorkArea(this, mPt.X, mPt.Y);
+
         double workW = Math.Max(300, workRight - workLeft);
         double workH = Math.Max(300, workBottom - workTop);
+
+        if (TxtPositionNotice != null)
+        {
+            TxtPositionNotice.Text = string.Empty;
+            TxtPositionNotice.Visibility = Visibility.Collapsed;
+        }
 
         // 현재 콘텐츠의 정확한 크기를 먼저 측정 (이전 상태의 ActualWidth/Height로 위치가 튀는 현상 방지)
         MainBorder.Measure(new Size(workW, workH));
@@ -581,30 +649,26 @@ public partial class SuggestionBar : Window
 
         Opacity = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
 
-        if (_configManager.Config.PillPlacement == "ScreenBottomRight")
-        {
-            Left = workRight - w - 24;
-            Top = workBottom - h - 24;
-        }
-        else
-        {
-            int offsetY = _configManager.Config.PillOffsetY;
-            if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
+        string placement = _configManager.Config.PillPlacement ?? "CursorNearby";
+        int offsetY = _configManager.Config.PillOffsetY;
+        var (adjLeft, adjTop, notice) = ComputeAdjustedPosition(
+            dipX, dipY, mouseDipX, mouseDipY, w, h,
+            workLeft, workTop, workRight, workBottom, placement, offsetY);
 
-            Left = Math.Max(workLeft + 10, Math.Min(dipX, workRight - w - 10));
-
-            // 현재 모니터 하단 35% 영역(일반 채팅 입력창 위치)에서는 UNKNOWN(1줄)이든 MATCH(여러 줄)든 항상 커서 위쪽에 일관되게 배치
-            bool preferAbove = dipY > workTop + workH * 0.65 || (dipY + offsetY + h > workBottom - 10);
-            if (preferAbove)
-            {
-                Top = Math.Max(workTop + 10, dipY - h - 12);
-            }
-            else
-            {
-                Top = dipY + offsetY;
-            }
+        if (!string.IsNullOrEmpty(notice) && TxtPositionNotice != null)
+        {
+            TxtPositionNotice.Text = notice;
+            TxtPositionNotice.Visibility = Visibility.Visible;
+            MainBorder.Measure(new Size(workW, workH));
+            w = MainBorder.DesiredSize.Width > 0 ? MainBorder.DesiredSize.Width : w;
+            h = MainBorder.DesiredSize.Height > 0 ? MainBorder.DesiredSize.Height : h;
+            (adjLeft, adjTop, _) = ComputeAdjustedPosition(
+                dipX, dipY, mouseDipX, mouseDipY, w, h,
+                workLeft, workTop, workRight, workBottom, placement, offsetY);
         }
 
+        Left = adjLeft;
+        Top = adjTop;
         Show();
     }
 

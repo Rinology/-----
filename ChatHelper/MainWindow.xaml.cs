@@ -258,6 +258,11 @@ public partial class MainWindow : Window
             Task.Run(() => TextInjectionService.FastPasteText(item.Content, targetHwnd));
         };
 
+        _suggestionBar.AutoHideExpired += () =>
+        {
+            _hookService.ClearAll();
+        };
+
         _hookService.AiCandidateReady += (aiItem, matchedLen, targetHwnd) =>
         {
             Dispatcher.BeginInvoke(() =>

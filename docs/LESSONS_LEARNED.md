@@ -73,3 +73,11 @@
     2. `_suggestionBar.Hide()`만 호출하면 `_hookService._hasCandidates`가 `true`로 남아 `QuickSearchWindow` 내부에서 누른 `Tab`, `1`~`9`, `\` 키를 훅이 가로채 먹통이 됨.
     3. `QuickSearchWindow.Window_PreviewKeyDown`에서 한글 IME 조합 중(`Key.ImeProcessed`)일 때 `e.ImeProcessedKey`를 풀어주지 않으면 한글 검색어 입력 직후 `Down`/`Up`/`Enter`가 동작하지 않음.
   * **✅ 검증된 해결책**: `Alt+Q`·`Alt+X`·`Alt+T` 모두 `VK_NONAME(0xFC)`를 전송하고, 팝업 창 오픈 시 `_hookService.ClearAll()`을 반드시 호출하며, `PreviewKeyDown`에서 `Key.ImeProcessed`와 `Key.System`을 모두 언래핑(`actualKey`)하여 처리할 것.
+
+## 10. 알약 자동 숨김(`0s`) 누락 및 화면 밖 알약 잘림 방지
+* **❌ 실패한 방법**: `SuggestionBar`의 `_countdownTimer`가 `0s`에 도달했을 때 타이머만 멈추고 `Hide()`를 호출하지 않거나, `KeyboardHookService.OnAutoHideTimerElapsed`에서 `_currentCandidates.Count > 0`일 때만 `ClearCandidates()`를 호출하는 방식.
+  * **실패 원인**: `[미일치]` 안내 알약처럼 후보 리스트가 비어 있는 상태에서 뜬 알약은 `_autoHideTimer` 조건을 통과하지 못하고 `_countdownTimer`도 `Hide()`를 부르지 않아 20초가 넘어도 `⏱ 0s` 상태로 화면에 계속 남아 있음.
+  * **✅ 검증된 해결책**:
+    1. [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs)의 `_countdownTimer.Tick`에서 `_remainingSeconds <= 0`일 때(선택 번역 카드 예외) 즉시 `Hide()`와 `AutoHideExpired` 이벤트를 호출해 `_hookService.ClearAll()`과 동기화할 것.
+    2. [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)의 `OnAutoHideTimerElapsed`에서도 `_currentCandidates.Count > 0 || _buffer.Length > 0`을 모두 정리할 것.
+    3. `SuggestionBar.ComputeAdjustedPosition`에서 입력 커서가 작업 영역 밖이면 마우스 커서로 폴백하고, 알약 크기로 화면 경계에 닿아 보정된 경우 `TxtPositionNotice`로 일시 조정 안내를 표시할 것.

@@ -38,6 +38,9 @@
             <StackPanel x:Name="TopAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed"/>
             <WrapPanel x:Name="ItemsPanel" Orientation="Horizontal" VerticalAlignment="Center"/>
             <StackPanel x:Name="BottomAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed"/>
+            <TextBlock x:Name="TxtPositionNotice" Text="" Visibility="Collapsed"
+                       FontSize="10.5" Foreground="#B45309" FontWeight="SemiBold"
+                       FontFamily="Malgun Gothic, Segoe UI" Margin="0,4,0,0" TextWrapping="Wrap"/>
         </StackPanel>
     </Border>
 </Window>

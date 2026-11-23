@@ -84,7 +84,7 @@ public class KeyboardHookService : IDisposable
     {
         lock (_lock)
         {
-            if (_currentCandidates.Count > 0)
+            if (_currentCandidates.Count > 0 || _buffer.Length > 0)
             {
                 _buffer.Clear();
                 ClearCandidates();
