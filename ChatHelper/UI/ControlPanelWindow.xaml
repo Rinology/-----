@@ -204,15 +204,48 @@
                                           SelectionMode="Single"
                                           Background="{DynamicResource ThemeSurfaceBg}"
                                           BorderBrush="{DynamicResource ThemeBorder}"
-                                          RowHeight="30"
+                                          MinRowHeight="46"
                                           FontSize="12.5"
                                           SelectionChanged="DgTemplates_SelectionChanged"
                                           MouseDoubleClick="DgTemplates_MouseDoubleClick">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="단축어" Binding="{Binding Keyword}" Width="105"/>
-                                        <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="170"/>
-                                        <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="90"/>
-                                        <DataGridTextColumn Header="내용 미리보기" Binding="{Binding Content}" Width="*"/>
+                                        <DataGridTextColumn Header="단축어" Binding="{Binding Keyword}" Width="95">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Margin" Value="6,4"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="155">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Margin" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="카테고리" Binding="{Binding Category}" Width="85">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                                    <Setter Property="Margin" Value="6,4"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="내용 미리보기" Binding="{Binding Content}" Width="*">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Margin" Value="6,5"/>
+                                                    <Setter Property="LineHeight" Value="19"/>
+                                                    <Setter Property="LineStackingStrategy" Value="BlockLineHeight"/>
+                                                    <Setter Property="MaxHeight" Value="38"/>
+                                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
@@ -266,8 +299,10 @@
                                         <TextBox x:Name="TxtContent" Grid.Row="1"
                                                  Style="{DynamicResource ThemeTextBoxStyle}"
                                                  VerticalContentAlignment="Top"
-                                                 Padding="8"
+                                                 Padding="10"
                                                  FontSize="13"
+                                                 TextBlock.LineHeight="22"
+                                                 TextBlock.LineStackingStrategy="BlockLineHeight"
                                                  TextWrapping="Wrap"
                                                  AcceptsReturn="True"
                                                  VerticalScrollBarVisibility="Auto"
@@ -534,23 +569,30 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- 중앙: 추천 알약 실시간 프리뷰 -->
-                                        <Grid Grid.Row="1" VerticalAlignment="Center">
-                                            <!-- 뒤편에 깔린 배경 텍스트 (반투명 체감용) -->
-                                            <Border Background="#CBD5E1" CornerRadius="6" Padding="10" Opacity="0.55" VerticalAlignment="Center">
-                                                <TextBlock Text="뒤편 작업창 텍스트가 투명도 설정에 따라 은은하게 비칩니다." FontSize="11.5" Foreground="#1E293B" HorizontalAlignment="Center"/>
+                                        <!-- 중앙: 추천 알약 실시간 프리뷰 (위·뒤·아래에 실제 채팅 대화 여러 줄을 깔아 투명도 비침이 명확히 보이도록 구성) -->
+                                        <Grid Grid.Row="1" VerticalAlignment="Stretch" Margin="0,4">
+                                            <Border Background="#FFFFFF" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="고객: 오늘 주문하면 언제 발송되나요? 택배사도 궁금합니다." FontSize="11.5" Foreground="#334155" Margin="0,2"/>
+                                                    <TextBlock Text="상담원: 평일 오후 2시 이전 주문 건은 당일 출고됩니다." FontSize="11.5" Foreground="#0F172A" FontWeight="SemiBold" Margin="0,2"/>
+                                                    <TextBlock Text="고객: 감사합니다! 송장번호는 어디서 확인하나요?" FontSize="11.5" Foreground="#334155" Margin="0,2"/>
+                                                    <TextBlock Text="상담원: 출고 후 알림톡으로 송장번호가 자동 발송됩니다." FontSize="11.5" Foreground="#0F172A" FontWeight="SemiBold" Margin="0,2"/>
+                                                    <TextBlock Text="※ 투명도(70%~100%)에 따라 이 뒤편 채팅 문구들이 알약 뒤로 비쳐 보입니다." FontSize="11" Foreground="#2563EB" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                                                </StackPanel>
                                             </Border>
 
                                             <Border x:Name="PreviewPillBorder"
                                                     Background="{DynamicResource ThemePillBg}"
-                                                    BorderBrush="{DynamicResource ThemeAccent}"
+                                                    BorderBrush="{DynamicResource ThemeAccentBorder}"
                                                     BorderThickness="1.5"
                                                     CornerRadius="8"
                                                     Padding="12,8"
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center">
                                                 <StackPanel>
-                                                    <TextBlock Text="인식됨: &quot;배송&quot;  (⏱ 12s)" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,5"/>
+                                                    <Border Background="#E2E8F0" CornerRadius="4" Padding="6,2" Margin="0,0,0,6">
+                                                        <TextBlock Text="인식됨: &quot;배송&quot;  (⏱ 12s)" FontSize="10.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                                    </Border>
                                                     <WrapPanel x:Name="PreviewPillItemsPanel" Orientation="Horizontal"/>
                                                 </StackPanel>
                                             </Border>

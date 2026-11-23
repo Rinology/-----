@@ -84,6 +84,18 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **마스터창 `▲/▼` 좌측 끝 배치 · 인식 배지/알약 색상 구분 · 본문 줄 간격 확대 · 안내 문구 정리 · 불투명도(`WM_STYLECHANGING`) 완벽 적용 · 미리보기 배경 문구 가시성 개선**:
+  - **마스터창 `▲ 1/3 ▼` 화살표 좌측 끝 이동 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml))**: 화면 전환 화살표(`▲ 1/3 ▼`)를 도킹 바 가장 왼쪽 끝(`Grid.Column="0"`)에 배치하여 어느 화면에서든 일정한 위치에서 즉시 클릭할 수 있도록 개선.
+  - **인식 알약 및 `인식 현황`/`최근 로그` 배지 색상 구분 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [ModernLightTheme.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Themes/ModernLightTheme.xaml))**:
+    - `인식 현황` 및 `최근 로그` 배지에 포인트 파스텔 배경(`ThemeAccent`) + 포인트 테두리(`ThemeAccentBorder`) + 짙은 포인트 텍스트(`ThemeAccentText`)를 적용해 흰색 도킹 바 위에서 명확히 구분되도록 개선.
+    - 추천 알약(`SuggestionBar`) 배경(`ThemePillBg`)을 순백색(`#FFFFFF`) 대신 쿨 슬레이트 틴트(`#F1F5F9`)와 선명한 테두리(`#94A3B8`)로 구분하여 흰색 채팅창 위에서도 경계와 추천 칩(`#FFFFFF` 및 포인트 칩)이 뚜렷하게 보이도록 개선.
+  - **커맨드 목록 및 본문 줄 간격(LineHeight) 확대 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [QuickSearchWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml))**:
+    - 제어판 커맨드 목록(`DgTemplates`)의 고정 `RowHeight="30"` 때문에 2줄 본문 아랫줄이 반쯤 잘리던 문제를 해결하기 위해 `MinRowHeight="46"` 및 `내용 미리보기` 컬럼 `LineHeight="19"`(`MaxHeight="38"`)를 적용.
+    - 우측 본문 편집기(`TxtContent`)에 `LineHeight="22"`, 빠른 검색창(`QuickSearchWindow`) 본문 미리보기에 `LineHeight="19"`를 적용해 긴 본문 가독성을 개선.
+  - **환경설정 하단 어색한 안내 문구 수정 ([ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs))**: 구버전 레이아웃 기준 문구(`"하단 입력란에서 수정 후 [✏️ 수정 적용 (시트 반영)]을 누르세요."`)를 현재 2단 레이아웃에 맞게 `"우측 상세 편집기에서 내용을 수정한 뒤 [✏️ 수정 적용]을 누르세요."`로 수정.
+  - **실제 창 불투명도(`SetWindowAlpha`) 미적용 버그 근본 수정 ([Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs))**:
+    - `AllowsTransparency="False"`인 WPF 창에 `SetWindowLong(GWL_EXSTYLE, WS_EX_LAYERED)` 호출 시 WPF 내부 `Window.WmStyleChanging`(`WM_STYLECHANGING 0x007C`)이 `WS_EX_LAYERED` 플래그를 강제로 다시 지워버리던 원인을 규명하고, `HwndSourceHook`으로 `WM_STYLECHANGING`에서 `WS_EX_LAYERED` 비트를 보존하도록 수정하여 미리보기와 동일하게 마스터창·알약창·검색창 반투명도가 실제 적용되도록 해결.
+  - **실시간 예시 미리보기 뒷부분 배경 문구 가시성 개선 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**: 미리보기 알약 바로 뒤에 1줄만 배치되어 알약에 완전히 가려지던 배경 문구를 실제 여러 줄 상담 대화 카드로 확장하여, 알약 위·뒤·아래에 걸쳐 투명도(70%~100%)에 따른 뒤 배경 비침 효과를 한눈에 확인할 수 있도록 개선.
 - **파스텔 포인트 컬러 톤다운(흰색에 가까운 부드러운 파스텔) & 마우스 오버 시 텍스트 가독성 개선**:
   - [ThemeManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ThemeManager.cs) 및 [ModernLightTheme.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Themes/ModernLightTheme.xaml)에서 원색에 가깝던 포인트 컬러를 흰색에 가까운 은은한 파스텔톤(`#DBEAFE`, `#D1FAE5`, `#EDE9FE`, `#FFEDD5`, `#FCE7F3`)으로 톤다운하고, 마우스 오버 시 더 연한 파스텔 배경(`ThemeButtonHoverBg`) + 또렷한 짙은 포인트 텍스트(`ThemeAccentText`)가 유지되도록 개선.
   - [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs), [SymbolPickerWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SymbolPickerWindow.xaml.cs), [QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs), [LoginWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/LoginWindow.xaml), [ExitConfirmWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ExitConfirmWindow.xaml)의 모든 포인트 컬러 버튼/칩에 커스텀 호버 스타일 및 `ThemeAccentText`를 적용해 마우스 오버 시 글자가 안 보이던 문제를 해결.

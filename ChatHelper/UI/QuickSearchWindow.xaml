@@ -138,7 +138,7 @@
 
                                 <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource ThemeText}" FontWeight="SemiBold" FontSize="13" FontFamily="Malgun Gothic, Segoe UI" VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12" FontFamily="Malgun Gothic, Segoe UI" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12" FontFamily="Malgun Gothic, Segoe UI" LineHeight="19" LineStackingStrategy="BlockLineHeight" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

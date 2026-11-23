@@ -113,6 +113,18 @@ public static class AiAndOcrIntegrationTests
         Assert(clipNotice != null && clipNotice.Contains("일시 조정") && clipL <= 1920 - 420 - 10,
             $"Edge-clipped large pill should clamp inward with notice, got L={clipL}, notice={clipNotice}");
         Console.WriteLine("  [SuggestionBar Bounds Test] Normal / Off-Screen Mouse Fallback / Edge-Clamp Notice verified.");
+
+        // 5. SetWindowAlpha (LWA_ALPHA) 실제 OS 레이어드 알파 검증
+        var testWin = new System.Windows.Window { Width = 200, Height = 80, WindowStyle = System.Windows.WindowStyle.None };
+        testWin.Show();
+        ChatHelper.Services.Win32Api.SetWindowAlpha(testWin, 0.45);
+        var testHwnd = new System.Windows.Interop.WindowInteropHelper(testWin).Handle;
+        int exAfter = ChatHelper.Services.Win32Api.GetWindowLong(testHwnd, ChatHelper.Services.Win32Api.GWL_EXSTYLE);
+        bool hasLayered = (exAfter & ChatHelper.Services.Win32Api.WS_EX_LAYERED) != 0;
+        bool gotAlpha = ChatHelper.Services.Win32Api.GetLayeredWindowAttributes(testHwnd, out _, out byte actualAlpha, out uint lwaFlags);
+        testWin.Close();
+        Console.WriteLine($"  [Alpha Test] HWND={testHwnd}, ExStyle=0x{exAfter:X}, HasLayered={hasLayered}, GotAlpha={gotAlpha}, Alpha={actualAlpha}/255, Flags={lwaFlags}");
+        Assert(hasLayered && gotAlpha && actualAlpha == 115, $"Expected WS_EX_LAYERED with Alpha=115, got HasLayered={hasLayered}, Alpha={actualAlpha}");
     }
 
     private static void Assert(bool condition, string message)

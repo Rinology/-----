@@ -238,7 +238,7 @@ public partial class ControlPanelWindow : Window
         {
             TxtContent.Focus();
             TxtContent.CaretIndex = TxtContent.Text.Length;
-            LblStatusBar.Text = "하단 입력란에서 수정 후 [✏️ 수정 적용 (시트 반영)]을 누르세요.";
+            LblStatusBar.Text = "우측 상세 편집기에서 내용을 수정한 뒤 [✏️ 수정 적용]을 누르세요.";
         }
     }
 

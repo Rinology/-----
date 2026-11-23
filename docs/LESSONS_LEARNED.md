@@ -82,9 +82,11 @@
     2. [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)의 `OnAutoHideTimerElapsed`에서도 `_currentCandidates.Count > 0 || _buffer.Length > 0`을 모두 정리할 것.
     3. `SuggestionBar.ComputeAdjustedPosition`에서 입력 커서가 작업 영역 밖이면 마우스 커서로 폴백하고, 알약 크기로 화면 경계에 닿아 보정된 경우 `TxtPositionNotice`로 일시 조정 안내를 표시할 것.
 
-## 11. `AllowsTransparency="False"` 환경의 진짜 반투명(`LWA_ALPHA`) & 동기화 UI 반영
-* **❌ 실패한 방법**: `AllowsTransparency="False"`인 WPF 창에 `this.Opacity = 0.7`만 설정하는 방식.
+## 11. `AllowsTransparency="False"` 환경의 진짜 반투명(`LWA_ALPHA` + `WM_STYLECHANGING` 훅) & 동기화 UI 반영
+* **❌ 실패한 방법 1**: `AllowsTransparency="False"`인 WPF 창에 `this.Opacity = 0.7`만 설정하는 방식.
   * **실패 원인**: 비레이어드 WPF 창의 `Opacity`는 뒤의 다른 프로그램 창을 비추는 대신 **자체 검은 백버퍼와 혼합되어 화면만 어둡게 만듦**.
-  * **✅ 검증된 해결책**: `AllowsTransparency="True"`는 마우스 스터터 방지를 위해 계속 끄고, 대신 [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `SetWindowAlpha` (`EnsureHandle()` + `WS_EX_LAYERED` 유지 + `SetLayeredWindowAttributes(LWA_ALPHA, 64..255)` 및 `Show()` 이후 호출)를 사용하여 DWM 마우스 렉 없이 진짜 반투명을 구현할 것. (100% 불투명일 때 `WS_EX_LAYERED`를 껐다 켰다 토글하면 리페인트가 누락되므로 `alpha=255`로 유지할 것)
+* **❌ 실패한 방법 2**: `AllowsTransparency="False"`인 WPF 창에 단순히 `SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_LAYERED)` + `SetLayeredWindowAttributes`만 호출하는 방식.
+  * **실패 원인**: `SetWindowLong(GWL_EXSTYLE)` 호출 시 OS가 동기적으로 `WM_STYLECHANGING(0x007C)` 메시지를 WPF `Window.WndProc`(`Window.WmStyleChanging`)으로 보내는데, WPF 내부 코드가 `AllowsTransparency == false`이면 `STYLESTRUCT.styleNew`에서 `WS_EX_LAYERED` 비트를 강제로 다시 제거해 버림 (`ExStyle` 확인 시 `HasLayered=False`가 되어 `SetLayeredWindowAttributes`가 무시됨).
+  * **✅ 검증된 해결책**: `AllowsTransparency="True"`는 마우스 스터터 방지를 위해 계속 끄고, 대신 [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `SetWindowAlpha`에서 **`HwndSource.FromHwnd(hwnd).AddHook`으로 `WM_STYLECHANGING(0x007C)`을 가로채 `STYLESTRUCT.styleNew`(`lParam + 4`)에 `WS_EX_LAYERED(0x00080000)`를 강제 보존(`handled = true`)**한 뒤 `SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA)`를 호출할 것. (`GetLayeredWindowAttributes` 단위 테스트로 `HasLayered=True, Alpha=115/255` 검증 완료)
 * **❌ 동기화 누락**: `ControlPanelWindow`가 생성자에서만 `LoadData()`를 호출해 백그라운드 동기화 완료 후에도 이전 시트 목록이 남아 있던 문제.
   * **✅ 검증된 해결책**: `TemplateManager.TemplatesSynced` 이벤트를 구독(`Closed` 시 해제)하여 동기화 완료 즉시 목록·프로필을 갱신할 것.

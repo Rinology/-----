@@ -22,13 +22,13 @@
     <SolidColorBrush x:Key="ThemeTitleBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeTitleText" Color="#0F172A"/>
 
-    <!-- 도킹 바 / 알약 전용 토큰 -->
+    <!-- 도킹 바 / 알약 전용 토큰 (흰색 채팅창 배경과 명확히 구분되도록 은은한 슬레이트/파스텔 구분) -->
     <SolidColorBrush x:Key="ThemeHudBg" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="ThemeHudBorder" Color="#CBD5E1"/>
+    <SolidColorBrush x:Key="ThemeHudBorder" Color="#94A3B8"/>
     <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#EFF6FF"/>
-    <SolidColorBrush x:Key="ThemePillBg" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="ThemePillBorder" Color="#CBD5E1"/>
-    <SolidColorBrush x:Key="ThemeKbdBg" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="ThemePillBg" Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="ThemePillBorder" Color="#94A3B8"/>
+    <SolidColorBrush x:Key="ThemeKbdBg" Color="#FFFFFF"/>
 
     <!-- 모던 버튼 스타일 (마우스 오버 시 색이 더 연한 파스텔로 변하고 짙은 텍스트가 항상 선명하게 유지됨) -->
     <Style x:Key="ThemeButtonStyle" TargetType="Button">

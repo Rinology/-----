@@ -553,11 +553,16 @@ public static class Win32Api
 
     public const int WS_EX_LAYERED = 0x00080000;
     public const uint LWA_ALPHA = 0x00000002;
+    public const int WM_STYLECHANGING = 0x007C;
+    private static readonly HashSet<IntPtr> _layeredHookedHwnds = new();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetLayeredWindowAttributes(IntPtr hwnd, out uint crKey, out byte bAlpha, out uint dwFlags);
 
     /// <summary>
-    /// AllowsTransparency=False 상태에서도 Win32 LWA_ALPHA로 뒤 창이 실제로 비치는 진짜 반투명을 적용합니다.
-    /// EnsureHandle()로 Show() 이전 호출 시에도 핸들을 보장하며, WS_EX_LAYERED를 유지한 채 알파값(64~255)만 갱신해
-    /// 동적 스타일 토글로 인한 미적용/깜빡임 및 DWM 마우스 스터터를 원천 차단합니다.
+    /// AllowsTransparency=False인 WPF Window는 내부 WmStyleChanging에서 WS_EX_LAYERED를 강제로 제거하므로,
+    /// HwndSourceHook으로 WM_STYLECHANGING을 가로채 WS_EX_LAYERED 비트를 보존한 뒤 SetLayeredWindowAttributes(LWA_ALPHA)를 적용합니다.
     /// </summary>
     public static void SetWindowAlpha(System.Windows.Window win, double opacity)
     {
@@ -567,6 +572,23 @@ public static class Win32Api
             var helper = new System.Windows.Interop.WindowInteropHelper(win);
             var hwnd = helper.Handle == IntPtr.Zero ? helper.EnsureHandle() : helper.Handle;
             if (hwnd == IntPtr.Zero) return;
+
+            var src = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+            if (src != null && _layeredHookedHwnds.Add(hwnd))
+            {
+                src.AddHook((IntPtr h, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+                {
+                    if (msg == WM_STYLECHANGING && (int)wParam == GWL_EXSTYLE && lParam != IntPtr.Zero)
+                    {
+                        // STYLESTRUCT: int styleOld (offset 0), int styleNew (offset 4)
+                        int styleNew = Marshal.ReadInt32(lParam, 4);
+                        Marshal.WriteInt32(lParam, 4, styleNew | WS_EX_LAYERED);
+                        handled = true;
+                    }
+                    return IntPtr.Zero;
+                });
+                win.Closed += (_, _) => _layeredHookedHwnds.Remove(hwnd);
+            }
 
             double clamped = Math.Clamp(opacity, 0.25, 1.0);
             int exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
