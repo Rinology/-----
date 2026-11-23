@@ -44,7 +44,7 @@
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,4,18,16">
                 <Button Content="취소" Style="{DynamicResource ThemeButtonStyle}" Height="32" Padding="14,0" Margin="0,0,8,0" Click="BtnCancel_Click"/>
                 <Button Content="종료" Style="{DynamicResource ThemeButtonStyle}"
-                        Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccent}" Foreground="#FFFFFF"
+                        Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" Foreground="{DynamicResource ThemeAccentText}"
                         Height="32" Padding="18,0" Click="BtnConfirmExit_Click" IsDefault="True"/>
             </StackPanel>
         </Grid>

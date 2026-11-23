@@ -13,15 +13,18 @@ public static class ThemeManager
     public static string CurrentTheme { get; private set; } = ThemeFluentLight;
     public static string CurrentAccent { get; private set; } = "Blue";
 
-    public static (string Accent, string Hover, string SoftHover) GetAccentPalette(string? accentName)
+    /// <summary>
+    /// 톤다운된 파스텔 포인트 컬러 팔레트 (흰색에 가까운 부드러운 파스텔 배경 + 마우스 오버 시 더 연한 틴트 + 선명한 짙은 텍스트)
+    /// </summary>
+    public static (string AccentBg, string HoverBg, string BorderHex, string TextHex) GetAccentPalette(string? accentName)
     {
         return (accentName ?? "Blue").Trim() switch
         {
-            "Green" => ("#10B981", "#059669", "#ECFDF5"),
-            "Lavender" => ("#8B5CF6", "#7C3AED", "#F5F3FF"),
-            "Peach" => ("#F97316", "#EA580C", "#FFF7ED"),
-            "Pink" => ("#EC4899", "#DB2777", "#FDF2F8"),
-            _ => ("#2563EB", "#1D4ED8", "#EFF6FF")
+            "Green" => ("#D1FAE5", "#ECFDF5", "#6EE7B7", "#065F46"),
+            "Lavender" => ("#EDE9FE", "#F5F3FF", "#C4B5FD", "#4C1D95"),
+            "Peach" => ("#FFEDD5", "#FFF7ED", "#FDBA74", "#7C2D12"),
+            "Pink" => ("#FCE7F3", "#FDF2F8", "#F9A8D4", "#831843"),
+            _ => ("#DBEAFE", "#EFF6FF", "#93C5FD", "#1E3A8A")
         };
     }
 
@@ -33,15 +36,17 @@ public static class ThemeManager
                 ? ThemeMinimalHud
                 : ThemeFluentLight;
 
-            // 화이트 베이스 Windows 11 Fluent 라이트 고정 + 유저 선택 포인트 컬러 적용
+            // 화이트 베이스 Windows 11 Fluent 라이트 고정 + 유저 선택 파스텔 포인트 컬러 적용
             var dictUri = new Uri("Themes/ModernLightTheme.xaml", UriKind.Relative);
             var resourceDict = new ResourceDictionary { Source = dictUri };
 
             string accentKey = string.IsNullOrWhiteSpace(accentColor) ? CurrentAccent : accentColor.Trim();
-            var (accentHex, hoverHex, softHex) = GetAccentPalette(accentKey);
-            resourceDict["ThemeAccent"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentHex));
-            resourceDict["ThemeAccentHover"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverHex));
-            resourceDict["ThemeButtonHoverBg"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(softHex));
+            var (accentBg, hoverBg, borderHex, textHex) = GetAccentPalette(accentKey);
+            resourceDict["ThemeAccent"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentBg));
+            resourceDict["ThemeAccentHover"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverBg));
+            resourceDict["ThemeButtonHoverBg"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverBg));
+            resourceDict["ThemeAccentBorder"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(borderHex));
+            resourceDict["ThemeAccentText"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textHex));
 
             var appResources = Application.Current.Resources;
             appResources.MergedDictionaries.Clear();

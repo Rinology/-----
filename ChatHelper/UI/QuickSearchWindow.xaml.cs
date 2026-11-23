@@ -170,19 +170,22 @@ public partial class QuickSearchWindow : Window
             var btn = new Button
             {
                 Content = isSelected ? $"✔ {cat}" : cat,
-                Margin = new Thickness(0, 0, 4, 0),
-                Padding = new Thickness(10, 3, 10, 3),
+                Style = TryFindResource("ThemeButtonStyle") as Style,
+                Margin = new Thickness(0, 0, 5, 0),
+                Padding = new Thickness(10, 4, 10, 4),
                 FontSize = 11.5,
-                FontFamily = new FontFamily("Tahoma, Gulim, Segoe UI"),
+                FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
                 FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
                 Cursor = Cursors.Hand,
-                Background = isSelected 
-                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000080")) // Win98 네이비
-                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#C0C0C0")), // Win98 실버 그레이
-                Foreground = isSelected ? Brushes.White : Brushes.Black,
-                BorderBrush = isSelected 
-                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#000000")) 
-                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#808080")),
+                Background = isSelected
+                    ? (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE")))
+                    : (Brush)(TryFindResource("ThemeSurfaceBg") ?? Brushes.White),
+                Foreground = isSelected
+                    ? (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")))
+                    : (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
+                BorderBrush = isSelected
+                    ? (Brush)(TryFindResource("ThemeAccentBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")))
+                    : (Brush)(TryFindResource("ThemeBorder") ?? Brushes.LightGray),
                 BorderThickness = new Thickness(1),
                 Focusable = false
             };

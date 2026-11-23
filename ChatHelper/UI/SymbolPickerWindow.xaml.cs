@@ -112,6 +112,7 @@ public partial class SymbolPickerWindow : Window
             var btn = new Button
             {
                 Content = grid,
+                Style = TryFindResource("ThemeButtonStyle") as Style,
                 Width = 48,
                 Height = 42,
                 Margin = new Thickness(0, 0, 4, 4),
@@ -120,7 +121,7 @@ public partial class SymbolPickerWindow : Window
                 Cursor = Cursors.Hand,
                 BorderThickness = new Thickness(1),
                 Focusable = false,
-                ToolTip = i < 9 ? $"'{sym}' (숫자키 {i + 1} 또는 클릭)" : $"'{sym}' (클릭 또는 방향키+Enter)"
+                ToolTip = i < 9 ? $"'{sym}' (숫자키 {i + 1} 또는 클릭 / 우클릭: 선택)" : $"'{sym}' (클릭 또는 방향키+Enter / 우클릭: 선택)"
             };
 
             btn.Click += (s, e) => InsertSymbol(sym);
@@ -139,7 +140,9 @@ public partial class SymbolPickerWindow : Window
 
     private void UpdateSelectionVisual()
     {
-        var accent = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")));
+        var accent = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE")));
+        var accentBorder = (Brush)(TryFindResource("ThemeAccentBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")));
+        var accentText = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")));
         var surface = (Brush)(TryFindResource("ThemeSurfaceBg") ?? Brushes.White);
         var border = (Brush)(TryFindResource("ThemePanelBorder") ?? Brushes.LightGray);
         var text = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black);
@@ -148,8 +151,8 @@ public partial class SymbolPickerWindow : Window
         {
             bool sel = i == _selectedIndex;
             _symbolButtons[i].Background = sel ? accent : surface;
-            _symbolButtons[i].Foreground = sel ? Brushes.White : text;
-            _symbolButtons[i].BorderBrush = sel ? accent : border;
+            _symbolButtons[i].Foreground = sel ? accentText : text;
+            _symbolButtons[i].BorderBrush = sel ? accentBorder : border;
         }
     }
 

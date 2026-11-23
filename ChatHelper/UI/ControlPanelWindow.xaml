@@ -45,7 +45,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock x:Name="LblCurrentUserInfo" Grid.Column="0" Text="로그인 정보 로드 중..." FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource ThemeAccent}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="LblCurrentUserInfo" Grid.Column="0" Text="로그인 정보 로드 중..." FontSize="12.5" FontWeight="Bold" Foreground="{DynamicResource ThemeAccentText}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <CheckBox x:Name="ChkLogoutOnExit" Grid.Column="1" Content="종료 시 로그아웃 (다음 실행 시 아이디 새로 입력)" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <Button Grid.Column="2" Content="다른 계정 로그온" Style="{DynamicResource ThemeButtonStyle}" Height="28" Padding="10,0" Click="BtnRelogin_Click"/>
 
@@ -91,7 +91,7 @@
                                     <ComboBox x:Name="CmbActivePreset" Grid.Column="1" Width="200" Height="30" VerticalContentAlignment="Center"/>
                                     <Button x:Name="BtnPresetSwitch" Grid.Column="2" Content="✅ 적용 및 동기화" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,0" Margin="8,0,0,0" Click="BtnPresetSwitch_Click"/>
                                     <Button x:Name="BtnPresetRefresh" Grid.Column="3" Content="🔄 목록 새로고침" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="10,0" Margin="6,0,0,0" Click="BtnPresetRefresh_Click"/>
-                                    <TextBlock x:Name="LblActiveProfile" Grid.Column="4" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccent}" Margin="12,0,8,0" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="LblActiveProfile" Grid.Column="4" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccentText}" Margin="12,0,8,0" TextTrimming="CharacterEllipsis"/>
                                     <Button x:Name="BtnToggleUserSheetManager" Grid.Column="5" Content="⚙ 개인 시트 추가/삭제 ▾" Style="{DynamicResource ThemeButtonStyle}" Height="30" Padding="12,0" Click="BtnToggleUserSheetManager_Click"/>
                                 </Grid>
                                 <ProgressBar x:Name="PbarProfileSync" Height="5" IsIndeterminate="True" Visibility="Collapsed" Margin="0,8,0,2"/>
@@ -231,7 +231,7 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Text="선택 항목 상세 보기 / 편집" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,10"/>
+                                    <TextBlock Grid.Row="0" Text="선택 항목 상세 보기 / 편집" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource ThemeAccentText}" Margin="0,0,0,10"/>
 
                                     <Grid Grid.Row="1" Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -328,8 +328,8 @@
 
                                     <RadioButton x:Name="RadioShiftSpace" Margin="8,6" IsChecked="True" Checked="CompleteKeyMode_Changed">
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
-                                                <TextBlock Text="[ Shift + Space ]" Foreground="White" FontWeight="Bold"/>
+                                            <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
+                                                <TextBlock Text="[ Shift + Space ]" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
                                             </Border>
                                             <TextBlock Text="추천 알약이 떴을 때 Shift와 스페이스바를 함께 누르면 완성 (가장 안정적인 기본 권장 모드)" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                         </StackPanel>
@@ -337,8 +337,8 @@
 
                                     <RadioButton x:Name="RadioSlashTab" Margin="8,6" Checked="CompleteKeyMode_Changed">
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
-                                                <TextBlock Text="[ ₩ / \ ] + [ Tab ]" Foreground="White" FontWeight="Bold"/>
+                                            <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
+                                                <TextBlock Text="[ ₩ / \ ] + [ Tab ]" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
                                             </Border>
                                             <TextBlock Text="추천 알약이 떴을 때 \와 Tab을 누르면 완성" VerticalAlignment="Center"/>
                                         </StackPanel>
@@ -347,8 +347,8 @@
                                     <RadioButton x:Name="RadioSlashOnly" Margin="8,6" Checked="CompleteKeyMode_Changed">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
-                                                <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
-                                                    <TextBlock Text="[ ₩ / \ ] 단독 즉시 실행" Foreground="White" FontWeight="Bold"/>
+                                                <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
+                                                    <TextBlock Text="[ ₩ / \ ] 단독 즉시 실행" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
                                                 </Border>
                                                 <TextBlock Text="\ 키를 누르자마자 1번 추천 답변으로 즉시 치환 완성" VerticalAlignment="Center"/>
                                             </StackPanel>
@@ -390,32 +390,32 @@
                                         <WrapPanel Orientation="Horizontal">
                                             <RadioButton x:Name="RadioAccentBlue" GroupName="UiAccentGroup" Margin="6,4,16,4" IsChecked="True" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="16" Height="16" Fill="#2563EB" Stroke="#1E40AF" StrokeThickness="1" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="화이트 &amp; 블루 (기본)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                    <Ellipse Width="16" Height="16" Fill="#DBEAFE" Stroke="#60A5FA" StrokeThickness="1.5" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="파스텔 블루 (기본)" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="RadioAccentGreen" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="16" Height="16" Fill="#10B981" Stroke="#047857" StrokeThickness="1" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="화이트 &amp; 민트 그린" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                    <Ellipse Width="16" Height="16" Fill="#D1FAE5" Stroke="#34D399" StrokeThickness="1.5" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="파스텔 민트" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="RadioAccentLavender" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="16" Height="16" Fill="#8B5CF6" Stroke="#6D28D9" StrokeThickness="1" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="화이트 &amp; 라벤더" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                    <Ellipse Width="16" Height="16" Fill="#EDE9FE" Stroke="#A78BFA" StrokeThickness="1.5" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="파스텔 라벤더" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="RadioAccentPeach" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="16" Height="16" Fill="#F97316" Stroke="#C2410C" StrokeThickness="1" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="화이트 &amp; 코랄 피치" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                    <Ellipse Width="16" Height="16" Fill="#FFEDD5" Stroke="#FB923C" StrokeThickness="1.5" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="파스텔 피치" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </RadioButton>
                                             <RadioButton x:Name="RadioAccentPink" GroupName="UiAccentGroup" Margin="6,4,16,4" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="16" Height="16" Fill="#EC4899" Stroke="#BE185D" StrokeThickness="1" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="화이트 &amp; 로즈 핑크" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                    <Ellipse Width="16" Height="16" Fill="#FCE7F3" Stroke="#F472B6" StrokeThickness="1.5" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="파스텔 핑크" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                                 </StackPanel>
                                             </RadioButton>
                                         </WrapPanel>
@@ -513,7 +513,7 @@
                         <!-- 우측: 실시간 예시 화면 (Live Preview) -->
                         <Border Grid.Column="2" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
                             <StackPanel>
-                                <TextBlock Text="실시간 예시 화면 (미리보기)" FontWeight="Bold" FontSize="14.5" Foreground="{DynamicResource ThemeAccent}" Margin="0,0,0,4"/>
+                                <TextBlock Text="실시간 예시 화면 (미리보기)" FontWeight="Bold" FontSize="14.5" Foreground="{DynamicResource ThemeAccentText}" Margin="0,0,0,4"/>
                                 <TextBlock Text="좌측 옵션을 변경하면 아래 예시 화면에서 컬러·모양·크기·투명도·위치를 즉시 확인할 수 있습니다." FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                                 <!-- 가상 모니터 배경 캔버스 (투명도 비침 체감용 체크/채팅 배경) -->
@@ -530,7 +530,7 @@
                                             <StackPanel>
                                                 <TextBlock Text="[뒤편 채팅창 화면 예시]" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
                                                 <TextBlock Text="고객: 배송은 언제쯤 출발하나요?" FontSize="12" Foreground="#334155" Margin="0,2,0,2"/>
-                                                <TextBlock x:Name="PreviewLocationText" Text="상담원 입력 커서 위치 ➔ [채팅 커서 기준 +35px]" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccent}"/>
+                                                <TextBlock x:Name="PreviewLocationText" Text="상담원 입력 커서 위치 ➔ [채팅 커서 기준 +35px]" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeAccentText}"/>
                                             </StackPanel>
                                         </Border>
 

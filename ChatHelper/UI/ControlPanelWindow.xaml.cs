@@ -534,9 +534,11 @@ public partial class ControlPanelWindow : Window
     {
         if (PreviewPillBorder == null || PreviewPillItemsPanel == null || PreviewDockBorder == null) return;
 
-        var (accentHex, _, softHex) = ThemeManager.GetAccentPalette(GetSelectedAccentColor());
-        var accentBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentHex));
-        var softBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(softHex));
+        var (accentBgHex, hoverBgHex, borderHex, textHex) = ThemeManager.GetAccentPalette(GetSelectedAccentColor());
+        var accentBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(accentBgHex));
+        var softBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hoverBgHex));
+        var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(borderHex));
+        var accentTextBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textHex));
 
         double pillAlpha = RadioOpacity70?.IsChecked == true ? 0.70
             : RadioOpacity80?.IsChecked == true ? 0.80
@@ -547,7 +549,7 @@ public partial class ControlPanelWindow : Window
             : RadioStatusOpacity85?.IsChecked == true ? 0.85 : 1.0;
 
         PreviewPillBorder.Opacity = pillAlpha;
-        PreviewPillBorder.BorderBrush = accentBrush;
+        PreviewPillBorder.BorderBrush = borderBrush;
         PreviewDockBorder.Opacity = statusAlpha;
 
         // 실제 메인 마스터창에도 투명도 실시간 미리보기 반영
@@ -576,8 +578,8 @@ public partial class ControlPanelWindow : Window
         }
         else if (!isMulti)
         {
-            var badge = new Border { Background = accentBrush, CornerRadius = new CornerRadius(5), Padding = chipPad, Margin = new Thickness(0, 0, 6, 0) };
-            badge.Child = new TextBlock { Text = "[Shift+Space] 배송안내 — 오늘 출고됩니다.", Foreground = Brushes.White, FontSize = chipFont, FontWeight = FontWeights.SemiBold };
+            var badge = new Border { Background = accentBrush, BorderBrush = borderBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(5), Padding = chipPad, Margin = new Thickness(0, 0, 6, 0) };
+            badge.Child = new TextBlock { Text = "[Shift+Space] 배송안내 — 오늘 출고됩니다.", Foreground = accentTextBrush, FontSize = chipFont, FontWeight = FontWeights.SemiBold };
             PreviewPillItemsPanel.Children.Add(badge);
         }
         else
@@ -590,7 +592,7 @@ public partial class ControlPanelWindow : Window
                 var chip = new Border
                 {
                     Background = i == 0 ? accentBrush : softBrush,
-                    BorderBrush = accentBrush,
+                    BorderBrush = borderBrush,
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(5),
                     Padding = chipPad,
@@ -599,7 +601,7 @@ public partial class ControlPanelWindow : Window
                 chip.Child = new TextBlock
                 {
                     Text = $"[{keyHint}] {samples[i % samples.Length]}",
-                    Foreground = i == 0 ? Brushes.White : Brushes.Black,
+                    Foreground = accentTextBrush,
                     FontSize = chipFont - 1,
                     FontWeight = i == 0 ? FontWeights.SemiBold : FontWeights.Normal
                 };

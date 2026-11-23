@@ -15,20 +15,22 @@
     <SolidColorBrush x:Key="ThemeText" Color="#0F172A"/>
     <SolidColorBrush x:Key="ThemeSubText" Color="#64748B"/>
     <SolidColorBrush x:Key="ThemeBorder" Color="#CBD5E1"/>
-    <SolidColorBrush x:Key="ThemeAccent" Color="#2563EB"/>
-    <SolidColorBrush x:Key="ThemeAccentHover" Color="#1D4ED8"/>
+    <SolidColorBrush x:Key="ThemeAccent" Color="#DBEAFE"/>
+    <SolidColorBrush x:Key="ThemeAccentHover" Color="#EFF6FF"/>
+    <SolidColorBrush x:Key="ThemeAccentBorder" Color="#93C5FD"/>
+    <SolidColorBrush x:Key="ThemeAccentText" Color="#1E3A8A"/>
     <SolidColorBrush x:Key="ThemeTitleBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeTitleText" Color="#0F172A"/>
 
     <!-- 도킹 바 / 알약 전용 토큰 -->
     <SolidColorBrush x:Key="ThemeHudBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeHudBorder" Color="#CBD5E1"/>
-    <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#EEF2FF"/>
+    <SolidColorBrush x:Key="ThemeButtonHoverBg" Color="#EFF6FF"/>
     <SolidColorBrush x:Key="ThemePillBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemePillBorder" Color="#CBD5E1"/>
     <SolidColorBrush x:Key="ThemeKbdBg" Color="#F1F5F9"/>
 
-    <!-- 모던 버튼 스타일 -->
+    <!-- 모던 버튼 스타일 (마우스 오버 시 색이 더 연한 파스텔로 변하고 짙은 텍스트가 항상 선명하게 유지됨) -->
     <Style x:Key="ThemeButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="#FFFFFF"/>
         <Setter Property="Foreground" Value="#0F172A"/>
@@ -48,15 +50,18 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#F1F5F9"/>
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="#94A3B8"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ThemeButtonHoverBg}"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource ThemeAccentBorder}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeAccentText}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#E2E8F0"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ThemeAccent}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeAccentText}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.45"/>
@@ -84,15 +89,17 @@
                             Background="{TemplateBinding Background}"
                             CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#EEF2FF"/>
-                            <Setter Property="Foreground" Value="#2563EB"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ThemeButtonHoverBg}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeAccentText}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ThemeAccent}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource ThemeAccentText}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

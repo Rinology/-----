@@ -230,7 +230,9 @@ public partial class SuggestionBar : Window
 
                 var badge = new Border
                 {
-                    Background = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"))),
+                    Background = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE"))),
+                    BorderBrush = (Brush)(TryFindResource("ThemeAccentBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD"))),
+                    BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(5),
                     Padding = badgePadding,
                     Margin = new Thickness(0, 0, 8, 0)
@@ -238,7 +240,7 @@ public partial class SuggestionBar : Window
                 badge.Child = new TextBlock
                 {
                     Text = tabKeyHint,
-                    Foreground = Brushes.White,
+                    Foreground = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A"))),
                     FontSize = badgeFontSize,
                     FontWeight = FontWeights.SemiBold,
                     FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
@@ -251,6 +253,7 @@ public partial class SuggestionBar : Window
                 var btn = new Button
                 {
                     Content = $"{topItem.Title} — {preview}",
+                    Style = TryFindResource("ThemeDockButtonStyle") as Style,
                     Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                     Background = Brushes.Transparent,
                     BorderThickness = new Thickness(0),
@@ -283,9 +286,12 @@ public partial class SuggestionBar : Window
             }
             else
             {
-                var accentBrush = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")));
+                var accentBrush = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE")));
+                var accentBorder = (Brush)(TryFindResource("ThemeAccentBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")));
+                var accentText = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")));
                 var kbdBg = (Brush)(TryFindResource("ThemeKbdBg") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")));
                 var borderBrush = (Brush)(TryFindResource("ThemeBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")));
+                var btnStyle = TryFindResource("ThemeButtonStyle") as Style;
 
                 for (int i = 0; i < visibleSheetItems.Count; i++)
                 {
@@ -295,9 +301,10 @@ public partial class SuggestionBar : Window
                     var chip = new Button
                     {
                         Content = $"[{keyHint}] {item.Title}",
-                        Foreground = (i > 0) ? (Brush)(TryFindResource("ThemeText") ?? Brushes.Black) : Brushes.White,
+                        Style = btnStyle,
+                        Foreground = (i == 0) ? accentText : (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                         Background = (i == 0) ? accentBrush : kbdBg,
-                        BorderBrush = (i == 0) ? accentBrush : borderBrush,
+                        BorderBrush = (i == 0) ? accentBorder : borderBrush,
                         BorderThickness = new Thickness(1),
                         Margin = new Thickness(0, 0, 6, 5),
                         Padding = badgePadding,
@@ -495,9 +502,11 @@ public partial class SuggestionBar : Window
         var btnEnOnly = new Button
         {
             Content = _isSelectionTranslationMode ? "선택 영역을 영문으로 바꾸기" : $"[{keyHint}] 영문만 입력",
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
+            Style = TryFindResource("ThemeButtonStyle") as Style,
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D1FAE5")),
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6EE7B7")),
+            BorderThickness = new Thickness(1),
             Padding = new Thickness(9, 3, 9, 3),
             Margin = new Thickness(0, 0, 5, 0),
             FontSize = 11,

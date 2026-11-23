@@ -128,8 +128,8 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <Border Background="{DynamicResource ThemeAccent}" CornerRadius="4" Padding="7,2" Margin="0,0,7,0">
-                                    <TextBlock Text="{Binding Keyword}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11.5" FontFamily="Malgun Gothic, Segoe UI"/>
+                                <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="0,0,7,0">
+                                    <TextBlock Text="{Binding Keyword}" Foreground="{DynamicResource ThemeAccentText}" FontWeight="SemiBold" FontSize="11.5" FontFamily="Malgun Gothic, Segoe UI"/>
                                 </Border>
 
                                 <Border Grid.Column="1" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
