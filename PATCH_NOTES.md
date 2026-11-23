@@ -84,6 +84,10 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **실시간 예시 미리보기 위치 이동 반영 · `Alt+Q` 빠른 검색창 화면 정중앙 배치 · 추천 알약 및 번역기 우측 상단 `✕` 즉시 닫기 버튼 추가**:
+  - **실시간 예시 미리보기 알약 위치 동적 반영 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs))**: `🎨 디자인 & 표시`에서 `채팅 커서 밀착 (+15px)` / `넉넉한 간격 (+35px)` / `원거리 (+65px)` / `마우스 포인터 위치` / `모니터 우측 하단 고정`을 선택할 때마다 미리보기 캔버스 안의 알약(`PreviewPillBorder`)이 실제로 해당 간격·마우스 포인터(`🖱️ 마우스 포인터 위치` 배지 표시)·우측 하단으로 이동하도록 개선.
+  - **`Alt+Q` 빠른 검색창(`QuickSearchWindow`) 화면 중앙 배치 ([QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs))**: 특수기호 창(`Alt+X`)과 동일하게 항상 메인 작업 영역(`SystemParameters.WorkArea`)의 정중앙에 열리도록 수정하여 좌측이나 마스터창 기준으로 치우쳐 열리던 문제를 해결.
+  - **추천 알약 및 번역기 카드 우측 상단 `✕` 닫기 버튼 추가 ([SuggestionBar.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**: 자동 숨김 카운트다운 시간이 남아 있더라도 언제든 추천 알약(`RecognitionHeaderBorder`), 번역 로딩창(`ShowAiGeneratingPlaceholder`), 번역 결과 비교 카드(`RenderTranslationRow`)의 우측 상단 `✕` 버튼을 눌러 즉시 닫고 입력 버퍼를 정리(`DismissSuggestion`)할 수 있도록 개선.
 - **마스터창 `▲/▼` 좌측 끝 배치 · 인식 배지/알약 색상 구분 · 본문 줄 간격 확대 · 안내 문구 정리 · 불투명도(`WM_STYLECHANGING`) 완벽 적용 · 미리보기 배경 문구 가시성 개선**:
   - **마스터창 `▲ 1/3 ▼` 화살표 좌측 끝 이동 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml))**: 화면 전환 화살표(`▲ 1/3 ▼`)를 도킹 바 가장 왼쪽 끝(`Grid.Column="0"`)에 배치하여 어느 화면에서든 일정한 위치에서 즉시 클릭할 수 있도록 개선.
   - **인식 알약 및 `인식 현황`/`최근 로그` 배지 색상 구분 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [ModernLightTheme.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Themes/ModernLightTheme.xaml))**:

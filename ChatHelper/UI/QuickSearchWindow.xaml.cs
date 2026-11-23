@@ -51,62 +51,18 @@ public partial class QuickSearchWindow : Window
         {
             _targetHwnd = targetHwnd;
         }
-
-        // 1. 제어판의 알약 표시 위치 설정(CursorNearby / MousePointer / ScreenBottomRight)을 동일하게 반영
-        string placement = _configManager.Config.PillPlacement ?? "CursorNearby";
-        bool useMouse = placement == "MousePointer";
-
-        double targetX, targetY;
-        if (Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out var resolvedHwnd, useMouse, _targetHwnd))
+        else if (_targetHwnd == IntPtr.Zero && Win32Api.TryGetValidInputPosition(out _, out _, out var resolvedHwnd, false))
         {
-            targetX = caretX;
-            targetY = caretY;
-            if (_targetHwnd == IntPtr.Zero && Win32Api.IsValidTargetWindow(resolvedHwnd))
+            if (Win32Api.IsValidTargetWindow(resolvedHwnd))
             {
                 _targetHwnd = resolvedHwnd;
             }
         }
-        else
-        {
-            // 캐럿 인식 실패 시 마우스 커서 위치 활용
-            Win32Api.GetCursorPos(out var pt);
-            targetX = pt.X;
-            targetY = pt.Y;
-        }
 
-        var (dipX, dipY, workLeft, workTop, workRight, workBottom) =
-            Win32Api.ConvertPhysicalPointAndGetWorkArea(this, targetX, targetY);
-
-        if (placement == "ScreenBottomRight")
-        {
-            Left = Math.Max(workLeft + 10, workRight - Width - 24);
-            Top = Math.Max(workTop + 10, workBottom - Height - 24);
-        }
-        else
-        {
-            int offsetY = _configManager.Config.PillOffsetY;
-            if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
-
-            // X 위치: 커서 인근에서 시작하되, 해당 모니터 작업 영역 너비를 벗어나지 않도록 보정
-            double desiredX = dipX - 40;
-            Left = Math.Max(workLeft + 10, Math.Min(desiredX, workRight - Width - 10));
-
-            // Y 위치: 커서 아래 +offsetY 위치하되, 너무 하단에 치우치면 커서 상단으로 보정
-            double desiredY = dipY + offsetY;
-            if (desiredY + Height > workBottom - 20)
-            {
-                // 하단 공간 부족 -> 커서 위쪽으로 보정
-                desiredY = dipY - Height - 15;
-            }
-
-            // 너무 상단에 치우치면 상단 최소 여백 10px로 보정
-            if (desiredY < workTop + 10)
-            {
-                desiredY = workTop + 10;
-            }
-
-            Top = desiredY;
-        }
+        // 특수기호 창(Alt+X)과 동일하게 항상 화면 중앙에 표시 (좌측 치우침 방지)
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Left + (workArea.Width - Width) / 2.0;
+        Top = workArea.Top + (workArea.Height - Height) / 2.0;
 
         _selectedCategory = "전체";
         TxtSearch.Clear();

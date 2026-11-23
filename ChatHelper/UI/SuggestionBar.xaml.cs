@@ -109,6 +109,41 @@ public partial class SuggestionBar : Window
         QuickRegisterRequested?.Invoke(clean);
     }
 
+    private void BtnCloseSuggestion_Click(object sender, RoutedEventArgs e)
+    {
+        DismissSuggestion();
+    }
+
+    public void DismissSuggestion()
+    {
+        _isSelectionTranslationMode = false;
+        Hide();
+        AutoHideExpired?.Invoke();
+    }
+
+    private Button CreateCloseIconButton(string tooltip = "창 닫기")
+    {
+        var btn = new Button
+        {
+            Content = "✕",
+            Width = 22,
+            Height = 20,
+            Padding = new Thickness(0),
+            Cursor = Cursors.Hand,
+            Focusable = false,
+            FontSize = 11,
+            FontWeight = FontWeights.Bold,
+            Background = Brushes.Transparent,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")),
+            BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = tooltip
+        };
+        btn.Click += (s, e) => DismissSuggestion();
+        return btn;
+    }
+
     public SuggestionBar(ConfigManager configManager)
     {
         InitializeComponent();
@@ -348,15 +383,27 @@ public partial class SuggestionBar : Window
         BottomAiRowPanel.Margin = isSelectionMode ? new Thickness(0) : new Thickness(0, 6, 0, 0);
 
         var loadingStack = new StackPanel { MinWidth = 300, MaxWidth = 480 };
-        loadingStack.Children.Add(new TextBlock
+        var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var loadingTitle = new TextBlock
         {
             Text = "🌐 Google 영문 번역 중...",
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
             FontSize = 12,
             FontWeight = FontWeights.Bold,
             FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
-            Margin = new Thickness(0, 0, 0, 4)
-        });
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(loadingTitle, 0);
+        headerGrid.Children.Add(loadingTitle);
+
+        var closeLoadingBtn = CreateCloseIconButton("번역 창 닫기");
+        Grid.SetColumn(closeLoadingBtn, 1);
+        headerGrid.Children.Add(closeLoadingBtn);
+
+        loadingStack.Children.Add(headerGrid);
 
         if (!string.IsNullOrWhiteSpace(promptHint))
         {
@@ -425,8 +472,40 @@ public partial class SuggestionBar : Window
         var sheetItems = _candidates.Where(c => c.Category != "AI번역").ToList();
         string keyHint = sheetItems.Count == 0 ? $"{trigger}+Tab" : $"{trigger}+E";
 
-        // 구글 번역기 스타일 2열 비교 카드 (원문 ↔ 영문) + 하단 액션 바
+        // 구글 번역기 스타일 2열 비교 카드 (원문 ↔ 영문) + 상단 헤더(우측 상단 X 닫기 포함) + 하단 액션 바
         var outer = new StackPanel { MinWidth = 420, MaxWidth = 640 };
+
+        if (_isSelectionTranslationMode || RecognitionHeaderBorder.Visibility != Visibility.Visible)
+        {
+            var transHeader = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E2E8F0")),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(8, 3, 6, 3),
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            var transHeaderGrid = new Grid();
+            transHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            transHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var transTitle = new TextBlock
+            {
+                Text = "🌐 Google 영문 번역 결과",
+                FontSize = 11,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(transTitle, 0);
+            transHeaderGrid.Children.Add(transTitle);
+
+            var closeTransBtn = CreateCloseIconButton("번역 창 닫기");
+            Grid.SetColumn(closeTransBtn, 1);
+            transHeaderGrid.Children.Add(closeTransBtn);
+
+            transHeader.Child = transHeaderGrid;
+            outer.Children.Add(transHeader);
+        }
 
         var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

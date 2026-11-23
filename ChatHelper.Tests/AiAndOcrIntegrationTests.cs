@@ -30,13 +30,17 @@ public static class AiAndOcrIntegrationTests
         });
 
         var qsw = new ChatHelper.UI.QuickSearchWindow(tm, cfg);
+        var workArea = SystemParameters.WorkArea;
+        double expectedCenterLeft = workArea.Left + (workArea.Width - qsw.Width) / 2.0;
+        double expectedCenterTop = workArea.Top + (workArea.Height - qsw.Height) / 2.0;
         foreach (var placement in new[] { "CursorNearby", "MousePointer", "ScreenBottomRight" })
         {
             cfg.Config.PillPlacement = placement;
             qsw.ShowAtCursor(IntPtr.Zero);
             Console.WriteLine($"  [QuickSearchWindow:{placement}] Left={qsw.Left}, Top={qsw.Top}, IsVisible={qsw.IsVisible}");
             Assert(qsw.IsVisible, $"QuickSearchWindow must be visible in {placement} mode");
-            Assert(!double.IsNaN(qsw.Left) && !double.IsNaN(qsw.Top), $"QuickSearchWindow Left/Top must not be NaN in {placement} mode");
+            Assert(Math.Abs(qsw.Left - expectedCenterLeft) < 2 && Math.Abs(qsw.Top - expectedCenterTop) < 2,
+                $"QuickSearchWindow must be centered on screen ({expectedCenterLeft},{expectedCenterTop}), got ({qsw.Left},{qsw.Top})");
             qsw.Hide();
         }
     }

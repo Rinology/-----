@@ -615,6 +615,48 @@ public partial class ControlPanelWindow : Window
             : RadioPosNearby1?.IsChecked == true ? "채팅 커서 밀착 (+15px)"
             : "채팅 커서 기준 (+35px 권장)";
 
+        // 선택된 위치 옵션에 따라 미리보기 캔버스 내 알약(PreviewPillBorder)의 실제 위치를 이동
+        if (PreviewMouseIndicator != null)
+        {
+            PreviewMouseIndicator.Visibility = RadioPosMouse?.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        if (RadioPosFixed?.IsChecked == true)
+        {
+            // 모니터 우측 하단 고정 알림 위치
+            PreviewPillBorder.HorizontalAlignment = HorizontalAlignment.Right;
+            PreviewPillBorder.VerticalAlignment = VerticalAlignment.Bottom;
+            PreviewPillBorder.Margin = new Thickness(8, 0, 8, 6);
+        }
+        else if (RadioPosMouse?.IsChecked == true)
+        {
+            // 마우스 포인터 위치 기준 (마우스 커서 배지 바로 아래)
+            PreviewPillBorder.HorizontalAlignment = HorizontalAlignment.Right;
+            PreviewPillBorder.VerticalAlignment = VerticalAlignment.Top;
+            PreviewPillBorder.Margin = new Thickness(8, 36, 12, 0);
+        }
+        else if (RadioPosFar?.IsChecked == true)
+        {
+            // 채팅창 시야 확보용 원거리 (+65px)
+            PreviewPillBorder.HorizontalAlignment = HorizontalAlignment.Left;
+            PreviewPillBorder.VerticalAlignment = VerticalAlignment.Top;
+            PreviewPillBorder.Margin = new Thickness(12, 56, 12, 0);
+        }
+        else if (RadioPosNearby1?.IsChecked == true)
+        {
+            // 채팅 커서 바로 근처 밀착 (+15px)
+            PreviewPillBorder.HorizontalAlignment = HorizontalAlignment.Left;
+            PreviewPillBorder.VerticalAlignment = VerticalAlignment.Top;
+            PreviewPillBorder.Margin = new Thickness(12, 4, 12, 0);
+        }
+        else
+        {
+            // 채팅 커서 기준 넉넉한 간격 (+35px · 기본 권장)
+            PreviewPillBorder.HorizontalAlignment = HorizontalAlignment.Left;
+            PreviewPillBorder.VerticalAlignment = VerticalAlignment.Top;
+            PreviewPillBorder.Margin = new Thickness(12, 26, 12, 0);
+        }
+
         if (PreviewLocationText != null)
             PreviewLocationText.Text = $"표시 위치 ➔ [{posDesc}]";
 

@@ -18,21 +18,28 @@
             BorderThickness="1"
             Padding="10,7">
         <StackPanel Orientation="Vertical">
-            <Border x:Name="RecognitionHeaderBorder" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" CornerRadius="6" Padding="8,4" Margin="0,0,0,6" Visibility="Collapsed">
+            <Border x:Name="RecognitionHeaderBorder" Background="#E2E8F0" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1" CornerRadius="6" Padding="8,4" Margin="0,0,0,6" Visibility="Collapsed">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock x:Name="TxtRecognitionHeader" Grid.Column="0" Text="인식됨: " FontSize="11" FontWeight="SemiBold" Foreground="#334155" FontFamily="Malgun Gothic, Segoe UI" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock x:Name="TxtAutoHideCountdown" Grid.Column="1" Text="12s" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" FontFamily="Consolas, Malgun Gothic" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="TxtAutoHideCountdown" Grid.Column="1" Text="12s" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" FontFamily="Consolas, Malgun Gothic" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <!-- 바로등록 기능 임시 비활성화 -->
                     <Button x:Name="BtnQuickRegisterToken" Grid.Column="2" Content="+ 시트 등록" Visibility="Collapsed"
-                            FontSize="10.5" FontWeight="SemiBold" Padding="7,2" Cursor="Hand" Focusable="False"
+                            FontSize="10.5" FontWeight="SemiBold" Padding="7,2" Margin="0,0,4,0" Cursor="Hand" Focusable="False"
                             Background="{DynamicResource ThemeAccent}" Foreground="#FFFFFF" BorderThickness="0"
                             ToolTip="현재 인식된 단어를 단축어로 하여 구글 시트에 새 답변을 바로 등록합니다"
                             Click="BtnQuickRegisterToken_Click"/>
+                    <Button x:Name="BtnCloseSuggestion" Grid.Column="3" Content="✕"
+                            Width="20" Height="20" Padding="0" Cursor="Hand" Focusable="False"
+                            FontSize="11" FontWeight="Bold"
+                            Background="Transparent" Foreground="#475569" BorderThickness="0"
+                            ToolTip="추천/번역 창 즉시 닫기"
+                            Click="BtnCloseSuggestion_Click"/>
                 </Grid>
             </Border>
             <StackPanel x:Name="TopAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed"/>
