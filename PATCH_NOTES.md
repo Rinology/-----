@@ -4,9 +4,14 @@
 
 ---
 
-## [v2.4.1] — 2026-11-23 (DPI 배율 · 다중 모니터 알약 미노출 및 구글채팅/카톡 키훅 안정화)
+## [v2.4.1] — 2026-11-23 (DPI 배율 · 다중 모니터 알약 미노출, 커서 위치 수정 시 `Alt+Q` 먹통 및 키훅 안정화)
 
 ### 🐛 Fixed
+- **커서 위치(제어판 알약 표시 위치) 수정 후 또는 검색창 재호출 시 `Alt+Q`가 동작하지 않던 문제 완벽 해결**:
+  - **원인 1 (`_lastTargetHwnd` 자체 창 오염)**: 제어판(`ControlPanelWindow`)이나 빠른 검색창(`QuickSearchWindow`)이 열려 있을 때 키 입력이 발생하면 `_lastTargetHwnd`가 외부 채팅창이 아닌 ChatHelper 자체 창 핸들로 덮어써지고, `WinEventCallback`이 `!_hasCandidates` 상태에서 외부 창 포커스 전환을 추적하지 않아 제어판 저장 직후 `Alt+Q` 호출 및 텍스트 치환 대상 창을 잃어버리던 문제를 수정.
+  - **원인 2 (`_hasCandidates` 미초기화로 인한 키 가로채기)**: `Alt+Q` 오픈 시 `_suggestionBar.Hide()`만 호출하고 `_hookService.ClearAll()`을 호출하지 않아, 알약이 떠 있던 상태에서 `Alt+Q`를 누르면 백그라운드 훅이 검색창의 `Tab`·숫자키를 가로채던 문제를 수정.
+  - **원인 3 (`Alt+Q`/`Alt+X` 대상 창 Alt 메뉴바 활성화)**: `Alt+T`에만 적용되어 있던 `VK_NONAME(0xFC)` 더미 키 전송을 `Alt+Q`와 `Alt+X`에도 동일하게 적용하여 대상 앱(메모장·크롬 등)의 Alt 메뉴바가 포커스를 빼앗지 않도록 수정.
+  - **원인 4 (`QuickSearchWindow` 커서 위치 설정 미반영 & 한글 IME 키 무시)**: `QuickSearchWindow.ShowAtCursor`가 제어판의 `PillPlacement`(`CursorNearby` / `MousePointer` / `ScreenBottomRight`)와 `PillOffsetY` 및 `fallbackTargetHwnd`를 그대로 반영하도록 통일하고, 한글 검색어 조합 중(`Key.ImeProcessed`)에도 ` ↑`/`↓`/`Enter`/`Tab`이 즉시 동작하도록 수정.
 - **PC 환경별(고배율 DPI 125~175%, 다중 모니터) 알약메모 화면 이탈/미노출 현상 해결**:
   - `Win32Api.TryGetValidInputPosition`의 물리 픽셀 좌표를 WPF `SystemParameters.PrimaryScreenWidth/Height`(주 모니터 논리 DIP)에 그대로 비교·클램핑해 노트북 고배율(125%/150%)이나 보조 모니터에서 알약(`SuggestionBar`)과 빠른 검색창(`QuickSearchWindow`)이 화면 밖으로 밀려나 보이지 않던 문제를 해결.
   - [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)에 `ConvertPhysicalPointAndGetWorkArea`(`MonitorFromPoint` + `GetMonitorInfo` + `TransformFromDevice`)를 추가해 현재 커서가 위치한 모니터의 실제 작업 영역 기준으로 정확하게 배치되도록 수정.

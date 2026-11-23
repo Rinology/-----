@@ -59,3 +59,17 @@
   * **✅ 검증된 해결책**: [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `ConvertPhysicalPointAndGetWorkArea`로 `TransformFromDevice` 변환 및 `MonitorFromPoint`/`GetMonitorInfo` 기반 해당 모니터 작업 영역을 구해 배치할 것.
 * **❌ 실패한 방법 2**: 백그라운드 MTA 워커 스레드에서 매 키 입력마다 `AccessibleObjectFromWindow` 등 크로스-프로세스 COM이 포함된 `TryGetValidInputPosition`을 호출하는 방식.
   * **✅ 검증된 해결책**: 백그라운드 키 워커에서는 순수 Win32 `IsValidTargetWindow`로 대상 창 여부만 즉시 판별하고, 좌표 계산(`TryGetValidInputPosition`)은 UI STA 스레드에서 알약을 표시할 때만 실행할 것.
+
+## 9. 제어판(커서 위치 등) 설정 변경 또는 자체 창 입력 시 `Alt+Q` 먹통 / `_lastTargetHwnd` 오염 금지
+* **❌ 실패한 방법 1**: `KeyboardHookService.ProcessBufferedKeyDown`에서 대상 창이 ChatHelper 자신(`CurrentProcessId`)인지 먼저 검사하지 않고 무조건 `_lastTargetHwnd = currentHwnd`로 덮어쓰거나, `WinEventCallback`에서 `!_hasCandidates`일 때 `EVENT_SYSTEM_FOREGROUND` 외부 창 추적을 건너뛰는 방식.
+  * **실패 원인**: 사용자가 제어판(`ControlPanelWindow`)에서 커서/알약 위치를 수정하거나 `Alt+Q`(`QuickSearchWindow`) 내부에서 키를 누르는 순간 `_lastTargetHwnd`가 ChatHelper 자신의 창 핸들로 덮어써짐. 이후 제어판을 닫고 `Alt+Q`를 누르면 대상 채팅창 핸들을 잃어버려 위치 계산(`TryGetValidInputPosition`)이 실패하고 항목 선택(Enter) 시 외부 채팅창에 텍스트가 입력되지 않음.
+  * **✅ 검증된 해결책**:
+    1. `HookCallback`에서 `Alt+Q`/`Alt+X`/`Alt+T` 전역 단축키 판별 직후 `!Win32Api.IsValidTargetWindow(currentFgHwnd)`이면 즉시 `CallNextHookEx`로 통과시켜 ChatHelper 자체 창 입력이 키 채널·완성 트리거·`_lastTargetHwnd`를 절대 건드리지 못하게 차단할 것.
+    2. `WinEventCallback`에서 `_hasCandidates` 여부와 무관하게 `EVENT_SYSTEM_FOREGROUND` 발생 시 `Win32Api.IsValidTargetWindow(hwnd)`이면 항상 `_lastTargetHwnd`를 최신 외부 채팅창으로 갱신할 것.
+    3. 제어판 저장 후 닫을 때 직전 유효 외부 채팅창(`_hookService.LastTargetHwnd`)으로 포커스를 복원하고, `QuickSearchWindow.ShowAtCursor`에서도 제어판의 `PillPlacement`(`CursorNearby` / `MousePointer` / `ScreenBottomRight`) 및 `PillOffsetY`, `_targetHwnd` 폴백을 동일하게 적용할 것.
+* **❌ 실패한 방법 2**: `Alt+Q`, `Alt+X` 훅 가로채기 시 `VK_NONAME(0xFC)` 더미 키 전송을 누락하거나, `QuickSearchWindow`를 열 때 `_hookService.ClearAll()`을 호출하지 않고 `_suggestionBar.Hide()`만 호출하는 방식.
+  * **실패 원인**:
+    1. `Q`만 삼키고 `0xFC`를 보내지 않으면 대상 창(메모장·크롬 등)이 `Alt` 단독 탭으로 오인해 상단 메뉴바(`SC_KEYMENU`)를 활성화하여 `QuickSearchWindow`의 포커스를 빼앗음.
+    2. `_suggestionBar.Hide()`만 호출하면 `_hookService._hasCandidates`가 `true`로 남아 `QuickSearchWindow` 내부에서 누른 `Tab`, `1`~`9`, `\` 키를 훅이 가로채 먹통이 됨.
+    3. `QuickSearchWindow.Window_PreviewKeyDown`에서 한글 IME 조합 중(`Key.ImeProcessed`)일 때 `e.ImeProcessedKey`를 풀어주지 않으면 한글 검색어 입력 직후 `Down`/`Up`/`Enter`가 동작하지 않음.
+  * **✅ 검증된 해결책**: `Alt+Q`·`Alt+X`·`Alt+T` 모두 `VK_NONAME(0xFC)`를 전송하고, 팝업 창 오픈 시 `_hookService.ClearAll()`을 반드시 호출하며, `PreviewKeyDown`에서 `Key.ImeProcessed`와 `Key.System`을 모두 언래핑(`actualKey`)하여 처리할 것.

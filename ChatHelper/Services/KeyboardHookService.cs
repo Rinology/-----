@@ -35,6 +35,14 @@ public class KeyboardHookService : IDisposable
     public event Action<string, string>? RecognitionStateChanged;
 
     public IntPtr LastTargetHwnd => _lastTargetHwnd;
+
+    public void RememberTargetWindow(IntPtr hwnd)
+    {
+        if (Win32Api.IsValidTargetWindow(hwnd))
+        {
+            _lastTargetHwnd = hwnd;
+        }
+    }
     public bool IsNaturalLanguageMode => _isNaturalLanguageMode;
     public bool HasActiveCandidates => _hasCandidates;
     public string LastRecognizedToken { get; private set; } = string.Empty;
@@ -103,6 +111,10 @@ public class KeyboardHookService : IDisposable
         _focusWinEventHook = Win32Api.SetWinEventHook(
             Win32Api.EVENT_OBJECT_FOCUS, Win32Api.EVENT_OBJECT_FOCUS,
             IntPtr.Zero, _winEventProc, 0, 0, flags);
+        if (Win32Api.IsValidTargetWindow(out var initFg))
+        {
+            _lastTargetHwnd = initFg;
+        }
         Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. KB={_hookId}, WinEventFG={_fgWinEventHook}, WinEventFocus={_focusWinEventHook}");
     }
 
@@ -130,14 +142,24 @@ public class KeyboardHookService : IDisposable
         IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
         int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-        if (_isReplacing || !_hasCandidates)
+        if (_isReplacing)
             return;
 
-        // 외부 창 전환 또는 다른 입력 컨트롤로 포커스 이동 시 버퍼/알약 초기화
-        if (eventType == Win32Api.EVENT_SYSTEM_FOREGROUND ||
-            (eventType == Win32Api.EVENT_OBJECT_FOCUS && hwnd != IntPtr.Zero && hwnd != _lastTargetHwnd))
+        // 외부 채팅/작업 창으로 포그라운드가 전환될 때마다 항상 마지막 유효 대상 창 핸들을 최신 상태로 유지
+        // (제어판이나 검색창을 열었다 닫아도 직전 외부 채팅창 핸들이 유실되지 않도록 보장)
+        if (eventType == Win32Api.EVENT_SYSTEM_FOREGROUND && Win32Api.IsValidTargetWindow(hwnd))
         {
-            _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
+            _lastTargetHwnd = hwnd;
+        }
+
+        // 외부 창 전환 또는 다른 입력 컨트롤로 포커스 이동 시 진행 중인 버퍼/알약 초기화
+        if (_hasCandidates || _buffer.Length > 0)
+        {
+            if (eventType == Win32Api.EVENT_SYSTEM_FOREGROUND ||
+                (eventType == Win32Api.EVENT_OBJECT_FOCUS && hwnd != IntPtr.Zero && hwnd != _lastTargetHwnd))
+            {
+                _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
+            }
         }
     }
 
@@ -174,6 +196,9 @@ public class KeyboardHookService : IDisposable
             // Alt + Q 수동 검색창 호출 (왼쪽 Alt + Q)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_Q || scanCode == Win32Api.SCAN_Q))
             {
+                // Alt 단독 입력으로 오인되어 대상 창의 Alt 메뉴바가 열리지 않도록 더미 키(VK_NONAME) 전송
+                Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
+                Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 GlobalHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
@@ -182,6 +207,8 @@ public class KeyboardHookService : IDisposable
             // Alt + X 특수문자 전용 창 호출 (왼쪽 Alt + X)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_X || scanCode == Win32Api.SCAN_X))
             {
+                Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
+                Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 AiHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
@@ -210,6 +237,14 @@ public class KeyboardHookService : IDisposable
 
             // 자동완성이 일시정지(OFF) 상태이면 패스
             if (!_configManager.Config.IsEnabled)
+            {
+                return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
+            }
+
+            // 현재 포그라운드 창이 ChatHelper 자신(검색창 Alt+Q, 제어판, 기호창 등)이거나 바탕화면이면
+            // 내부 입력에 전혀 간섭하지 않고 즉시 통과시켜 _lastTargetHwnd 오염 및 Tab/숫자키 가로채기 원천 차단
+            IntPtr currentFgHwnd = Win32Api.GetForegroundWindow();
+            if (!Win32Api.IsValidTargetWindow(currentFgHwnd))
             {
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
@@ -253,7 +288,7 @@ public class KeyboardHookService : IDisposable
                 or Win32Api.VK_HOME or Win32Api.VK_END or Win32Api.VK_PRIOR or Win32Api.VK_NEXT
                 or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
             {
-                _keyChannel.Writer.TryWrite((vkCode, isShiftPressed, Win32Api.GetForegroundWindow()));
+                _keyChannel.Writer.TryWrite((vkCode, isShiftPressed, currentFgHwnd));
             }
         }
 
@@ -371,7 +406,7 @@ public class KeyboardHookService : IDisposable
     {
         lock (_lock)
         {
-            if (currentHwnd != IntPtr.Zero)
+            if (currentHwnd != IntPtr.Zero && Win32Api.IsValidTargetWindow(currentHwnd))
             {
                 if (_lastTargetHwnd != IntPtr.Zero && _lastTargetHwnd != currentHwnd)
                 {

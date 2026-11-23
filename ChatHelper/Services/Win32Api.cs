@@ -306,21 +306,19 @@ public static class Win32Api
     }
 
     /// <summary>
-    /// 현재 포커스된 창이 ChatHelper 자신이나 바탕화면/작업표시줄이 아닌 유효한 외부 입력 대상 창인지 빠르게 확인합니다.
-    /// (크로스-프로세스 COM 호출 없이 즉시 반환되므로 백그라운드 키 채널에서도 지연이 없습니다.)
+    /// 지정된 창 핸들이 ChatHelper 자신이나 바탕화면/작업표시줄이 아닌 유효한 외부 입력 대상 창인지 빠르게 확인합니다.
     /// </summary>
-    public static bool IsValidTargetWindow(out IntPtr activeHwnd)
+    public static bool IsValidTargetWindow(IntPtr hwnd)
     {
-        activeHwnd = GetForegroundWindow();
-        if (activeHwnd == IntPtr.Zero)
+        if (hwnd == IntPtr.Zero)
             return false;
 
-        GetWindowThreadProcessId(activeHwnd, out uint pid);
-        if (pid == CurrentProcessId)
+        uint tid = GetWindowThreadProcessId(hwnd, out uint pid);
+        if (tid == 0 || pid == 0 || pid == CurrentProcessId)
             return false;
 
         var sbClass = new StringBuilder(128);
-        GetClassName(activeHwnd, sbClass, sbClass.Capacity);
+        GetClassName(hwnd, sbClass, sbClass.Capacity);
         string className = sbClass.ToString();
         if (className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "NotifyIconOverflowWindow")
             return false;
@@ -329,15 +327,39 @@ public static class Win32Api
     }
 
     /// <summary>
-    /// 현재 포커스된 채팅/문서 입력 창의 텍스트 입력 커서(Caret) 또는 마우스 포인터(preferMousePointer=true) 위치를 구함.
+    /// 현재 포커스된 창이 ChatHelper 자신이나 바탕화면/작업표시줄이 아닌 유효한 외부 입력 대상 창인지 빠르게 확인합니다.
+    /// (크로스-프로세스 COM 호출 없이 즉시 반환되므로 백그라운드 키 채널에서도 지연이 없습니다.)
+    /// </summary>
+    public static bool IsValidTargetWindow(out IntPtr activeHwnd)
+    {
+        activeHwnd = GetForegroundWindow();
+        return IsValidTargetWindow(activeHwnd);
+    }
+
+    /// <summary>
+    /// 현재 포커스된 채팅/문서 입력 창(또는 fallbackTargetHwnd)의 텍스트 입력 커서(Caret) 또는 마우스 포인터(preferMousePointer=true) 위치를 구함.
     /// 기본값(preferMousePointer=false)은 채팅 텍스트 커서를 기준으로 동작합니다.
     /// </summary>
-    public static bool TryGetValidInputPosition(out double x, out double y, out IntPtr activeHwnd, bool preferMousePointer = false)
+    public static bool TryGetValidInputPosition(
+        out double x,
+        out double y,
+        out IntPtr activeHwnd,
+        bool preferMousePointer = false,
+        IntPtr fallbackTargetHwnd = default)
     {
         x = 0;
         y = 0;
         if (!IsValidTargetWindow(out activeHwnd))
-            return false;
+        {
+            if (IsValidTargetWindow(fallbackTargetHwnd))
+            {
+                activeHwnd = fallbackTargetHwnd;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         uint tid = GetWindowThreadProcessId(activeHwnd, out _);
 

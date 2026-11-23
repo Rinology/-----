@@ -520,14 +520,17 @@ public partial class MainWindow : Window
 
     private void OpenSymbolPicker(IntPtr? targetHwnd = null)
     {
+        _hookService.ClearAll();
         _suggestionBar.Hide();
         IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
             ? targetHwnd.Value
             : Win32Api.GetForegroundWindow();
 
-        uint myPid = (uint)Process.GetCurrentProcess().Id;
-        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
-        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
+        if (Win32Api.IsValidTargetWindow(hwnd))
+        {
+            _hookService.RememberTargetWindow(hwnd);
+        }
+        else if (_hookService.LastTargetHwnd != IntPtr.Zero)
         {
             hwnd = _hookService.LastTargetHwnd;
         }
@@ -623,14 +626,17 @@ public partial class MainWindow : Window
 
     private void OpenQuickSearch(IntPtr? targetHwnd)
     {
+        _hookService.ClearAll();
         _suggestionBar.Hide();
         IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
             ? targetHwnd.Value
             : Win32Api.GetForegroundWindow();
 
-        uint myPid = (uint)Process.GetCurrentProcess().Id;
-        Win32Api.GetWindowThreadProcessId(hwnd, out uint fgPid);
-        if (fgPid == myPid && _hookService.LastTargetHwnd != IntPtr.Zero)
+        if (Win32Api.IsValidTargetWindow(hwnd))
+        {
+            _hookService.RememberTargetWindow(hwnd);
+        }
+        else if (_hookService.LastTargetHwnd != IntPtr.Zero)
         {
             hwnd = _hookService.LastTargetHwnd;
         }
@@ -640,7 +646,8 @@ public partial class MainWindow : Window
             _quickSearchWindow = new QuickSearchWindow(_templateManager, _configManager);
             _quickSearchWindow.ItemSelected += (item, target) =>
             {
-                Task.Run(() => TextInjectionService.FastPasteText(item.Content, target));
+                IntPtr dst = Win32Api.IsValidTargetWindow(target) ? target : _hookService.LastTargetHwnd;
+                Task.Run(() => TextInjectionService.FastPasteText(item.Content, dst));
             };
         }
 
@@ -675,6 +682,11 @@ public partial class MainWindow : Window
 
     private void OpenControlPanel()
     {
+        if (Win32Api.IsValidTargetWindow(out var currentFg))
+        {
+            _hookService.RememberTargetWindow(currentFg);
+        }
+        _hookService.ClearAll();
         _suggestionBar.Hide();
         if (_controlPanelWindow == null || !_controlPanelWindow.IsLoaded)
         {
@@ -687,6 +699,12 @@ public partial class MainWindow : Window
                     ShowStatusWindow();
                 else
                     HideToTray(showNotification: false);
+
+                // 제어판 저장 후 직전 외부 채팅창이 있으면 포커스를 자연스럽게 되돌려 즉시 Alt+Q 및 타이핑이 동작하도록 보장
+                if (Win32Api.IsValidTargetWindow(_hookService.LastTargetHwnd))
+                {
+                    Win32Api.ForceForegroundWindow(_hookService.LastTargetHwnd);
+                }
 
                 _trayIconService?.ShowBalloon("제어판 설정 적용", "커맨드 및 표시 설정이 즉시 반영되었습니다.");
             };

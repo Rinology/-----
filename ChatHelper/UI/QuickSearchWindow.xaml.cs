@@ -47,14 +47,24 @@ public partial class QuickSearchWindow : Window
     public void ShowAtCursor(IntPtr targetHwnd)
     {
         _openedAt = DateTime.UtcNow;
-        _targetHwnd = targetHwnd;
+        if (Win32Api.IsValidTargetWindow(targetHwnd))
+        {
+            _targetHwnd = targetHwnd;
+        }
 
-        // 1. 텍스트 입력 캐럿(Caret) 위치 확인 (알약 뜨는 위치 근처)
+        // 1. 제어판의 알약 표시 위치 설정(CursorNearby / MousePointer / ScreenBottomRight)을 동일하게 반영
+        string placement = _configManager.Config.PillPlacement ?? "CursorNearby";
+        bool useMouse = placement == "MousePointer";
+
         double targetX, targetY;
-        if (Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _))
+        if (Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out var resolvedHwnd, useMouse, _targetHwnd))
         {
             targetX = caretX;
             targetY = caretY;
+            if (_targetHwnd == IntPtr.Zero && Win32Api.IsValidTargetWindow(resolvedHwnd))
+            {
+                _targetHwnd = resolvedHwnd;
+            }
         }
         else
         {
@@ -67,25 +77,36 @@ public partial class QuickSearchWindow : Window
         var (dipX, dipY, workLeft, workTop, workRight, workBottom) =
             Win32Api.ConvertPhysicalPointAndGetWorkArea(this, targetX, targetY);
 
-        // X 위치: 커서 인근에서 시작하되, 해당 모니터 작업 영역 너비를 벗어나지 않도록 보정
-        double desiredX = dipX - 40;
-        Left = Math.Max(workLeft + 10, Math.Min(desiredX, workRight - Width - 10));
-
-        // Y 위치: 커서 아래 +30px 위치하되, 너무 하단에 치우치면 커서 상단으로 보정
-        double desiredY = dipY + 30;
-        if (desiredY + Height > workBottom - 20)
+        if (placement == "ScreenBottomRight")
         {
-            // 하단 공간 부족 -> 커서 위쪽으로 보정
-            desiredY = dipY - Height - 15;
+            Left = Math.Max(workLeft + 10, workRight - Width - 24);
+            Top = Math.Max(workTop + 10, workBottom - Height - 24);
         }
-
-        // 너무 상단에 치우치면 상단 최소 여백 10px로 보정
-        if (desiredY < workTop + 10)
+        else
         {
-            desiredY = workTop + 10;
-        }
+            int offsetY = _configManager.Config.PillOffsetY;
+            if (offsetY <= 0) offsetY = AppConstants.PillOffsetNormal;
 
-        Top = desiredY;
+            // X 위치: 커서 인근에서 시작하되, 해당 모니터 작업 영역 너비를 벗어나지 않도록 보정
+            double desiredX = dipX - 40;
+            Left = Math.Max(workLeft + 10, Math.Min(desiredX, workRight - Width - 10));
+
+            // Y 위치: 커서 아래 +offsetY 위치하되, 너무 하단에 치우치면 커서 상단으로 보정
+            double desiredY = dipY + offsetY;
+            if (desiredY + Height > workBottom - 20)
+            {
+                // 하단 공간 부족 -> 커서 위쪽으로 보정
+                desiredY = dipY - Height - 15;
+            }
+
+            // 너무 상단에 치우치면 상단 최소 여백 10px로 보정
+            if (desiredY < workTop + 10)
+            {
+                desiredY = workTop + 10;
+            }
+
+            Top = desiredY;
+        }
 
         _selectedCategory = "전체";
         TxtSearch.Clear();
@@ -269,7 +290,7 @@ public partial class QuickSearchWindow : Window
             TxtResultHint.Text = string.IsNullOrWhiteSpace(query)
                 ? $"'{_selectedCategory}' 카테고리 템플릿 총 {items.Count}개"
                 : $"'{_selectedCategory}' 검색 결과 {items.Count}건 일치";
-            TxtResultHint.Foreground = (Brush)FindResource("ThemeSubText");
+            TxtResultHint.Foreground = (Brush)(TryFindResource("ThemeSubText") ?? Brushes.Gray);
             LstTemplates.SelectedIndex = 0;
         }
         else
@@ -283,7 +304,9 @@ public partial class QuickSearchWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        var actualKey = (e.Key == Key.System) ? e.SystemKey : e.Key;
+        var actualKey = e.Key == Key.System
+            ? e.SystemKey
+            : (e.Key == Key.ImeProcessed ? e.ImeProcessedKey : e.Key);
 
         if (actualKey == Key.Escape)
         {
@@ -297,7 +320,7 @@ public partial class QuickSearchWindow : Window
             CycleCategory(!isShift);
             e.Handled = true;
         }
-        else if (e.Key == Key.Down)
+        else if (actualKey == Key.Down)
         {
             if (LstTemplates.Items.Count > 0)
             {
@@ -308,7 +331,7 @@ public partial class QuickSearchWindow : Window
             }
             e.Handled = true;
         }
-        else if (e.Key == Key.Up)
+        else if (actualKey == Key.Up)
         {
             if (LstTemplates.Items.Count > 0)
             {
@@ -319,7 +342,7 @@ public partial class QuickSearchWindow : Window
             }
             e.Handled = true;
         }
-        else if (e.Key == Key.Enter)
+        else if (actualKey == Key.Enter)
         {
             ConfirmSelection();
             e.Handled = true;
@@ -382,8 +405,8 @@ public partial class QuickSearchWindow : Window
                 Height = 520,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 Owner = ownerWindow ?? (IsVisible ? this : null),
-                Background = (Brush)FindResource("ThemeBg"),
-                BorderBrush = (Brush)FindResource("ThemeAccent"),
+                Background = (Brush)(TryFindResource("ThemeBg") ?? Brushes.White),
+                BorderBrush = (Brush)(TryFindResource("ThemeAccent") ?? Brushes.DodgerBlue),
                 BorderThickness = new Thickness(2),
                 WindowStyle = WindowStyle.ToolWindow
             };

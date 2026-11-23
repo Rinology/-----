@@ -14,6 +14,31 @@ public static class AiAndOcrIntegrationTests
     {
         Test_Ocr_Standard_And_ZeroAlpha_Capture().GetAwaiter().GetResult();
         Test_MathCalc();
+        Test_QuickSearch_And_SuggestionBar_Positioning();
+    }
+
+    private static void Test_QuickSearch_And_SuggestionBar_Positioning()
+    {
+        var cfg = new ConfigManager();
+        var tm = new TemplateManager(cfg);
+        tm.AddTemplate(new ChatHelper.Models.TemplateItem
+        {
+            Keyword = "ds",
+            Title = "첫인사",
+            Content = "안녕하세요 고객님",
+            Category = "기본인사"
+        });
+
+        var qsw = new ChatHelper.UI.QuickSearchWindow(tm, cfg);
+        foreach (var placement in new[] { "CursorNearby", "MousePointer", "ScreenBottomRight" })
+        {
+            cfg.Config.PillPlacement = placement;
+            qsw.ShowAtCursor(IntPtr.Zero);
+            Console.WriteLine($"  [QuickSearchWindow:{placement}] Left={qsw.Left}, Top={qsw.Top}, IsVisible={qsw.IsVisible}");
+            Assert(qsw.IsVisible, $"QuickSearchWindow must be visible in {placement} mode");
+            Assert(!double.IsNaN(qsw.Left) && !double.IsNaN(qsw.Top), $"QuickSearchWindow Left/Top must not be NaN in {placement} mode");
+            qsw.Hide();
+        }
     }
 
     private static async Task Test_Ocr_Standard_And_ZeroAlpha_Capture()
