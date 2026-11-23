@@ -42,12 +42,23 @@
 
 ---
 
-## 🚀 빌드 및 실행 방법
+## 🚀 빌드 및 실행 방법 (`publish/` 단일 표준)
 
-### 실행
+> C# .NET 관례에 따라 빌드 및 실행 경로는 **`publish/`** 하나로 통일합니다. (과거 Python 시절의 `dist/` 폴더는 사용하지 않습니다.)
+
+### 1. 바로 실행
 - [publish/ChatHelper.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatHelper.exe) 실행 (직원 배포 시 `.env` 파일 불필요)
 
-### 배포용 독립 실행 파일 빌드 (.NET 런타임 미설치 PC용)
+### 2. 다른 컴퓨터에서 `git pull` 후 동일하게 빌드하기
 ```powershell
-dotnet publish ChatHelper\ChatHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-restore -o dist
+# 1) 최초 pull 직후 (NuGet 패키지 복원 포함 빌드)
+dotnet publish ChatHelper\ChatHelper.csproj -c Release -o publish
+
+# 2) 이후 코드 수정 시 빠른 재빌드
+dotnet publish ChatHelper\ChatHelper.csproj -c Release --no-restore -o publish
+```
+
+### 3. 단위 테스트 실행
+```powershell
+dotnet run --project ChatHelper.Tests\ChatHelper.Tests.csproj
 ```

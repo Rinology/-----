@@ -84,6 +84,8 @@
   - 로그인 창(`LoginWindow`), 종료/로그아웃 확인 모달(`ExitConfirmWindow`), 추천 알약(`SuggestionBar`), 빠른 검색(`QuickSearchWindow`), 특수기호(`SymbolPickerWindow`), 제어판(`ControlPanelWindow`) 모두 모던 라운드 카드 & 부드러운 그림자 스타일로 통일하고 로그인 안내 문구(`유저 정보를 확인하고 있습니다...`)를 자연스럽게 개선.
 
 ### 🐛 Fixed
+- **빌드 출력 경로를 C# 표준 `publish/` 단일 경로로 통일 및 에이전트 빌드 매뉴얼 명문화 ([AGENTS.md](file:///C:/Users/taerin/Desktop/채팅도우미/AGENTS.md), [README.md](file:///C:/Users/taerin/Desktop/채팅도우미/README.md))**:
+  - 과거 Python(PyInstaller) 관례였던 `dist/` 중복 빌드를 제거하고, C# .NET 표준인 **`publish/`** 단일 폴더(`dotnet publish ChatHelper\ChatHelper.csproj -c Release -o publish`)로 통일하여 다른 컴퓨터에서 `git pull` 후에도 혼선 없이 동일하게 빌드·실행할 수 있도록 [AGENTS.md](file:///C:/Users/taerin/Desktop/채팅도우미/AGENTS.md)에 매뉴얼을 추가.
 - **실시간 예시 미리보기 위치 이동 반영 · `Alt+Q` 빠른 검색창 화면 정중앙 배치 · 추천 알약 및 번역기 우측 상단 `✕` 즉시 닫기 버튼 추가**:
   - **실시간 예시 미리보기 알약 위치 동적 반영 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs))**: `🎨 디자인 & 표시`에서 `채팅 커서 밀착 (+15px)` / `넉넉한 간격 (+35px)` / `원거리 (+65px)` / `마우스 포인터 위치` / `모니터 우측 하단 고정`을 선택할 때마다 미리보기 캔버스 안의 알약(`PreviewPillBorder`)이 실제로 해당 간격·마우스 포인터(`🖱️ 마우스 포인터 위치` 배지 표시)·우측 하단으로 이동하도록 개선.
   - **`Alt+Q` 빠른 검색창(`QuickSearchWindow`) 화면 중앙 배치 ([QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs))**: 특수기호 창(`Alt+X`)과 동일하게 항상 메인 작업 영역(`SystemParameters.WorkArea`)의 정중앙에 열리도록 수정하여 좌측이나 마스터창 기준으로 치우쳐 열리던 문제를 해결.
