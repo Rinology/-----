@@ -361,21 +361,21 @@
 
                                     <TextBlock Text="완성 트리거 키 조합 선택:" FontWeight="SemiBold" Margin="0,4,0,8"/>
 
-                                    <RadioButton x:Name="RadioShiftSpace" Margin="8,6" IsChecked="True" Checked="CompleteKeyMode_Changed">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
-                                                <TextBlock Text="[ Shift + Space ]" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
-                                            </Border>
-                                            <TextBlock Text="추천 알약이 떴을 때 Shift와 스페이스바를 함께 누르면 완성 (가장 안정적인 기본 권장 모드)" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                        </StackPanel>
-                                    </RadioButton>
-
-                                    <RadioButton x:Name="RadioSlashTab" Margin="8,6" Checked="CompleteKeyMode_Changed">
+                                    <RadioButton x:Name="RadioSlashTab" Margin="8,6" IsChecked="True" Checked="CompleteKeyMode_Changed">
                                         <StackPanel Orientation="Horizontal">
                                             <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
                                                 <TextBlock Text="[ ₩ / \ ] + [ Tab ]" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
                                             </Border>
-                                            <TextBlock Text="추천 알약이 떴을 때 \와 Tab을 누르면 완성" VerticalAlignment="Center"/>
+                                            <TextBlock Text="추천 알약이 떴을 때 \와 Tab을 누르면 완성 (기본 권장 · 2~9번 \+숫자)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </RadioButton>
+
+                                    <RadioButton x:Name="RadioShiftSpace" Margin="8,6" Checked="CompleteKeyMode_Changed">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="8,3" Margin="0,0,10,0">
+                                                <TextBlock Text="[ Shift + Space ]" Foreground="{DynamicResource ThemeAccentText}" FontWeight="Bold"/>
+                                            </Border>
+                                            <TextBlock Text="추천 알약이 떴을 때 Shift+Space로 완성 (2~9번 Ctrl+숫자)" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </RadioButton>
 

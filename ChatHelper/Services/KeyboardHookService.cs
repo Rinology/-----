@@ -249,6 +249,17 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
+            // Shift+Space 모드에서 알약이 떠 있을 때만 Ctrl + 1~9 즉시 번호 선택 허용
+            if (_hasCandidates &&
+                isCtrlPressed && !isLeftAltPressed && !isWinPressed &&
+                _configManager.Config.CompleteKeyMode == "ShiftSpace" &&
+                _configManager.Config.EnableNumberSelection &&
+                vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9 &&
+                TryHandleCtrlNumberSelection(vkCode))
+            {
+                return (IntPtr)1;
+            }
+
             // Ctrl, 왼쪽 Alt, Win 조합 단축키 입력 시 백그라운드 버퍼 초기화 요청
             if (isCtrlPressed || isLeftAltPressed || isWinPressed)
             {
@@ -308,6 +319,19 @@ public class KeyboardHookService : IDisposable
             AppConstants.MinAutoHideSeconds,
             AppConstants.MaxAutoHideSeconds) * 1000;
 
+    private bool TryHandleCtrlNumberSelection(int vkCode)
+    {
+        lock (_lock)
+        {
+            int index = vkCode - Win32Api.VK_1;
+            if (index < 0 || index >= _currentCandidates.Count)
+                return false;
+
+            CompleteSelection(_currentCandidates[index], _currentMatchedLen);
+            return true;
+        }
+    }
+
     private bool TryHandleCompletionTrigger(int vkCode, bool isShiftPressed)
     {
         lock (_lock)
@@ -350,7 +374,9 @@ public class KeyboardHookService : IDisposable
                 return false;
             }
 
-            if (_configManager.Config.EnableNumberSelection && (isSlashHeld || _triggerArmed) &&
+            if (mode != "ShiftSpace" &&
+                _configManager.Config.EnableNumberSelection &&
+                (isSlashHeld || _triggerArmed) &&
                 vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)
             {
                 int index = vkCode - Win32Api.VK_1;

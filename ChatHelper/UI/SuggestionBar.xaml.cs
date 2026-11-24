@@ -331,7 +331,8 @@ public partial class SuggestionBar : Window
                 for (int i = 0; i < visibleSheetItems.Count; i++)
                 {
                     var item = visibleSheetItems[i];
-                    string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
+                    string numberPrefix = completeMode == "ShiftSpace" ? "Ctrl+" : $"{trigger}+";
+                    string keyHint = (i == 0) ? tabKeyHint : $"{numberPrefix}{i + 1}";
 
                     var chip = new Button
                     {

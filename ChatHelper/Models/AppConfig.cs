@@ -39,7 +39,7 @@ public class AppConfig
 
     // 단축키 설정
     public string TriggerKey { get; set; } = "\\";
-    public string CompleteKeyMode { get; set; } = "ShiftSpace"; // ShiftSpace(기본 권장), SlashTab(\+Tab), SlashOnly(\)
+    public string CompleteKeyMode { get; set; } = "SlashTab"; // SlashTab(\+Tab, 기본값), ShiftSpace(Shift+Space + Ctrl+숫자), SlashOnly(\)
     public bool EnableNumberSelection { get; set; } = true;
     public string GlobalHotkey { get; set; } = "Alt+Q";
 

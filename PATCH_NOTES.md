@@ -4,6 +4,19 @@
 
 ---
 
+## [v2.4.2] — 2026-11-24 (기본 완성 키 `\ + Tab` 복원 · `Shift+Space` 모드 `Ctrl+숫자` 지원 · `publish/` 단독 빌드 `.gitignore` 제외)
+
+### ✨ Added / Changed
+- **기본 완성 키 모드 `\ + Tab` 복원 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**:
+  - 기본 완성 트리거를 직관적인 **`\ + Tab`**(`SlashTab`)으로 복원하고, 2~9번 다중 알약도 기존대로 **`\ + 숫자`**로 선택하도록 통일.
+- **`Shift + Space` 모드 전용 `Ctrl + 1~9` 다중 알약 선택 지원 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - `Shift + Space` 모드를 선택한 경우, 알약이 화면에 떠 있을 때만 **`Ctrl + 1~9`**로 2~9번 후보를 즉시 선택할 수 있으며 알약 칩 힌트도 `[Ctrl+2]`, `[Ctrl+3]` 등으로 표시되도록 개선 (`Tab`으로 후보 이동은 하지 않음).
+- **`publish/` 폴더 `.gitignore` 등록**:
+  - 배포용 단일 실행 파일(`178MB`)이 GitHub 100MB 제한에 걸리지 않도록 `publish/`를 `.gitignore`에 추가하고 Git 추적에서 제외.
+- **GAS 재배포 필요 여부**: 불필요 (클라이언트 코드만 수정).
+
+---
+
 ## [v2.4.1] — 2026-11-23 (DPI 배율 · 다중 모니터 알약 미노출, 커서 위치 수정 시 `Alt+Q` 먹통 및 키훅 안정화)
 
 ### 🐛 Fixed
