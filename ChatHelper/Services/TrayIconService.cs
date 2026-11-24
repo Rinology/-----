@@ -173,7 +173,7 @@ public class TrayIconService : IDisposable
         {
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 1, "💻 ChatHelper 제어판 열기 (설정/커맨드)");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 2, "🖥️ 상태표시창 보이기");
-            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 3, "🔍 빠른 검색 열기 (Alt+Q)");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 3, "🔍 빠른 검색 열기 (Alt+S)");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_SEPARATOR, 0, "");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 4, "🔄 CSV 템플릿 다시 불러오기");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 5, "☁️ 구글 시트에서 최신 동기화");

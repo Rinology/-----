@@ -87,7 +87,7 @@ public partial class ControlPanelWindow : Window
 
         // 2. 단축키 설정 로드
         var cfg = _configManager.Config;
-        TxtGlobalHotkey.Text = cfg.GlobalHotkey ?? "Alt+Q";
+        TxtGlobalHotkey.Text = cfg.GlobalHotkey ?? "Alt+S";
         TxtTriggerKey.Text = cfg.TriggerKey ?? "\\";
         ChkNumbers.IsChecked = cfg.EnableNumberSelection;
 
@@ -575,7 +575,7 @@ public partial class ControlPanelWindow : Window
         {
             PreviewPillItemsPanel.Children.Add(new TextBlock
             {
-                Text = "수동 검색 전용 모드 (타이핑 중 자동 알약 미표시 · Alt+Q 사용)",
+                Text = "수동 검색 전용 모드 (타이핑 중 자동 알약 미표시 · Alt+S 사용)",
                 FontSize = 11.5,
                 Foreground = Brushes.DimGray
             });

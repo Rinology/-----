@@ -1015,8 +1015,12 @@ public partial class MainWindow : Window
         InitPeriodicSyncTimer();
     }
 
+    private bool _isExiting;
+
     private void ExitApp()
     {
+        if (_isExiting) return;
+        _isExiting = true;
         if (_hwndSource != null)
         {
             UnregisterGlobalHotkeys(_hwndSource.Handle);

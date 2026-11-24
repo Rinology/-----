@@ -33,7 +33,7 @@
                 <Grid Margin="14,0,8,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="템플릿 빠른 검색" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="Malgun Gothic, Segoe UI"/>
-                        <TextBlock Text="Alt+Q  ·  Tab: 카테고리 전환" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="Malgun Gothic, Segoe UI"/>
+                        <TextBlock Text="Alt+S  ·  Tab: 카테고리 전환" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="Malgun Gothic, Segoe UI"/>
                     </StackPanel>
                     <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
                 </Grid>

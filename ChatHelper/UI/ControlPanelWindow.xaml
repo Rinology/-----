@@ -328,7 +328,7 @@
                             <!-- 카드 1: 수동 팝업 단축키 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
                                 <StackPanel>
-                                    <TextBlock Text="수동 검색 팝업 단축키 (기본: Alt+Q)" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <TextBlock Text="수동 검색 팝업 단축키 (기본: Alt+S)" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="150"/>
@@ -481,7 +481,7 @@
                                         <!-- 1~9 숫자 키 선택 옵션 (알약 모양 설정 바로 아래로 통합) -->
                                         <CheckBox x:Name="ChkNumbers" Content="멀티 알약 표시 중 트리거+숫자(1~9) 키로 번호 즉시 선택 허용" Margin="26,2,0,6" IsChecked="True" FontWeight="SemiBold" Checked="DesignOption_Changed" Unchecked="DesignOption_Changed"/>
 
-                                        <RadioButton x:Name="RadioModeManual" GroupName="DisplayModeGroup" Content="자동 알약 끄기 (수동 검색 Alt+Q 전용)" Margin="6,4" Checked="DesignOption_Changed"/>
+                                        <RadioButton x:Name="RadioModeManual" GroupName="DisplayModeGroup" Content="자동 알약 끄기 (수동 검색 Alt+S 전용)" Margin="6,4" Checked="DesignOption_Changed"/>
 
                                         <Border Height="1" Background="{DynamicResource ThemePanelBorder}" Margin="0,10"/>
 

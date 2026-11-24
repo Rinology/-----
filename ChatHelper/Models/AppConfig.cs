@@ -41,7 +41,7 @@ public class AppConfig
     public string TriggerKey { get; set; } = "\\";
     public string CompleteKeyMode { get; set; } = "SlashTab"; // SlashTab(\+Tab, 기본값), ShiftSpace(Shift+Space + Ctrl+숫자), SlashOnly(\)
     public bool EnableNumberSelection { get; set; } = true;
-    public string GlobalHotkey { get; set; } = "Alt+Q";
+    public string GlobalHotkey { get; set; } = "Alt+S";
 
     // 템플릿 데이터 소스 및 로컬 AI
     public string DisplayMode { get; set; } = "InlinePill";

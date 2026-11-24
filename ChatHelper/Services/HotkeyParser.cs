@@ -106,6 +106,6 @@ public static class HotkeyParser
         {
             return (mod, vk, scan, hotkeyText!.Trim());
         }
-        return (MOD_ALT, Win32Api.VK_Q, Win32Api.SCAN_Q, "Alt+Q");
+        return (MOD_ALT, 'S', 0x1F, "Alt+S");
     }
 }

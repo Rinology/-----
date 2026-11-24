@@ -12,6 +12,8 @@
   - `ShouldHandleTriggerInHook`을 도입해 실제 완성 트리거(`\`, 후보 표시 중 `Tab` / `Shift+Space` / `\` 이후 `1~9`·`A`·`E`)일 때만 채널 플러시와 `_lock` 진입을 허용하고, `IsValidTargetWindowCached`로 포그라운드 창 검사 결과 캐싱 적용.
 - **`Alt+Q` 전역 핫키(`RegisterHotKey` / `HwndHook`) 등록 누락 보완 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
   - `ChatHelper.log`에서 `RegisterGlobalHotkeys` 로그가 누락되던 현상에 대응해 `EnsureGlobalHotkeyHookRegistered()`가 `WindowInteropHelper(this).Handle` 기반 `HwndSource.FromHwnd`를 우선 사용하고, `Window_Loaded`에서도 미등록 시 자동 재시도하도록 보강.
+- **전역 검색 팝업 기본 단축키 `Alt+S`로 변경 ([AppConstants.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Constants/AppConstants.cs), [AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**:
+  - 일부 PC 환경에서 OS/드라이버가 `Alt+Q`를 선점·차단하는 문제를 피하기 위해 기본 전역 검색 단축키를 `Alt+S`로 변경(제어판에서 `Alt+Q` 등 다른 키로 변경 가능).
 - **제어판 `전역 호출 단축키`(`GlobalHotkey`) 실제 연동 ([HotkeyParser.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/HotkeyParser.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
   - 기존에는 제어판에서 전역 호출 단축키를 변경해도 코드 내부가 `Alt+Q`(`VK_Q`)로 고정되어 있던 문제를 수정해, 제어판에서 `Alt+S`·`Ctrl+Space`·`F9` 등으로 변경·저장 즉시 OS 핫키와 저수준 키훅에 반영되도록 개선 (기본값 `Alt+Q` 유지).
 - **재발 방지 자동 회귀 테스트 추가 ([KeyboardHookAndHotkeyTests.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper.Tests/KeyboardHookAndHotkeyTests.cs))**:

@@ -91,7 +91,7 @@ public static class HotkeyValidator
         }
 
         // 실제 Windows OS에서 다른 프로그램이 이미 RegisterHotKey로 선점 중인지 실시간 검사
-        if (!canonical.Equals("Alt+Q", StringComparison.OrdinalIgnoreCase))
+        if (!canonical.Equals(Constants.AppConstants.DefaultGlobalHotkey, StringComparison.OrdinalIgnoreCase))
         {
             const int probeHotkeyId = 0x7FFF;
             bool canRegister = Win32Api.RegisterHotKey(IntPtr.Zero, probeHotkeyId, modifiers | Win32Api.MOD_NOREPEAT, vk);

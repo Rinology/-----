@@ -69,7 +69,7 @@ public class KeyboardHookService : IDisposable
     private bool _cachedFgValid = false;
     private string? _cachedHotkeyText;
     private (uint ModFlags, int VkCode, int ScanCode, string Label) _parsedGlobalHotkey =
-        (HotkeyParser.MOD_ALT, Win32Api.VK_Q, Win32Api.SCAN_Q, "Alt+Q");
+        (HotkeyParser.MOD_ALT, 'S', 0x1F, "Alt+S");
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -317,7 +317,7 @@ public class KeyboardHookService : IDisposable
 
     private (uint ModFlags, int VkCode, int ScanCode, string Label) GetConfiguredGlobalHotkey()
     {
-        string raw = _configManager.Config.GlobalHotkey ?? "Alt+Q";
+        string raw = _configManager.Config.GlobalHotkey ?? "Alt+S";
         if (!string.Equals(raw, _cachedHotkeyText, StringComparison.Ordinal))
         {
             _parsedGlobalHotkey = HotkeyParser.ResolveOrDefault(raw);

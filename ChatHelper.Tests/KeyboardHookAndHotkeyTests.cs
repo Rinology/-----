@@ -121,7 +121,7 @@ public static class KeyboardHookAndHotkeyTests
             throw new Exception($"Ctrl+Shift+Space 파싱 실패: mod={m2}, vk={vk2}");
 
         var (m3, vk3, _, l3) = HotkeyParser.ResolveOrDefault("invalid-key");
-        if (m3 != HotkeyParser.MOD_ALT || vk3 != Win32Api.VK_Q || l3 != "Alt+Q")
-            throw new Exception("잘못된 단축키 문자열에 대한 Alt+Q 폴백 실패");
+        if (m3 != HotkeyParser.MOD_ALT || vk3 != 'S' || l3 != "Alt+S")
+            throw new Exception("잘못된 단축키 문자열에 대한 Alt+S 폴백 실패");
     }
 }
