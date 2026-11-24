@@ -12,6 +12,7 @@ public static class KeyboardHookAndHotkeyTests
         TestNormalTypingNeverBlocksHook();
         TestTriggerKeysOnlyActiveWhenArmedOrCandidateShown();
         TestHwndSourceAndAltQRegistration();
+        TestHotkeyParser();
     }
 
     private static void TestNormalTypingNeverBlocksHook()
@@ -107,5 +108,20 @@ public static class KeyboardHookAndHotkeyTests
             Win32Api.UnregisterHotKey(hwnd, testHotkeyId);
         }
         win.Close();
+    }
+
+    private static void TestHotkeyParser()
+    {
+        var (m1, vk1, scan1, l1) = HotkeyParser.ResolveOrDefault("Alt+S");
+        if (m1 != HotkeyParser.MOD_ALT || vk1 != 'S' || scan1 == 0 || l1 != "Alt+S")
+            throw new Exception($"Alt+S 파싱 실패: mod={m1}, vk={vk1}, scan={scan1}");
+
+        var (m2, vk2, _, _) = HotkeyParser.ResolveOrDefault("Ctrl+Shift+Space");
+        if (m2 != (HotkeyParser.MOD_CONTROL | HotkeyParser.MOD_SHIFT) || vk2 != Win32Api.VK_SPACE)
+            throw new Exception($"Ctrl+Shift+Space 파싱 실패: mod={m2}, vk={vk2}");
+
+        var (m3, vk3, _, l3) = HotkeyParser.ResolveOrDefault("invalid-key");
+        if (m3 != HotkeyParser.MOD_ALT || vk3 != Win32Api.VK_Q || l3 != "Alt+Q")
+            throw new Exception("잘못된 단축키 문자열에 대한 Alt+Q 폴백 실패");
     }
 }

@@ -749,6 +749,7 @@ public partial class MainWindow : Window
             _controlPanelWindow.SettingsChanged += () =>
             {
                 UpdateStatusUi();
+                RefreshGlobalHotkeys();
                 RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)
                     ShowStatusWindow();
@@ -818,16 +819,25 @@ public partial class MainWindow : Window
         _hotkeysRegistered = true;
     }
 
+    private void RefreshGlobalHotkeys()
+    {
+        if (_hwndSource != null && _hwndSource.Handle != IntPtr.Zero)
+        {
+            UnregisterGlobalHotkeys(_hwndSource.Handle);
+            RegisterGlobalHotkeys(_hwndSource.Handle);
+        }
+    }
+
     private void RegisterGlobalHotkeys(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return;
-        // Alt + Q (0x51), Alt + X (0x58) 시스템 전역 핫키 등록
-        bool okQ = Win32Api.RegisterHotKey(hwnd, HOTKEY_SEARCH_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x51);
+        var hotkey = HotkeyParser.ResolveOrDefault(_configManager.Config.GlobalHotkey);
+        bool okQ = Win32Api.RegisterHotKey(hwnd, HOTKEY_SEARCH_ID, hotkey.ModFlags | Win32Api.MOD_NOREPEAT, (uint)hotkey.VkCode);
         int errQ = okQ ? 0 : System.Runtime.InteropServices.Marshal.GetLastWin32Error();
         if (!okQ)
         {
-            AppLogger.Warn("MainWindow", $"RegisterHotKey(Alt+Q) 실패 (err={errQ}) — 저수준 키훅 폴백 사용");
-            AddStatusLog($"⚠️ Alt+Q OS 핫키 선점됨(err={errQ}) — 키훅 모드로 동작");
+            AppLogger.Warn("MainWindow", $"RegisterHotKey({hotkey.NormalizedLabel}) 실패 (err={errQ}) — 저수준 키훅 폴백 사용");
+            AddStatusLog($"⚠️ {hotkey.NormalizedLabel} OS 핫키 선점됨(err={errQ}) — 키훅 모드로 동작");
         }
         bool okX = Win32Api.RegisterHotKey(hwnd, HOTKEY_AI_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x58);
         int errX = okX ? 0 : System.Runtime.InteropServices.Marshal.GetLastWin32Error();
@@ -835,7 +845,7 @@ public partial class MainWindow : Window
         {
             AppLogger.Warn("MainWindow", $"RegisterHotKey(Alt+X) 실패 (err={errX}) — 저수준 키훅 폴백 사용");
         }
-        AppLogger.Info("MainWindow", $"RegisterGlobalHotkeys: hwnd=0x{hwnd.ToInt64():X}, Alt+Q={okQ}(err={errQ}), Alt+X={okX}(err={errX})");
+        AppLogger.Info("MainWindow", $"RegisterGlobalHotkeys: hwnd=0x{hwnd.ToInt64():X}, {hotkey.NormalizedLabel}={okQ}(err={errQ}), Alt+X={okX}(err={errX})");
     }
 
     private void UnregisterGlobalHotkeys(IntPtr hwnd)

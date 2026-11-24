@@ -67,6 +67,9 @@ public class KeyboardHookService : IDisposable
     private volatile bool _hasCandidates = false;
     private IntPtr _cachedFgHwnd = IntPtr.Zero;
     private bool _cachedFgValid = false;
+    private string? _cachedHotkeyText;
+    private (uint ModFlags, int VkCode, int ScanCode, string Label) _parsedGlobalHotkey =
+        (HotkeyParser.MOD_ALT, Win32Api.VK_Q, Win32Api.SCAN_Q, "Alt+Q");
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -195,14 +198,27 @@ public class KeyboardHookService : IDisposable
             bool isWinPressed = (GetAsyncKeyState(Win32Api.VK_LWIN) & 0x8000) != 0 || (GetAsyncKeyState(Win32Api.VK_RWIN) & 0x8000) != 0;
             bool isShiftPressed = (GetAsyncKeyState(Win32Api.VK_SHIFT) & 0x8000) != 0;
 
-            // Alt + Q 수동 검색창 호출 (왼쪽 Alt + Q)
-            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_Q || scanCode == Win32Api.SCAN_Q))
+            // 수동 검색창 전역 단축키 감지 (기본: Alt+Q, 제어판에서 변경 가능)
+            var hotkey = GetConfiguredGlobalHotkey();
+            bool needAlt = (hotkey.ModFlags & HotkeyParser.MOD_ALT) != 0;
+            bool needCtrl = (hotkey.ModFlags & HotkeyParser.MOD_CONTROL) != 0;
+            bool needShift = (hotkey.ModFlags & HotkeyParser.MOD_SHIFT) != 0;
+            bool needWin = (hotkey.ModFlags & HotkeyParser.MOD_WIN) != 0;
+            bool keyMatched = vkCode == hotkey.VkCode || (hotkey.ScanCode > 0 && scanCode == hotkey.ScanCode);
+            if (keyMatched &&
+                isLeftAltPressed == needAlt &&
+                isCtrlPressed == needCtrl &&
+                isShiftPressed == needShift &&
+                isWinPressed == needWin)
             {
-                // Alt 단독 입력으로 오인되어 대상 창의 Alt 메뉴바가 열리지 않도록 더미 키(VK_NONAME) 전송
-                Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
-                Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                if (needAlt)
+                {
+                    // Alt 단독 입력으로 오인되어 대상 창의 Alt 메뉴바가 열리지 않도록 더미 키(VK_NONAME) 전송
+                    Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
+                    Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                }
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
-                AppLogger.Info("KeyboardHook", $"Alt+Q 훅 감지 (vk=0x{vkCode:X}, scan=0x{scanCode:X}, fg=0x{fgHwnd.ToInt64():X})");
+                AppLogger.Info("KeyboardHook", $"{hotkey.Label} 훅 감지 (vk=0x{vkCode:X}, scan=0x{scanCode:X}, fg=0x{fgHwnd.ToInt64():X})");
                 GlobalHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }
@@ -297,6 +313,17 @@ public class KeyboardHookService : IDisposable
         }
 
         return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
+    }
+
+    private (uint ModFlags, int VkCode, int ScanCode, string Label) GetConfiguredGlobalHotkey()
+    {
+        string raw = _configManager.Config.GlobalHotkey ?? "Alt+Q";
+        if (!string.Equals(raw, _cachedHotkeyText, StringComparison.Ordinal))
+        {
+            _parsedGlobalHotkey = HotkeyParser.ResolveOrDefault(raw);
+            _cachedHotkeyText = raw;
+        }
+        return _parsedGlobalHotkey;
     }
 
     private bool IsValidTargetWindowCached(IntPtr hwnd)
