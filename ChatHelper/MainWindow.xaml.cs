@@ -34,6 +34,8 @@ public partial class MainWindow : Window
     private const int HOTKEY_SEARCH_ID = 9001;
     private const int HOTKEY_AI_ID = 9002;
     private HwndSource? _hwndSource;
+    private bool _hotkeyHookAttached;
+    private bool _hotkeysRegistered;
 
     public MainWindow()
     {
@@ -111,6 +113,7 @@ public partial class MainWindow : Window
         Top = workArea.Bottom - Height - 16;
 
         InitTrayService();
+        EnsureGlobalHotkeyHookRegistered();
         _hookService.Start();
         InitPeriodicSyncTimer();
         InitRollingTicker();
@@ -788,12 +791,31 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        _hwndSource = PresentationSource.FromVisual(this) as HwndSource;
-        if (_hwndSource != null)
+        EnsureGlobalHotkeyHookRegistered();
+    }
+
+    private void EnsureGlobalHotkeyHookRegistered()
+    {
+        if (_hotkeysRegistered) return;
+
+        IntPtr handle = new WindowInteropHelper(this).Handle;
+        _hwndSource ??= (handle != IntPtr.Zero ? HwndSource.FromHwnd(handle) : null)
+            ?? PresentationSource.FromVisual(this) as HwndSource;
+
+        if (_hwndSource == null || _hwndSource.Handle == IntPtr.Zero)
+        {
+            AppLogger.Warn("MainWindow", $"EnsureGlobalHotkeyHookRegistered 보류: hwnd=0x{handle.ToInt64():X}, hwndSourceNull={_hwndSource == null}");
+            return;
+        }
+
+        if (!_hotkeyHookAttached)
         {
             _hwndSource.AddHook(HwndHook);
-            RegisterGlobalHotkeys(_hwndSource.Handle);
+            _hotkeyHookAttached = true;
         }
+
+        RegisterGlobalHotkeys(_hwndSource.Handle);
+        _hotkeysRegistered = true;
     }
 
     private void RegisterGlobalHotkeys(IntPtr hwnd)

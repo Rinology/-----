@@ -65,6 +65,8 @@ public class KeyboardHookService : IDisposable
         Channel.CreateUnbounded<(int, bool, IntPtr)>(new UnboundedChannelOptions { SingleReader = true });
     private readonly CancellationTokenSource _workerCts = new();
     private volatile bool _hasCandidates = false;
+    private IntPtr _cachedFgHwnd = IntPtr.Zero;
+    private bool _cachedFgValid = false;
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -245,7 +247,7 @@ public class KeyboardHookService : IDisposable
             // 현재 포그라운드 창이 ChatHelper 자신(검색창 Alt+Q, 제어판, 기호창 등)이거나 바탕화면이면
             // 내부 입력에 전혀 간섭하지 않고 즉시 통과시켜 _lastTargetHwnd 오염 및 Tab/숫자키 가로채기 원천 차단
             IntPtr currentFgHwnd = Win32Api.GetForegroundWindow();
-            if (!Win32Api.IsValidTargetWindow(currentFgHwnd))
+            if (!IsValidTargetWindowCached(currentFgHwnd))
             {
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
@@ -260,21 +262,22 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // 빠른 타이핑 직후 트리거 키(\, Tab, Space)가 들어왔을 때 채널에 대기 중인 앞 글자들을 즉시 플러시
-            // (WH_KEYBOARD_LL 훅 콜백 내부에서는 크로스-프로세스 COM 위치 조회를 건너뛰어 <0.1ms 유지)
-            if (IsPotentialTriggerKey(vkCode) && _keyChannel.Reader.TryPeek(out _))
+            // 실제 완성 트리거(\, 후보 표시 중 Tab / Shift+Space / \ 이후 숫자·A·E)일 때만
+            // 채널 대기 키를 플러시하고 _lock 경합을 허용해 일반 채팅 타이핑 렉을 원천 차단
+            if (ShouldHandleTriggerInHook(vkCode, isShiftPressed))
             {
-                while (_keyChannel.Reader.TryRead(out var pending))
+                if (_keyChannel.Reader.TryPeek(out _))
                 {
-                    ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd, skipPositionCheck: true);
+                    while (_keyChannel.Reader.TryRead(out var pending))
+                    {
+                        ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd, skipPositionCheck: true);
+                    }
                 }
-            }
 
-            // 후보가 떠 있을 때의 완성 트리거(\, Tab, Shift+Space, 1~9, A)만 훅 스레드에서 즉시 가로채기
-            // (트리거 키가 아닌 일반 키는 _lock 경합 없이 바로 통과시켜 타이핑 렉 원천 차단)
-            if (_hasCandidates && IsPotentialTriggerKey(vkCode) && TryHandleCompletionTrigger(vkCode, isShiftPressed))
-            {
-                return (IntPtr)1;
+                if (_hasCandidates && TryHandleCompletionTrigger(vkCode, isShiftPressed))
+                {
+                    return (IntPtr)1;
+                }
             }
 
             // 일반 키 입력(문자, 숫자, 사칙연산 기호 포함)은 채널로 즉시 위임해 OS 훅 콜백 지연(<0.1ms) 최소화
@@ -296,13 +299,37 @@ public class KeyboardHookService : IDisposable
         return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
     }
 
-    private static bool IsPotentialTriggerKey(int vkCode) =>
-        vkCode == Win32Api.VK_OEM_5 ||
-        vkCode == Win32Api.VK_TAB ||
-        vkCode == Win32Api.VK_SPACE ||
-        vkCode == Win32Api.VK_A ||
-        vkCode == Win32Api.VK_E ||
-        (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9);
+    private bool IsValidTargetWindowCached(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return false;
+        if (hwnd == _cachedFgHwnd) return _cachedFgValid;
+        bool valid = Win32Api.IsValidTargetWindow(hwnd);
+        _cachedFgHwnd = hwnd;
+        _cachedFgValid = valid;
+        return valid;
+    }
+
+    private bool ShouldHandleTriggerInHook(int vkCode, bool isShiftPressed)
+    {
+        if (vkCode == Win32Api.VK_OEM_5)
+            return true;
+
+        if (!_hasCandidates)
+            return false;
+
+        if (vkCode == Win32Api.VK_TAB)
+            return true;
+
+        if (vkCode == Win32Api.VK_SPACE && isShiftPressed &&
+            string.Equals(_configManager.Config.CompleteKeyMode, "ShiftSpace", StringComparison.Ordinal))
+            return true;
+
+        if ((_triggerArmed || (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0) &&
+            (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E || (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
+            return true;
+
+        return false;
+    }
 
     private int GetAutoHideTimeoutMs() =>
         Math.Clamp(_configManager.Config.AutoHideSeconds,

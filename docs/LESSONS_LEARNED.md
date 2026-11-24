@@ -101,3 +101,11 @@
 * **✅ 검증된 해결책 및 결과**:
   * [QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs) `ShowAtCursor`에서 `ShowActivated = true`, `Topmost = true`를 명시적으로 강제하여 항상 최상단·활성 상태로 열리도록 보강.
   * [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs)의 `RegisterGlobalHotkeys` 및 `OpenQuickSearch`에서 `RegisterHotKey` 실패 코드(`GetLastWin32Error`)와 창 열기 예외를 `3/3 로그` 패널과 `ChatHelper.log`에 즉시 기록해 환경별 장애 원인을 바로 추적할 수 있도록 개선.
+
+## 13. `WH_KEYBOARD_LL` 훅 내부 `_lock` 경합(간헐적 채팅 지연) 및 `OnSourceInitialized` 핫키 등록 누락 금지
+* **❌ 실패한 방법 1**: `KeyboardHookService.HookCallback`에서 `Space`, `A`, `E`, `1`~`9` 키가 눌릴 때마다 후보 표시 여부(`_hasCandidates`)나 트리거 대기 상태(`_triggerArmed`)와 무관하게 `_keyChannel`을 동기 플러시(`ProcessBufferedKeyDown` → `lock (_lock)` → `EvaluateCandidates()`)하는 방식.
+  * **실패 원인**: 일반 채팅 중 `Space`, `ㅁ`(`A`), `ㄷ`(`E`), 숫자를 빠르게 입력할 때마다 OS 저수준 키훅(`WH_KEYBOARD_LL`) 스레드가 백그라운드 워커의 `_lock` 해제를 기다리며 블로킹되거나 퍼지 검색을 동기 실행해 **간헐적 채팅 타이핑 지연**이 발생하고, `LowLevelHooksTimeout` 초과 시 OS가 키훅을 조용히 해제해 `Alt+Q`까지 먹통이 될 수 있음.
+  * **✅ 검증된 해결책**: [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)에서 `ShouldHandleTriggerInHook`으로 실제 완성 트리거(`\`, 후보 표시 중 `Tab` / `Shift+Space` / `\` 이후 `1~9`·`A`·`E`)일 때만 채널 플러시·`_lock` 진입을 허용하고, `IsValidTargetWindowCached`로 매 키 입력마다 `StringBuilder` 할당·`GetClassName` 호출이 발생하지 않도록 캐싱할 것.
+* **❌ 실패한 방법 2**: `MainWindow.OnSourceInitialized`에서 `PresentationSource.FromVisual(this) as HwndSource`만 단일 체크하고 `null`일 때 폴백 없이 넘어가는 방식.
+  * **실패 원인**: `ChatHelper.log` 진단 결과 `훅 설치 완료`는 기록되었으나 `RegisterGlobalHotkeys` 로그가 전혀 남지 않는 케이스가 발생했으며, `_hwndSource`가 `null`로 평가되면 `HwndHook`과 `RegisterHotKey(Alt+Q/X)`가 모두 누락되어 `WM_HOTKEY`가 동작하지 않음.
+  * **✅ 검증된 해결책**: [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs)의 `EnsureGlobalHotkeyHookRegistered()`에서 `new WindowInteropHelper(this).Handle` → `HwndSource.FromHwnd`를 우선 사용하고, `Window_Loaded`에서도 미등록 시 재시도하도록 이중 보장할 것.
