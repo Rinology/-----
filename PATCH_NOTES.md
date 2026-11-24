@@ -4,13 +4,15 @@
 
 ---
 
-## [v2.4.2] — 2026-11-24 (기본 완성 키 `\ + Tab` 복원 · `Shift+Space` 모드 `Ctrl+숫자` 지원 · `publish/` 단독 빌드 `.gitignore` 제외)
+## [v2.4.2] — 2026-11-24 (기본 완성 키 `\ + Tab` 복원 · `Shift+Space` 단일 추천 전용 제한 · 마스터창 2/3 시트 정보 동기화 · `publish/` `.gitignore` 제외)
 
 ### ✨ Added / Changed
-- **기본 완성 키 모드 `\ + Tab` 복원 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**:
-  - 기본 완성 트리거를 직관적인 **`\ + Tab`**(`SlashTab`)으로 복원하고, 2~9번 다중 알약도 기존대로 **`\ + 숫자`**로 선택하도록 통일.
-- **`Shift + Space` 모드 전용 `Ctrl + 1~9` 다중 알약 선택 지원 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
-  - `Shift + Space` 모드를 선택한 경우, 알약이 화면에 떠 있을 때만 **`Ctrl + 1~9`**로 2~9번 후보를 즉시 선택할 수 있으며 알약 칩 힌트도 `[Ctrl+2]`, `[Ctrl+3]` 등으로 표시되도록 개선 (`Tab`으로 후보 이동은 하지 않음).
+- **기본 완성 키 모드 `\ + Tab` 복원 & `Shift + Space` 단일 추천 전용 제한 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - 기본 완성 트리거를 직관적인 **`\ + Tab`**(`SlashTab`)으로 복원하고, 멀티 알약(가로형 추천 바)과 1~9번 숫자 선택은 **`\ + Tab` & `\ + 숫자`**에서만 사용하도록 제한.
+  - **`Shift + Space`** 모드는 **단일 추천(인라인 알약) 전용**으로 제한하여 제어판에서 `Shift + Space` 선택 시 가로형 멀티 바·번호 선택이 자동 비활성화되고 안내 문구가 표시되도록 개선 (`Ctrl + 숫자` 로직 제거).
+- **마스터창 1/3 ↔ 2/3 시트 정보 불일치 수정 & `Alt+Q` 진단 로그 보강 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs))**:
+  - 프로필 전환 및 시트 동기화 시 `1/3` 도킹 바뿐만 아니라 `2/3 인식 현황`(`TxtDockRecognitionStatus`)의 시트명·개수도 함께 갱신되도록 수정.
+  - `RegisterHotKey(Alt+Q/X)` 실패 시 로그 기록 및 `QuickSearchWindow` 열기 시 `ShowActivated = true` / `Topmost = true` 강제 적용.
 - **`publish/` 폴더 `.gitignore` 등록**:
   - 배포용 단일 실행 파일(`178MB`)이 GitHub 100MB 제한에 걸리지 않도록 `publish/`를 `.gitignore`에 추가하고 Git 추적에서 제외.
 - **GAS 재배포 필요 여부**: 불필요 (클라이언트 코드만 수정).

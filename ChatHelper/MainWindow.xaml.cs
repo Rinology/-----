@@ -342,9 +342,15 @@ public partial class MainWindow : Window
 
         LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
 
-        // 스프레드시트 동기화 실시간 상태 표시 (초슬림 도킹 바 포맷)
+        // 스프레드시트 동기화 실시간 상태 표시 (1/3 도킹 바 & 2/3 인식 현황 항상 동기화)
         LblSyncStatus.Text = $"↻ {_templateManager.Templates.Count}";
         LblSyncStatus.ToolTip = $"[{DataSourceResolver.ActiveName}] 마지막 동기화: {_lastSyncTime:HH:mm} ({_templateManager.Templates.Count}개) — 클릭 시 즉시 동기화";
+        if (TxtDockRecognitionStatus != null && !_hookService.HasActiveCandidates && string.IsNullOrEmpty(_hookService.LastRecognizedToken))
+        {
+            TxtDockRecognitionStatus.Text = isEnabled
+                ? $"⏳ 대기중 — 현재 시트({DataSourceResolver.ActiveName}) {_templateManager.Templates.Count}개"
+                : "⏸️ 자동완성 일시정지됨 (OFF)";
+        }
         RefreshMainProfileCombo();
     }
 
@@ -688,7 +694,15 @@ public partial class MainWindow : Window
             };
         }
 
-        _quickSearchWindow.ShowAtCursor(hwnd);
+        try
+        {
+            _quickSearchWindow.ShowAtCursor(hwnd);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("MainWindow", "QuickSearchWindow 열기 실패", ex);
+            AddStatusLog($"❌ Alt+Q 검색창 열기 실패: {ex.Message}");
+        }
     }
 
     private void InitRollingTicker()
@@ -785,8 +799,19 @@ public partial class MainWindow : Window
     {
         if (hwnd == IntPtr.Zero) return;
         // Alt + Q (0x51), Alt + X (0x58) 시스템 전역 핫키 등록
-        Win32Api.RegisterHotKey(hwnd, HOTKEY_SEARCH_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x51);
-        Win32Api.RegisterHotKey(hwnd, HOTKEY_AI_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x58);
+        bool okQ = Win32Api.RegisterHotKey(hwnd, HOTKEY_SEARCH_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x51);
+        if (!okQ)
+        {
+            int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            AppLogger.Warn("MainWindow", $"RegisterHotKey(Alt+Q) 실패 (err={err}) — 저수준 키훅 폴백 사용");
+            AddStatusLog($"⚠️ Alt+Q OS 핫키 선점됨(err={err}) — 키훅 모드로 동작");
+        }
+        bool okX = Win32Api.RegisterHotKey(hwnd, HOTKEY_AI_ID, Win32Api.MOD_ALT | Win32Api.MOD_NOREPEAT, 0x58);
+        if (!okX)
+        {
+            int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            AppLogger.Warn("MainWindow", $"RegisterHotKey(Alt+X) 실패 (err={err}) — 저수준 키훅 폴백 사용");
+        }
     }
 
     private void UnregisterGlobalHotkeys(IntPtr hwnd)

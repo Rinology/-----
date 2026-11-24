@@ -352,15 +352,24 @@ public partial class ControlPanelWindow : Window
 
     private void UpdateSlashOnlyLock()
     {
-        if (RadioSlashOnly == null || RadioModeHorizontal == null || RadioModeInline == null) return;
+        if (RadioSlashOnly == null || RadioShiftSpace == null || RadioModeHorizontal == null || RadioModeInline == null) return;
 
-        if (RadioSlashOnly.IsChecked == true)
+        if (RadioSlashOnly.IsChecked == true || RadioShiftSpace.IsChecked == true)
         {
-            RadioModeInline.IsChecked = true;
+            if (RadioModeHorizontal.IsChecked == true)
+            {
+                RadioModeInline.IsChecked = true;
+            }
             RadioModeHorizontal.IsEnabled = false;
             if (CmbMaxCandidates != null) CmbMaxCandidates.IsEnabled = false;
             if (ChkNumbers != null) ChkNumbers.IsEnabled = false;
-            if (TxtSlashOnlyNotice != null) TxtSlashOnlyNotice.Visibility = Visibility.Visible;
+            if (TxtSlashOnlyNotice != null)
+            {
+                TxtSlashOnlyNotice.Text = RadioShiftSpace.IsChecked == true
+                    ? "※ 'Shift + Space' 모드는 단일 추천(인라인 알약) 전용입니다. 멀티 추천 알약과 번호 선택을 사용하려면 [\\ + Tab]을 선택하세요."
+                    : AppConstants.NoticeSlashOnly;
+                TxtSlashOnlyNotice.Visibility = Visibility.Visible;
+            }
         }
         else
         {
@@ -416,12 +425,7 @@ public partial class ControlPanelWindow : Window
         else if (RadioShiftSpace.IsChecked == true)
         {
             cfg.CompleteKeyMode = "ShiftSpace";
-            if (RadioModeHorizontal.IsChecked == true)
-                cfg.DisplayMode = "HorizontalBar";
-            else if (RadioModeManual.IsChecked == true)
-                cfg.DisplayMode = "ManualOnly";
-            else
-                cfg.DisplayMode = "InlinePill";
+            cfg.DisplayMode = RadioModeManual.IsChecked == true ? "ManualOnly" : "InlinePill";
         }
         else
         {

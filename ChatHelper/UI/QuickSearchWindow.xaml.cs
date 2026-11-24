@@ -74,6 +74,8 @@ public partial class QuickSearchWindow : Window
         double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, winAlpha);
 
+        ShowActivated = true;
+        Topmost = true;
         Show();
         WindowState = WindowState.Normal;
         Win32Api.SetWindowAlpha(this, winAlpha);

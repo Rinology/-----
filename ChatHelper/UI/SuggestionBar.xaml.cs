@@ -253,7 +253,7 @@ public partial class SuggestionBar : Window
 
         var sheetItems = candidates.Where(c => c.Category != "AI생성" && c.Category != "AI번역").ToList();
 
-        if (completeMode == "SlashOnly" || mode == "InlinePill")
+        if (completeMode == "SlashOnly" || completeMode == "ShiftSpace" || mode == "InlinePill")
         {
             MainBorder.CornerRadius = new CornerRadius(0);
             MainBorder.Background = (Brush)(TryFindResource("ThemePillBg") ?? Brushes.White);
@@ -331,8 +331,7 @@ public partial class SuggestionBar : Window
                 for (int i = 0; i < visibleSheetItems.Count; i++)
                 {
                     var item = visibleSheetItems[i];
-                    string numberPrefix = completeMode == "ShiftSpace" ? "Ctrl+" : $"{trigger}+";
-                    string keyHint = (i == 0) ? tabKeyHint : $"{numberPrefix}{i + 1}";
+                    string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
 
                     var chip = new Button
                     {
