@@ -90,3 +90,14 @@
   * **✅ 검증된 해결책**: `AllowsTransparency="True"`는 마우스 스터터 방지를 위해 계속 끄고, 대신 [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs)의 `SetWindowAlpha`에서 **`HwndSource.FromHwnd(hwnd).AddHook`으로 `WM_STYLECHANGING(0x007C)`을 가로채 `STYLESTRUCT.styleNew`(`lParam + 4`)에 `WS_EX_LAYERED(0x00080000)`를 강제 보존(`handled = true`)**한 뒤 `SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA)`를 호출할 것. (`GetLayeredWindowAttributes` 단위 테스트로 `HasLayered=True, Alpha=115/255` 검증 완료)
 * **❌ 동기화 누락**: `ControlPanelWindow`가 생성자에서만 `LoadData()`를 호출해 백그라운드 동기화 완료 후에도 이전 시트 목록이 남아 있던 문제.
   * **✅ 검증된 해결책**: `TemplateManager.TemplatesSynced` 이벤트를 구독(`Closed` 시 해제)하여 동기화 완료 즉시 목록·프로필을 갱신할 것.
+
+## 12. 전역 핫키(`Alt+Q`) 무응답 · 창 뒤로 밀림 방지 및 진단 로그 기록
+* **❌ 실패한 방법**:
+  1. `RegisterHotKey(Alt+Q/X)` 반환값(`false`)과 `GetLastWin32Error()`를 확인·기록하지 않고 무시하거나, `OpenQuickSearch` 예외를 기록하지 않는 방식.
+  2. 숨겨진 WPF 팝업(`QuickSearchWindow`)을 다시 열 때 `Show()`만 호출하고 `ShowActivated = true`, `Topmost = true`를 명시하지 않는 방식.
+* **실패 원인**:
+  * 타 프로그램이 `Alt+Q`를 선점했거나, **관리자 권한으로 실행된 앱 위에서 `WH_KEYBOARD_LL` 키훅이 Windows UIPI 보안 정책에 의해 차단**될 경우 `RegisterHotKey` 실패 여부를 로그로 남기지 않으면 원인 파악이 불가능함.
+  * 숨김(`Hide()`) 후 재오픈 시 `ShowActivated`·`Topmost`가 명시되지 않으면 외부 창 뒤에 가려지거나 포커스를 받지 못해 동작하지 않는 것처럼 보임.
+* **✅ 검증된 해결책 및 결과**:
+  * [QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs) `ShowAtCursor`에서 `ShowActivated = true`, `Topmost = true`를 명시적으로 강제하여 항상 최상단·활성 상태로 열리도록 보강.
+  * [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs)의 `RegisterGlobalHotkeys` 및 `OpenQuickSearch`에서 `RegisterHotKey` 실패 코드(`GetLastWin32Error`)와 창 열기 예외를 `3/3 로그` 패널과 `ChatHelper.log`에 즉시 기록해 환경별 장애 원인을 바로 추적할 수 있도록 개선.
