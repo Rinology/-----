@@ -10,7 +10,7 @@ publish/config.json
 # Build output & temporary files
 **/[Bb]in/
 **/[Oo]bj/
-publish/*.pdb
+publish/
 dist/
 
 # Debug symbols
