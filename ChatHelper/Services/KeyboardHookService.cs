@@ -200,6 +200,7 @@ public class KeyboardHookService : IDisposable
                 Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
                 Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                AppLogger.Info("KeyboardHook", $"Alt+Q 훅 감지 (vk=0x{vkCode:X}, scan=0x{scanCode:X}, fg=0x{fgHwnd.ToInt64():X})");
                 GlobalHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
             }

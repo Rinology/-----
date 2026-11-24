@@ -696,6 +696,7 @@ public partial class MainWindow : Window
 
         try
         {
+            AppLogger.Info("MainWindow", $"OpenQuickSearch 호출 (target=0x{hwnd.ToInt64():X})");
             _quickSearchWindow.ShowAtCursor(hwnd);
         }
         catch (Exception ex)
@@ -828,6 +829,7 @@ public partial class MainWindow : Window
             int id = wParam.ToInt32();
             if (id == HOTKEY_SEARCH_ID)
             {
+                AppLogger.Info("MainWindow", "WM_HOTKEY(Alt+Q) 수신");
                 OpenQuickSearch();
                 handled = true;
             }
