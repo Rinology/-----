@@ -115,7 +115,7 @@ public class KeyboardHookService : IDisposable
         {
             _lastTargetHwnd = initFg;
         }
-        Debug.WriteLine($"[KeyboardHook] 훅 설치 완료. KB={_hookId}, WinEventFG={_fgWinEventHook}, WinEventFocus={_focusWinEventHook}");
+        AppLogger.Info("KeyboardHook", $"훅 설치 완료: KB=0x{_hookId.ToInt64():X}, WinEventFG=0x{_fgWinEventHook.ToInt64():X}");
     }
 
     public void Stop()
