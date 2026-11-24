@@ -309,7 +309,13 @@ public class KeyboardHookService : IDisposable
         return valid;
     }
 
-    private bool ShouldHandleTriggerInHook(int vkCode, bool isShiftPressed)
+    internal void SetTestTriggerState(bool hasCandidates, bool triggerArmed)
+    {
+        _hasCandidates = hasCandidates;
+        _triggerArmed = triggerArmed;
+    }
+
+    internal bool ShouldHandleTriggerInHook(int vkCode, bool isShiftPressed)
     {
         if (vkCode == Win32Api.VK_OEM_5)
             return true;

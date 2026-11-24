@@ -12,6 +12,8 @@
   - `ShouldHandleTriggerInHook`을 도입해 실제 완성 트리거(`\`, 후보 표시 중 `Tab` / `Shift+Space` / `\` 이후 `1~9`·`A`·`E`)일 때만 채널 플러시와 `_lock` 진입을 허용하고, `IsValidTargetWindowCached`로 포그라운드 창 검사 결과 캐싱 적용.
 - **`Alt+Q` 전역 핫키(`RegisterHotKey` / `HwndHook`) 등록 누락 보완 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
   - `ChatHelper.log`에서 `RegisterGlobalHotkeys` 로그가 누락되던 현상에 대응해 `EnsureGlobalHotkeyHookRegistered()`가 `WindowInteropHelper(this).Handle` 기반 `HwndSource.FromHwnd`를 우선 사용하고, `Window_Loaded`에서도 미등록 시 자동 재시도하도록 보강.
+- **재발 방지 자동 회귀 테스트 추가 ([KeyboardHookAndHotkeyTests.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper.Tests/KeyboardHookAndHotkeyTests.cs))**:
+  - 일반 채팅 키(`Space`, `A`, `E`, `1~9`, `Tab`)가 훅 스레드 `_lock` 플러시를 유발하지 않는지, `EnsureHandle()` + `HwndSource.FromHwnd` 및 `RegisterHotKey(Alt+Q)`가 누락 없이 동작하는지 단위 테스트로 자동 검증.
 - **GAS 재배포 필요 여부**: 불필요 (클라이언트 코드만 수정).
 
 ---

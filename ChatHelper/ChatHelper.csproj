@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ChatHelper.Tests" />
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\app.png" />
     <None Update="Assets\**">

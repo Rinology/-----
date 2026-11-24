@@ -35,6 +35,9 @@ public class Program
         AiAndOcrIntegrationTests.RunAll();
         Console.WriteLine("[PASS] AiAndOcrIntegrationTests");
 
+        KeyboardHookAndHotkeyTests.RunAll();
+        Console.WriteLine("[PASS] KeyboardHookAndHotkeyTests");
+
         Console.WriteLine("All unit tests passed!");
     }
 
