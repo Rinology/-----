@@ -31,6 +31,7 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<IntPtr>? TranslateHotkeyTriggered;
     public event Action<TemplateItem?, string, IntPtr, int>? MemoAddRequested;
+    public event Action<IntPtr, int>? MemoClipboardRequested;
     public event Action<IntPtr, int>? MemoFinalizeRequested;
     public event Action<IntPtr>? MemoDetailRequested;
     public event Action<IntPtr>? MemoClearRequested;
@@ -333,6 +334,12 @@ public class KeyboardHookService : IDisposable
                             return (IntPtr)1;
                         }
                     }
+                    if (vkCode == Win32Api.VK_V)
+                    {
+                        _buffer.Clear();
+                        MemoClipboardRequested?.Invoke(currentFgHwnd, 1);
+                        return (IntPtr)1;
+                    }
                     if (vkCode == Win32Api.VK_C && _hasActiveMemos)
                     {
                         _buffer.Clear();
@@ -439,7 +446,7 @@ public class KeyboardHookService : IDisposable
 
         if ((_triggerArmed || (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0) &&
             (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E ||
-             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_C || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
+             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_V || vkCode == Win32Api.VK_C || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
              (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
             return true;
 
@@ -530,15 +537,26 @@ public class KeyboardHookService : IDisposable
             {
                 if (vkCode == Win32Api.VK_M)
                 {
-                    var topCandidate = _currentCandidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
                     string token = LastRecognizedToken;
-                    int bsCount = _currentMatchedLen > 0 ? _currentMatchedLen : token.Length;
+                    var topCandidate = IsNumericOrCodeToken(token)
+                        ? null
+                        : _currentCandidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
+                    int bsCount = Math.Max(_currentMatchedLen, token.Length);
                     IntPtr target = _lastTargetHwnd;
                     _triggerArmed = false;
                     _buffer.Clear();
                     LastRecognizedToken = string.Empty;
                     ClearCandidates(cancelAi: true);
                     MemoAddRequested?.Invoke(topCandidate, token, target, bsCount);
+                    return true;
+                }
+                if (vkCode == Win32Api.VK_V)
+                {
+                    IntPtr target = _lastTargetHwnd;
+                    _triggerArmed = false;
+                    _buffer.Clear();
+                    ClearCandidates();
+                    MemoClipboardRequested?.Invoke(target, 0);
                     return true;
                 }
                 if (vkCode == Win32Api.VK_C && _hasActiveMemos)
@@ -802,6 +820,19 @@ public class KeyboardHookService : IDisposable
         if (words.Length >= 2) return true;
         if (text.Length >= 4 && (text.EndsWith('?') || text.EndsWith('.') || text.EndsWith('!'))) return true;
         return false;
+    }
+
+    private static bool IsNumericOrCodeToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        string s = token.Trim();
+        int digitCount = 0;
+        foreach (char c in s)
+        {
+            if (char.IsDigit(c)) digitCount++;
+            else if (c != '-' && c != ' ') return false;
+        }
+        return digitCount >= 3;
     }
 
     private static bool IsUnrecognizedGibberish(string text)

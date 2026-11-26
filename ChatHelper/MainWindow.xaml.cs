@@ -286,6 +286,37 @@ public partial class MainWindow : Window
             });
         };
 
+        _hookService.MemoClipboardRequested += (targetHwnd, bsCount) =>
+        {
+            if (bsCount > 0)
+            {
+                Task.Run(() =>
+                {
+                    if (Win32Api.IsValidTargetWindow(targetHwnd))
+                        Win32Api.ForceForegroundWindow(targetHwnd);
+                    TextInjectionService.SendBackspaces(bsCount);
+                });
+            }
+            Dispatcher.BeginInvoke(() =>
+            {
+                string clip = TextInjectionService.GetClipboardTextSafe().Trim();
+                if (!string.IsNullOrWhiteSpace(clip))
+                {
+                    _consultationMemoHud.AddMemo(null, clip, targetHwnd);
+                    ShowNoticeBadge($"📋 클립보드 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+                }
+                else
+                {
+                    ShowNoticeBadge("⚠️ 클립보드가 비어 있습니다", "#B45309");
+                }
+            });
+        };
+
+        _consultationMemoHud.RegisterSheetRequested += (editedContent) =>
+        {
+            Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(null, editedContent));
+        };
+
         _hookService.MemoFinalizeRequested += (targetHwnd, bsCount) =>
         {
             Dispatcher.BeginInvoke(() => _consultationMemoHud.TriggerFinalInsert(targetHwnd, bsCount));

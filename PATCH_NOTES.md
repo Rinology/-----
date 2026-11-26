@@ -8,7 +8,9 @@
 
 ### ✨ Added / Changed
 - **비방해형 스무고개 상담 메모 HUD (`ConsultationMemoHud`) & 키보드 전용 단축키 ([ConsultationMemoHud.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml), [ConsultationMemoHud.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
-  - `Alt+S` 검색창과 동일한 **744×524 크기**의 넉넉한 비방해형 플로팅 HUD(`WS_EX_NOACTIVATE`, 포커스 비탈취)로 설계해 누적 키워드 칩·개별 메모 카드 목록(`▲`/`▼` 순서 이동 & `{1}`/`{2}` 인덱싱 배지)·조합 형식(`문단`/`줄바꿈`/`번호`/`불릿`)·최종 조합 미리보기를 한눈에 확인 가능.
+  - `Alt+S` 검색창과 동일한 **744×540 크기**의 깔끔한 카드 목록 HUD로 설계해 누적 키워드 칩·개별 메모 카드(`▲`/`▼` 순서 이동 & `{1}`/`{2}` 인덱싱 배지)·조합 형식(`문단`/`줄바꿈`/`번호`/`불릿`)·**직접 수정 가능한 최종 답변 미리보기** 및 **수정 답변 시트 등록 확인(`💾 시트 등록`)**을 제공.
+  - **`\ + V`** (또는 HUD `📋 클립보드 담기`): 복사해 둔 송장번호·텍스트를 `{변수}`용 자유 메모로 즉시 추가.
+  - **한글 IME 백스페이스 잔상 및 숫자 오인식 수정** ([TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs)): `SendBackspaces` 실행 전 `VK_RIGHT`로 조합 중 한글 IME를 확정해 긴 문장(`전원이 안켜져요`) 메모 추가 시 앞글자가 남지 않도록 수정하고, 3자리 이상 숫자/코드 입력 후 `\+M` 시 엉뚱한 제시 알약 대신 `{1}` 자유 메모로 등록되도록 개선.
   - **구글 시트(`채팅도우미환경변수(CS)` > `채팅템플릿`) 동기화**: 기존 `td`/`td2`의 `[송장번호 입력]`을 `{송장번호}`로 갱신하고, `{날짜}`/`{모델}`/`{금액}`/`{내용}` 자리표시자 및 `블록` 카테고리 조각 템플릿 6종(`as_visit`, `rf_fee`, `b_delay`, `b_gift`, `b_check`, `b_end`)을 추가 반영.
   - Windows 음소거 단축키(`Alt+M`) 충돌을 제거하고, 채팅 흐름을 끊지 않는 **역슬래시(`\`)+문자** 및 `Ctrl+Shift+Enter` 키보드 워크플로우로 재설계.
   - **`\ + M`** (또는 제안 알약 헤더 **`+ 메모`** 버튼): DB 일치 템플릿뿐 아니라 **미인식(`[미일치]`) 자유 키워드도** 별도 플로팅 HUD에 즉시 달아두고, 채팅창에 입력했던 단어를 자동으로 지워(백스페이스) 대화를 깔끔하게 이어갈 수 있음.

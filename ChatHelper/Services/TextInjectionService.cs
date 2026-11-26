@@ -9,12 +9,26 @@ public static class TextInjectionService
 {
     public static void SendBackspaces(int count)
     {
+        if (count <= 0) return;
+
+        // 조합 중인 한글 IME(예: "전원이 안켜져요"의 마지막 "요")를 확정시켜 1글자=1백스페이스로 정확히 지워지도록 함
+        var commitIme = new[]
+        {
+            CreateKeyInput(Win32Api.VK_RIGHT, keyUp: false, extended: true),
+            CreateKeyInput(Win32Api.VK_RIGHT, keyUp: true, extended: true)
+        };
+        Win32Api.SendInput((uint)commitIme.Length, commitIme, Marshal.SizeOf<Win32Api.INPUT>());
+        Thread.Sleep(15);
+
         for (int i = 0; i < count; i++)
         {
-            Win32Api.keybd_event(Win32Api.VK_BACK, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(5);
-            Win32Api.keybd_event(Win32Api.VK_BACK, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
-            Thread.Sleep(5);
+            var bs = new[]
+            {
+                CreateKeyInput(Win32Api.VK_BACK, keyUp: false, extended: false),
+                CreateKeyInput(Win32Api.VK_BACK, keyUp: true, extended: false)
+            };
+            Win32Api.SendInput((uint)bs.Length, bs, Marshal.SizeOf<Win32Api.INPUT>());
+            Thread.Sleep(8);
         }
     }
 

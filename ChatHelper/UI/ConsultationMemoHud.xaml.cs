@@ -13,7 +13,7 @@ using ChatHelper.Services;
 namespace ChatHelper.UI;
 
 /// <summary>
-/// 채팅창 포커스를 절대 빼앗지 않는(WS_EX_NOACTIVATE) 별도의 비방해형 상담 스무고개 메모 HUD.
+/// 채팅창 포커스를 빼앗지 않는 별도의 상담 스무고개 메모 HUD.
 /// 메모가 0개이거나 기능이 OFF이면 숨겨지며, 1개 이상 누적되면 대화를 이어가는 동안 계속 유지됩니다.
 /// </summary>
 public partial class ConsultationMemoHud : Window
@@ -23,9 +23,12 @@ public partial class ConsultationMemoHud : Window
     private readonly List<MemoEntry> _entries = new();
     private IntPtr _targetHwnd = IntPtr.Zero;
     private bool _hasCustomPosition = false;
+    private bool _suppressPreviewSync = false;
+    private bool _isPreviewEdited = false;
 
     public event Action<string, IntPtr, int>? FinalInsertRequested;
     public event Action<IntPtr>? OpenDetailRequested;
+    public event Action<string>? RegisterSheetRequested;
     public event Action<int>? MemoCountChanged;
 
     public int MemoCount => _entries.Count;
@@ -78,6 +81,7 @@ public partial class ConsultationMemoHud : Window
             Content = content
         });
 
+        _isPreviewEdited = false;
         RefreshHud();
     }
 
@@ -86,12 +90,14 @@ public partial class ConsultationMemoHud : Window
         _entries.Clear();
         if (entries != null)
             _entries.AddRange(entries);
+        _isPreviewEdited = false;
         RefreshHud();
     }
 
     public void ClearMemos()
     {
         _entries.Clear();
+        _isPreviewEdited = false;
         RefreshHud();
     }
 
@@ -113,7 +119,10 @@ public partial class ConsultationMemoHud : Window
     private void CmbHudJoinMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (IsLoaded && _entries.Count > 0)
+        {
+            _isPreviewEdited = false;
             RefreshHud();
+        }
     }
 
     public string BuildFinalText()
@@ -151,7 +160,7 @@ public partial class ConsultationMemoHud : Window
             return;
         }
 
-        TxtMemoHeader.Text = $"📝 상담 스무고개 메모 HUD ({_entries.Count}개 누적)";
+        TxtMemoHeader.Text = $"📝 상담 스무고개 메모 ({_entries.Count}개 누적)";
         ChipsPanel.Children.Clear();
         MemoCardsPanel.Children.Clear();
 
@@ -201,6 +210,7 @@ public partial class ConsultationMemoHud : Window
                 if (idx >= 0 && idx < _entries.Count)
                 {
                     _entries.RemoveAt(idx);
+                    _isPreviewEdited = false;
                     RefreshHud();
                 }
             };
@@ -209,7 +219,7 @@ public partial class ConsultationMemoHud : Window
             border.Child = stack;
             ChipsPanel.Children.Add(border);
 
-            // 중앙 메모 카드 (크고 읽기 쉽게 표시)
+            // 중앙 메모 카드 (깔끔한 카드 목록 + ▲/▼ 순서 이동)
             var card = new Border
             {
                 Background = (Brush)(TryFindResource("ThemeBg") ?? Brushes.White),
@@ -290,6 +300,7 @@ public partial class ConsultationMemoHud : Window
                 if (idx > 0)
                 {
                     (_entries[idx - 1], _entries[idx]) = (_entries[idx], _entries[idx - 1]);
+                    _isPreviewEdited = false;
                     RefreshHud();
                 }
             };
@@ -311,6 +322,7 @@ public partial class ConsultationMemoHud : Window
                 if (idx < _entries.Count - 1)
                 {
                     (_entries[idx + 1], _entries[idx]) = (_entries[idx], _entries[idx + 1]);
+                    _isPreviewEdited = false;
                     RefreshHud();
                 }
             };
@@ -330,6 +342,7 @@ public partial class ConsultationMemoHud : Window
                 if (idx >= 0 && idx < _entries.Count)
                 {
                     _entries.RemoveAt(idx);
+                    _isPreviewEdited = false;
                     RefreshHud();
                 }
             };
@@ -363,17 +376,25 @@ public partial class ConsultationMemoHud : Window
             ? ConsultationMemoService.FilterTemplates(_templateManager.Templates, chips, null)
             : new List<TemplateItem>();
 
+        string finalPreviewText;
         if (narrowed.Count == 1)
         {
-            TxtMatchStatus.Text = $"🎯 스무고개 일치 템플릿 발견: [{narrowed[0].Keyword}] {narrowed[0].Title}";
-            TxtFinalPreview.Text = BuildFinalText();
+            TxtMatchStatus.Text = $"🎯 스무고개 일치: [{narrowed[0].Keyword}] {narrowed[0].Title} (직접 수정 가능)";
+            finalPreviewText = BuildFinalText();
         }
         else
         {
             TxtMatchStatus.Text = narrowed.Count > 1
-                ? $"🔍 스무고개 후보 {narrowed.Count}건 남음 · 누적 {_entries.Count}개 조합 미리보기"
-                : $"✨ 누적 {_entries.Count}개 답변 조합 미리보기";
-            TxtFinalPreview.Text = ConsultationMemoService.ComposeFinalText(_entries, GetSelectedJoinMode());
+                ? $"🔍 스무고개 후보 {narrowed.Count}건 남음 · 누적 {_entries.Count}개 조합 (직접 수정 가능)"
+                : $"✨ 누적 {_entries.Count}개 답변 조합 (직접 수정 가능)";
+            finalPreviewText = ConsultationMemoService.ComposeFinalText(_entries, GetSelectedJoinMode());
+        }
+
+        if (!_isPreviewEdited)
+        {
+            _suppressPreviewSync = true;
+            TxtFinalPreview.Text = finalPreviewText;
+            _suppressPreviewSync = false;
         }
 
         UpdateLayout();
@@ -393,12 +414,56 @@ public partial class ConsultationMemoHud : Window
     {
         if (!_configManager.Config.EnableConsultationMemo || _entries.Count == 0) return;
 
-        string finalText = BuildFinalText();
+        string finalText = !string.IsNullOrWhiteSpace(TxtFinalPreview.Text)
+            ? TxtFinalPreview.Text.Trim()
+            : BuildFinalText();
         if (string.IsNullOrWhiteSpace(finalText)) return;
 
+        bool wasEdited = _isPreviewEdited;
         IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _targetHwnd;
         ClearMemos();
         FinalInsertRequested?.Invoke(finalText, dst, backspaceCount);
+
+        if (wasEdited)
+        {
+            var answer = MessageBox.Show(
+                "수정하신 최종 답변을 Google 시트(채팅템플릿)에도 새 템플릿으로 등록할까요?",
+                "수정된 답변 시트 등록",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Yes)
+            {
+                RegisterSheetRequested?.Invoke(finalText);
+            }
+        }
+    }
+
+    private void TxtFinalPreview_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        var helper = new WindowInteropHelper(this);
+        Win32Api.ForceForegroundWindow(helper.Handle);
+        Activate();
+        TxtFinalPreview.Focus();
+    }
+
+    private void TxtFinalPreview_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressPreviewSync) return;
+        _isPreviewEdited = true;
+    }
+
+    private void BtnPasteClipboardMemo_Click(object sender, RoutedEventArgs e)
+    {
+        string clip = TextInjectionService.GetClipboardTextSafe().Trim();
+        if (string.IsNullOrWhiteSpace(clip)) return;
+        AddMemo(null, clip, _targetHwnd);
+    }
+
+    private void BtnRegisterSheet_Click(object sender, RoutedEventArgs e)
+    {
+        string text = TxtFinalPreview.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(text)) return;
+        RegisterSheetRequested?.Invoke(text);
     }
 
     private void BtnInsertFinal_Click(object sender, RoutedEventArgs e) => TriggerFinalInsert(_targetHwnd, 0);
@@ -411,7 +476,7 @@ public partial class ConsultationMemoHud : Window
 
     private void MainBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left)
+        if (e.ChangedButton == MouseButton.Left && !(e.OriginalSource is TextBox))
         {
             _hasCustomPosition = true;
             try { DragMove(); } catch { }
