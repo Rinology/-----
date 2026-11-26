@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using ChatHelper.Models;
 
 namespace ChatHelper.Services;
@@ -123,13 +124,51 @@ public static class ConsultationMemoService
 
     /// <summary>
     /// 수집된 메모/답변 조각들을 지정된 결합 형식에 맞게 하나의 최종 완성 텍스트로 합칩니다.
+    /// 템플릿 본문에 {메모}, {1}, {날짜} 등 자리표시자({키워드})가 있으면 자유 메모 값을 순서대로 자동 치환합니다.
     /// </summary>
     public static string ComposeFinalText(IEnumerable<MemoEntry> entries, MemoJoinMode joinMode)
     {
-        var valid = entries?
-            .Select(e => string.IsNullOrWhiteSpace(e.Content) ? e.MemoNote?.Trim() ?? string.Empty : e.Content.Trim())
-            .Where(text => !string.IsNullOrWhiteSpace(text))
-            .ToList() ?? new List<string>();
+        var list = entries?.ToList() ?? new List<MemoEntry>();
+        if (list.Count == 0)
+            return string.Empty;
+
+        // 자유 메모(Category == "메모")와 템플릿 블록 분리
+        var freeMemos = new List<(int EntryIndex, string Value)>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (string.Equals(list[i].Category, "메모", StringComparison.OrdinalIgnoreCase))
+            {
+                string val = !string.IsNullOrWhiteSpace(list[i].Content)
+                    ? list[i].Content.Trim()
+                    : (list[i].MemoNote?.Trim() ?? string.Empty);
+                if (!string.IsNullOrWhiteSpace(val))
+                    freeMemos.Add((i, val));
+            }
+        }
+
+        var consumedEntryIndices = new HashSet<int>();
+        var resolvedParts = new List<(int EntryIndex, string Text)>();
+        int nextFreeIdx = 0;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var e = list[i];
+            string raw = string.IsNullOrWhiteSpace(e.Content) ? (e.MemoNote?.Trim() ?? string.Empty) : e.Content.Trim();
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+
+            if (!string.Equals(e.Category, "메모", StringComparison.OrdinalIgnoreCase) && freeMemos.Count > 0)
+            {
+                raw = ReplacePlaceholders(raw, freeMemos, consumedEntryIndices, ref nextFreeIdx);
+            }
+
+            resolvedParts.Add((i, raw));
+        }
+
+        var valid = resolvedParts
+            .Where(p => !consumedEntryIndices.Contains(p.EntryIndex))
+            .Select(p => p.Text)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToList();
 
         if (valid.Count == 0)
             return string.Empty;
@@ -141,5 +180,47 @@ public static class ConsultationMemoService
             MemoJoinMode.Bulleted => string.Join("\r\n", valid.Select(t => $"• {t}")),
             _ => string.Join("\r\n\r\n", valid)
         };
+    }
+
+    private static readonly Regex PlaceholderRegex = new(@"\{([^{}\r\n]{1,24})\}", RegexOptions.Compiled);
+
+    /// <summary>
+    /// 본문 내 {1}, {메모}, {날짜} 등의 자리표시자를 자유 메모 값으로 자동 치환합니다.
+    /// </summary>
+    public static string ReplacePlaceholders(
+        string templateText,
+        IReadOnlyList<(int EntryIndex, string Value)> freeMemos,
+        HashSet<int> consumedEntryIndices,
+        ref int nextFreeIdx)
+    {
+        if (string.IsNullOrEmpty(templateText) || freeMemos.Count == 0)
+            return templateText;
+
+        int localNext = nextFreeIdx;
+        string result = PlaceholderRegex.Replace(templateText, match =>
+        {
+            string key = match.Groups[1].Value.Trim();
+
+            // 1. 숫자 인덱스 {1}, {2}...
+            if (int.TryParse(key, out int oneBased) && oneBased >= 1 && oneBased <= freeMemos.Count)
+            {
+                var target = freeMemos[oneBased - 1];
+                consumedEntryIndices.Add(target.EntryIndex);
+                return target.Value;
+            }
+
+            // 2. 일반 자리표시자 {메모}, {날짜}, {모델} 등 -> 순서대로 자유 메모 배정
+            if (localNext < freeMemos.Count)
+            {
+                var target = freeMemos[localNext++];
+                consumedEntryIndices.Add(target.EntryIndex);
+                return target.Value;
+            }
+
+            return match.Value;
+        });
+
+        nextFreeIdx = localNext;
+        return result;
     }
 }

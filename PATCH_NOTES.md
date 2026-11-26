@@ -8,9 +8,12 @@
 
 ### ✨ Added / Changed
 - **비방해형 스무고개 상담 메모 HUD (`ConsultationMemoHud`) & 키보드 전용 단축키 ([ConsultationMemoHud.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml), [ConsultationMemoHud.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - `Alt+S` 검색창과 동일한 **744×524 크기**의 넉넉한 비방해형 플로팅 HUD(`WS_EX_NOACTIVATE`, 포커스 비탈취)로 설계해 누적 키워드 칩·개별 메모 카드 목록(`▲`/`▼` 순서 이동 & `{1}`/`{2}` 인덱싱 배지)·조합 형식(`문단`/`줄바꿈`/`번호`/`불릿`)·최종 조합 미리보기를 한눈에 확인 가능.
+  - **구글 시트(`채팅도우미환경변수(CS)` > `채팅템플릿`) 동기화**: 기존 `td`/`td2`의 `[송장번호 입력]`을 `{송장번호}`로 갱신하고, `{날짜}`/`{모델}`/`{금액}`/`{내용}` 자리표시자 및 `블록` 카테고리 조각 템플릿 6종(`as_visit`, `rf_fee`, `b_delay`, `b_gift`, `b_check`, `b_end`)을 추가 반영.
   - Windows 음소거 단축키(`Alt+M`) 충돌을 제거하고, 채팅 흐름을 끊지 않는 **역슬래시(`\`)+문자** 및 `Ctrl+Shift+Enter` 키보드 워크플로우로 재설계.
-  - **`\ + M`** (또는 제안 알약 헤더 **`+ 메모`** 버튼): 현재 인식된 키워드·추천 답변을 별도 플로팅 HUD(`WS_EX_NOACTIVATE`, 포커스 비탈취)에 즉시 달아두고 대화를 계속 이어갈 수 있음.
-  - **`\ + F`** 또는 **`Ctrl + Shift + Enter`**: 누적된 메모 이력(또는 스무고개 좁히기 일치 템플릿)을 최종 완성 문장으로 채팅창에 한 번에 입력.
+  - **`\ + M`** (또는 제안 알약 헤더 **`+ 메모`** 버튼): DB 일치 템플릿뿐 아니라 **미인식(`[미일치]`) 자유 키워드도** 별도 플로팅 HUD에 즉시 달아두고, 채팅창에 입력했던 단어를 자동으로 지워(백스페이스) 대화를 깔끔하게 이어갈 수 있음.
+  - **`\ + C`**: 누적된 상담 메모를 키보드로 일괄 초기화.
+  - **`\ + F`** 또는 **`Ctrl + Shift + Enter`**: 누적된 메모 이력(또는 스무고개 좁히기 일치 템플릿)을 최종 완성 문장으로 채팅창에 한 번에 입력. 템플릿 본문의 `{메모}` · `{1}` · `{날짜}` 등 자리표시자에 자유 메모 값을 자동 치환함.
   - **`\ + N`** (또는 마스터창 `메모` 우클릭 / HUD `편집` 버튼): 상세 편집기([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml)) 호출.
   - **마스터창 & 제어판 ON/OFF 토글**: [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml) 도킹 바 `메모 ON/OFF` 버튼 및 제어판 체크박스(`EnableConsultationMemo`, 테스트 기본값 `ON`)로 일반 사용자와 상담사가 손쉽게 켜고 끌 수 있음.
 

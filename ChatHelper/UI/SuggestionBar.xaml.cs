@@ -23,7 +23,7 @@ public partial class SuggestionBar : Window
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
     public event Action<TemplateItem, IntPtr>? SelectionReplaceRequested;
     public event Action<string, string, IntPtr>? TranslationRetranslateRequested;
-    public event Action<TemplateItem?, string, IntPtr>? MemoPinRequested;
+    public event Action<TemplateItem?, string, IntPtr, int>? MemoPinRequested;
     public event Action<string>? QuickRegisterRequested;
     public event Action? AutoHideExpired;
 
@@ -110,7 +110,9 @@ public partial class SuggestionBar : Window
     {
         string clean = (_recognizedToken ?? string.Empty).Trim().TrimStart('\\', '/');
         var topCandidate = _candidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
-        MemoPinRequested?.Invoke(topCandidate, clean, _targetHwnd);
+        int bsCount = _matchedLen > 0 ? _matchedLen : clean.Length;
+        Hide();
+        MemoPinRequested?.Invoke(topCandidate, clean, _targetHwnd, bsCount);
     }
 
     private void BtnCloseSuggestion_Click(object sender, RoutedEventArgs e)

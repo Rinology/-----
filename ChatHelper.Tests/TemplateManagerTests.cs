@@ -222,6 +222,17 @@ public static class TemplateManagerTests
             Assert(ConsultationMemoService.ComposeFinalText(entries, MemoJoinMode.Bulleted) ==
                 "• 물량 증가로 배송이 지연되고 있습니다.\r\n• 수거 접수를 도와드리겠습니다.",
                 "Bulleted join mode mismatch");
+
+            // {메모}/{1} 자리표시자 자동 치환 테스트 (소비된 자유 메모는 중복 출력되지 않아야 함)
+            var placeholderEntries = new List<MemoEntry>
+            {
+                new() { Keyword = "내일오전", Category = "메모", Content = "내일 오전" },
+                new() { Keyword = "폴드7", Category = "메모", Content = "폴드7" },
+                new() { Keyword = "as1", Category = "AS", Content = "확인 감사합니다. {날짜}에 {모델} 건으로 방문하겠습니다." }
+            };
+            string composedPlaceholder = ConsultationMemoService.ComposeFinalText(placeholderEntries, MemoJoinMode.Paragraph);
+            Assert(composedPlaceholder == "확인 감사합니다. 내일 오전에 폴드7 건으로 방문하겠습니다.",
+                $"Placeholder substitution mismatch: '{composedPlaceholder}'");
         }
         finally
         {

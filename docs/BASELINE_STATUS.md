@@ -13,7 +13,7 @@
 | 로컬 AI | Ollama `qwen2.5:3b`, 실시간 AI 추천(`[\+A]`), 영문 번역(`[\+E]`), 용어집 RAG(별칭→공식 용어 치환) | AI: ON 상태에서 입력 |
 | 계산 | `5 * 10 =` → `50` (`MathCalcHelper`), ON/OFF 가능 | 단위테스트 |
 | 번역 | `Alt+T` 드래그 양방향 번역(`Auto` / `KoToEn` / `EnToKo`), `TranslationSession` 역번역 & 클립보드 시퀀스 검증 | 제어판 & `TemplateManagerTests` |
-| 상담 메모 | 비방해형 별도 HUD(`ConsultationMemoHud`), `\+M` 메모 추가, `\+F`/`Ctrl+Shift+Enter` 최종 입력, `\+N` 편집, ON/OFF 토글 | 마스터창 & `TemplateManagerTests` |
+| 상담 메모 | 비방해형 별도 HUD(`744×524`), 미인식 포함 `\+M` 추가(자동 백스페이스), `\+C` 초기화, `\+F`/`Ctrl+Shift+Enter` 최종 입력(`{변수}` 자동치환), `\+N` 편집 | 마스터창 & `TemplateManagerTests` |
 | 배포 보안 | `%LocalAppData%\ChatHelper\` 설정/7일 로그 분리, DPAPI 아이디 암호화, `publish/` 민감파일 자동 정리 | `ConfigManagerTests` |
 | 시트 동기화 | 채팅템플릿/용어집/톤앤매너 CSV 읽기, 15분 주기 자동, 수동 즉시, 2회 재시도, 오프라인 로컬 캐시 | 제어판 > 동기화 |
 | 시트 쓰기 | 키워드/용어 등록·삭제 → GAS `doPost` | 용어집 창, 등록 기능 |

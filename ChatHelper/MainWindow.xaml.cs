@@ -259,12 +259,30 @@ public partial class MainWindow : Window
             _ = HandleSelectionTranslateAsync(targetHwnd);
         };
 
-        _hookService.MemoAddRequested += (candidate, token, targetHwnd) =>
+        _hookService.MemoAddRequested += (candidate, token, targetHwnd, bsCount) =>
         {
+            if (bsCount > 0)
+            {
+                Task.Run(() =>
+                {
+                    if (Win32Api.IsValidTargetWindow(targetHwnd))
+                        Win32Api.ForceForegroundWindow(targetHwnd);
+                    TextInjectionService.SendBackspaces(bsCount);
+                });
+            }
             Dispatcher.BeginInvoke(() =>
             {
                 _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
                 ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+            });
+        };
+
+        _hookService.MemoClearRequested += (targetHwnd) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _consultationMemoHud.ClearMemos();
+                ShowNoticeBadge("🧹 상담 메모 초기화", "#64748B");
             });
         };
 
@@ -278,8 +296,17 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => OpenConsultationMemo(targetHwnd));
         };
 
-        _suggestionBar.MemoPinRequested += (candidate, token, targetHwnd) =>
+        _suggestionBar.MemoPinRequested += (candidate, token, targetHwnd, bsCount) =>
         {
+            if (bsCount > 0)
+            {
+                Task.Run(() =>
+                {
+                    if (Win32Api.IsValidTargetWindow(targetHwnd))
+                        Win32Api.ForceForegroundWindow(targetHwnd);
+                    TextInjectionService.SendBackspaces(bsCount);
+                });
+            }
             _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
             ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
         };

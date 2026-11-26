@@ -95,6 +95,27 @@ public partial class ConsultationMemoHud : Window
         RefreshHud();
     }
 
+    private MemoJoinMode GetSelectedJoinMode()
+    {
+        if (CmbHudJoinMode?.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+        {
+            return tag switch
+            {
+                "LineBreak" => MemoJoinMode.LineBreak,
+                "Numbered" => MemoJoinMode.Numbered,
+                "Bulleted" => MemoJoinMode.Bulleted,
+                _ => MemoJoinMode.Paragraph
+            };
+        }
+        return MemoJoinMode.Paragraph;
+    }
+
+    private void CmbHudJoinMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoaded && _entries.Count > 0)
+            RefreshHud();
+    }
+
     public string BuildFinalText()
     {
         if (_entries.Count == 0) return string.Empty;
@@ -105,11 +126,19 @@ public partial class ConsultationMemoHud : Window
             var narrowed = ConsultationMemoService.FilterTemplates(_templateManager.Templates, chips, null);
             if (narrowed.Count == 1 && !string.IsNullOrWhiteSpace(narrowed[0].Content))
             {
-                return narrowed[0].Content;
+                var freeMemos = _entries
+                    .Select((e, idx) => (EntryIndex: idx, Entry: e))
+                    .Where(x => string.Equals(x.Entry.Category, "메모", StringComparison.OrdinalIgnoreCase))
+                    .Select(x => (x.EntryIndex, string.IsNullOrWhiteSpace(x.Entry.Content) ? x.Entry.MemoNote : x.Entry.Content))
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Item2))
+                    .ToList();
+                var consumed = new HashSet<int>();
+                int nextIdx = 0;
+                return ConsultationMemoService.ReplacePlaceholders(narrowed[0].Content, freeMemos, consumed, ref nextIdx);
             }
         }
 
-        return ConsultationMemoService.ComposeFinalText(_entries, MemoJoinMode.Paragraph);
+        return ConsultationMemoService.ComposeFinalText(_entries, GetSelectedJoinMode());
     }
 
     public void RefreshHud()
@@ -122,29 +151,34 @@ public partial class ConsultationMemoHud : Window
             return;
         }
 
-        TxtMemoHeader.Text = $"📝 상담 메모 ({_entries.Count}개 누적)";
+        TxtMemoHeader.Text = $"📝 상담 스무고개 메모 HUD ({_entries.Count}개 누적)";
         ChipsPanel.Children.Clear();
+        MemoCardsPanel.Children.Clear();
 
+        int freeMemoOrder = 0;
         for (int i = 0; i < _entries.Count; i++)
         {
             int idx = i;
             var entry = _entries[i];
+            bool isFreeMemo = string.Equals(entry.Category, "메모", StringComparison.OrdinalIgnoreCase);
+            if (isFreeMemo) freeMemoOrder++;
 
+            // 상단 키워드 칩
             var border = new Border
             {
                 Background = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE"))),
                 BorderBrush = (Brush)(TryFindResource("ThemeAccentBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD"))),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(7, 2, 5, 2),
-                Margin = new Thickness(0, 0, 5, 3)
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(9, 3, 6, 3),
+                Margin = new Thickness(0, 0, 6, 4)
             };
 
             var stack = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             stack.Children.Add(new TextBlock
             {
                 Text = $"{idx + 1}. {entry.Keyword}",
-                FontSize = 11,
+                FontSize = 11.5,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A"))),
                 VerticalAlignment = VerticalAlignment.Center
@@ -153,11 +187,11 @@ public partial class ConsultationMemoHud : Window
             var delBtn = new Button
             {
                 Content = "✕",
-                Margin = new Thickness(4, 0, 0, 0),
+                Margin = new Thickness(5, 0, 0, 0),
                 Padding = new Thickness(2, 0, 2, 0),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                FontSize = 10,
+                FontSize = 10.5,
                 Foreground = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A"))),
                 Cursor = Cursors.Hand,
                 Focusable = false
@@ -174,6 +208,154 @@ public partial class ConsultationMemoHud : Window
 
             border.Child = stack;
             ChipsPanel.Children.Add(border);
+
+            // 중앙 메모 카드 (크고 읽기 쉽게 표시)
+            var card = new Border
+            {
+                Background = (Brush)(TryFindResource("ThemeBg") ?? Brushes.White),
+                BorderBrush = (Brush)(TryFindResource("ThemePanelBorder") ?? Brushes.LightGray),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(10, 7, 10, 7),
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            var cardGrid = new Grid();
+            cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 3) };
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var numBadge = new Border
+            {
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
+                CornerRadius = new CornerRadius(9),
+                Padding = new Thickness(6, 1, 6, 1),
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            numBadge.Child = new TextBlock { Text = (idx + 1).ToString(), Foreground = Brushes.White, FontSize = 10.5, FontWeight = FontWeights.Bold };
+            Grid.SetColumn(numBadge, 0);
+            headerGrid.Children.Add(numBadge);
+
+            var kwBadge = new Border
+            {
+                Background = (Brush)(TryFindResource("ThemeAccent") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE"))),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 1, 6, 1),
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            kwBadge.Child = new TextBlock
+            {
+                Text = isFreeMemo ? $"{{{freeMemoOrder}}} {entry.Keyword}" : entry.Keyword,
+                Foreground = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A"))),
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold
+            };
+            Grid.SetColumn(kwBadge, 1);
+            headerGrid.Children.Add(kwBadge);
+
+            var titleText = new TextBlock
+            {
+                Text = entry.MemoNote,
+                Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            Grid.SetColumn(titleText, 2);
+            headerGrid.Children.Add(titleText);
+
+            var actionPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var btnUp = new Button
+            {
+                Content = "▲",
+                Padding = new Thickness(5, 1, 5, 1),
+                FontSize = 10,
+                Margin = new Thickness(0, 0, 2, 0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                Focusable = false,
+                IsEnabled = idx > 0,
+                ToolTip = "순서 위로 이동"
+            };
+            btnUp.Click += (s, e) =>
+            {
+                if (idx > 0)
+                {
+                    (_entries[idx - 1], _entries[idx]) = (_entries[idx], _entries[idx - 1]);
+                    RefreshHud();
+                }
+            };
+            var btnDown = new Button
+            {
+                Content = "▼",
+                Padding = new Thickness(5, 1, 5, 1),
+                FontSize = 10,
+                Margin = new Thickness(0, 0, 4, 0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                Focusable = false,
+                IsEnabled = idx < _entries.Count - 1,
+                ToolTip = "순서 아래로 이동"
+            };
+            btnDown.Click += (s, e) =>
+            {
+                if (idx < _entries.Count - 1)
+                {
+                    (_entries[idx + 1], _entries[idx]) = (_entries[idx], _entries[idx + 1]);
+                    RefreshHud();
+                }
+            };
+            var cardDelBtn = new Button
+            {
+                Content = "삭제",
+                Padding = new Thickness(6, 1, 6, 1),
+                FontSize = 10.5,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B91C1C")),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = Cursors.Hand,
+                Focusable = false
+            };
+            cardDelBtn.Click += (s, e) =>
+            {
+                if (idx >= 0 && idx < _entries.Count)
+                {
+                    _entries.RemoveAt(idx);
+                    RefreshHud();
+                }
+            };
+            actionPanel.Children.Add(btnUp);
+            actionPanel.Children.Add(btnDown);
+            actionPanel.Children.Add(cardDelBtn);
+            Grid.SetColumn(actionPanel, 3);
+            headerGrid.Children.Add(actionPanel);
+
+            Grid.SetRow(headerGrid, 0);
+            cardGrid.Children.Add(headerGrid);
+
+            var contentPreview = new TextBlock
+            {
+                Text = entry.Content,
+                Foreground = (Brush)(TryFindResource("ThemeSubText") ?? Brushes.Gray),
+                FontSize = 11.5,
+                TextWrapping = TextWrapping.Wrap,
+                MaxHeight = 40,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            Grid.SetRow(contentPreview, 1);
+            cardGrid.Children.Add(contentPreview);
+
+            card.Child = cardGrid;
+            MemoCardsPanel.Children.Add(card);
         }
 
         var chips = _entries.Select(e => e.Keyword).Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
@@ -184,22 +366,22 @@ public partial class ConsultationMemoHud : Window
         if (narrowed.Count == 1)
         {
             TxtMatchStatus.Text = $"🎯 스무고개 일치 템플릿 발견: [{narrowed[0].Keyword}] {narrowed[0].Title}";
-            TxtFinalPreview.Text = narrowed[0].Content;
+            TxtFinalPreview.Text = BuildFinalText();
         }
         else
         {
             TxtMatchStatus.Text = narrowed.Count > 1
                 ? $"🔍 스무고개 후보 {narrowed.Count}건 남음 · 누적 {_entries.Count}개 조합 미리보기"
                 : $"✨ 누적 {_entries.Count}개 답변 조합 미리보기";
-            TxtFinalPreview.Text = ConsultationMemoService.ComposeFinalText(_entries, MemoJoinMode.Paragraph);
+            TxtFinalPreview.Text = ConsultationMemoService.ComposeFinalText(_entries, GetSelectedJoinMode());
         }
 
         UpdateLayout();
         if (!_hasCustomPosition)
         {
             var workArea = SystemParameters.WorkArea;
-            Left = Math.Max(workArea.Left + 12, workArea.Right - ActualWidth - 20);
-            Top = Math.Max(workArea.Top + 12, workArea.Bottom - ActualHeight - 72);
+            Left = Math.Max(workArea.Left + 12, workArea.Right - Width - 20);
+            Top = Math.Max(workArea.Top + 12, workArea.Bottom - Height - 72);
         }
 
         ApplyOpacity();

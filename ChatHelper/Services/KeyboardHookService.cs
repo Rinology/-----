@@ -30,9 +30,10 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<IntPtr>? TranslateHotkeyTriggered;
-    public event Action<TemplateItem?, string, IntPtr>? MemoAddRequested;
+    public event Action<TemplateItem?, string, IntPtr, int>? MemoAddRequested;
     public event Action<IntPtr, int>? MemoFinalizeRequested;
     public event Action<IntPtr>? MemoDetailRequested;
+    public event Action<IntPtr>? MemoClearRequested;
     public event Action<IntPtr>? QuickRegisterHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
     public event Action<string, string>? RecognitionStateChanged;
@@ -312,6 +313,33 @@ public class KeyboardHookService : IDisposable
                 else if (_memoSlashArmed)
                 {
                     _memoSlashArmed = false;
+                    if (vkCode == Win32Api.VK_M)
+                    {
+                        while (_keyChannel.Reader.TryRead(out var pending))
+                        {
+                            ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd, skipPositionCheck: true);
+                        }
+                        string token = !string.IsNullOrWhiteSpace(LastRecognizedToken)
+                            ? LastRecognizedToken
+                            : (!string.IsNullOrWhiteSpace(_buffer.GetHangulText()) ? _buffer.GetHangulText().Trim() : _buffer.GetRawText().Trim());
+                        token = token.TrimStart('\\', '/');
+                        if (!string.IsNullOrWhiteSpace(token))
+                        {
+                            int bsCount = token.Length + 1;
+                            _buffer.Clear();
+                            LastRecognizedToken = string.Empty;
+                            ClearCandidates(cancelAi: true);
+                            MemoAddRequested?.Invoke(null, token, currentFgHwnd, bsCount);
+                            return (IntPtr)1;
+                        }
+                    }
+                    if (vkCode == Win32Api.VK_C && _hasActiveMemos)
+                    {
+                        _buffer.Clear();
+                        Task.Run(() => TextInjectionService.SendBackspaces(1));
+                        MemoClearRequested?.Invoke(currentFgHwnd);
+                        return (IntPtr)1;
+                    }
                     if (vkCode == Win32Api.VK_F && _hasActiveMemos)
                     {
                         _buffer.Clear();
@@ -411,7 +439,7 @@ public class KeyboardHookService : IDisposable
 
         if ((_triggerArmed || (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0) &&
             (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E ||
-             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
+             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_C || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
              (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
             return true;
 
@@ -504,9 +532,22 @@ public class KeyboardHookService : IDisposable
                 {
                     var topCandidate = _currentCandidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
                     string token = LastRecognizedToken;
+                    int bsCount = _currentMatchedLen > 0 ? _currentMatchedLen : token.Length;
                     IntPtr target = _lastTargetHwnd;
                     _triggerArmed = false;
-                    MemoAddRequested?.Invoke(topCandidate, token, target);
+                    _buffer.Clear();
+                    LastRecognizedToken = string.Empty;
+                    ClearCandidates(cancelAi: true);
+                    MemoAddRequested?.Invoke(topCandidate, token, target, bsCount);
+                    return true;
+                }
+                if (vkCode == Win32Api.VK_C && _hasActiveMemos)
+                {
+                    IntPtr target = _lastTargetHwnd;
+                    _triggerArmed = false;
+                    _buffer.Clear();
+                    ClearCandidates();
+                    MemoClearRequested?.Invoke(target);
                     return true;
                 }
                 if (vkCode == Win32Api.VK_F && _hasActiveMemos)
