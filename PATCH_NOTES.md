@@ -4,6 +4,22 @@
 
 ---
 
+## [v3.0.3] — 2026-11-26 (상담 메모 · 답변 조합기 단일 창 완전 통합 & 변수 드래그 앤 드롭 · 날짜 스마트 입력 타입)
+
+### ✨ Added / Changed
+- **상담 메모 HUD(`ConsultationMemoHud`)와 조합기(`ConsultationMemoWindow`) 단일 창 완전 통합 ([ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - 중복되던 2개의 메모 창을 [ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml) 하나로 통합하여 `Alt+N` · `\+N` · 마스터창 `메모열기 (N)` · `\+M` · `\+V` · `\+C` · `\+F` · `Ctrl+Shift+Enter`가 모두 동일한 단일 창과 데이터를 공유하도록 일원화.
+  - 채팅 중 `\+M` / `\+V`로 담은 메모는 창을 강제로 띄우지 않고 백그라운드에서 누적되며, 마스터창 `[메모열기 (N)]` 버튼에 실시간 개수가 표시됨.
+- **변수 입력 마우스 드래그 앤 드롭 & 변수명 기반 스마트 입력 타입 추가 ([ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - 우측 메모 카드 또는 외부 창(브라우저·메모장 등)의 텍스트를 마우스로 드래그해 `{송장번호}` 등 변수 입력 칸에 바로 놓기(`AllowDrop`) 지원.
+  - `{날짜}`, `{예약일}` 등 날짜 관련 변수에는 달력(`DatePicker`)과 `[오늘]` 원클릭 버튼이 자동으로 함께 표시되도록 개선.
+
+### 🗑️ Removed
+- 중복 창 [ConsultationMemoHud.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml) / `ConsultationMemoHud.xaml.cs` 제거.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.0.2] — 2026-11-26 (송장번호 2중 붙여넣기 차단 · 작은 이미지 OCR 3배 보정 · 단축키 교차/OS 충돌 감지 · 알약 헤더 비례 확대 · 조합기 방향키/변수 입력 개선)
 
 ### ✨ Added / Changed

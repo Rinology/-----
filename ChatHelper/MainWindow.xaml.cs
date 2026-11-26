@@ -19,10 +19,9 @@ public partial class MainWindow : Window
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
-    private readonly ConsultationMemoHud _consultationMemoHud;
+    private readonly ConsultationMemoWindow _consultationMemoWindow;
     private QuickSearchWindow? _quickSearchWindow;
     private SymbolPickerWindow? _symbolPickerWindow;
-    private ConsultationMemoWindow? _consultationMemoWindow;
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
@@ -55,7 +54,7 @@ public partial class MainWindow : Window
         _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);
-        _consultationMemoHud = new ConsultationMemoHud(_templateManager, _configManager);
+        _consultationMemoWindow = new ConsultationMemoWindow(_templateManager, _configManager);
 
         if (!PerformInitialLogin())
         {
@@ -254,8 +253,7 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
-                _consultationMemoHud.ShowEmptyOrCurrent(targetHwnd);
-                UpdateStatusUi();
+                ToggleUnifiedMemoWindow(targetHwnd);
             });
         };
 
@@ -284,8 +282,8 @@ public partial class MainWindow : Window
             }
             Dispatcher.BeginInvoke(() =>
             {
-                _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
-                ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+                _consultationMemoWindow.AddMemo(candidate, token, targetHwnd);
+                ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
             });
         };
 
@@ -293,7 +291,7 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
-                _consultationMemoHud.ClearMemos();
+                _consultationMemoWindow.ClearMemos();
                 ShowNoticeBadge("🧹 상담 메모 초기화", "#64748B");
             });
         };
@@ -315,9 +313,9 @@ public partial class MainWindow : Window
                 string clip = result.ExtractedText.Trim();
                 if (!string.IsNullOrWhiteSpace(clip))
                 {
-                    _consultationMemoHud.AddMemo(null, clip, targetHwnd);
+                    _consultationMemoWindow.AddMemo(null, clip, targetHwnd);
                     string srcTag = result.IsFromImage ? "🖼️ 이미지 OCR" : "📋 클립보드";
-                    ShowNoticeBadge($"{srcTag} 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+                    ShowNoticeBadge($"{srcTag} 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
                 }
                 else
                 {
@@ -326,14 +324,14 @@ public partial class MainWindow : Window
             });
         };
 
-        _consultationMemoHud.RegisterSheetRequested += (editedContent) =>
+        _consultationMemoWindow.RegisterSheetRequested += (editedContent) =>
         {
             Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(null, editedContent));
         };
 
         _hookService.MemoFinalizeRequested += (targetHwnd, bsCount) =>
         {
-            Dispatcher.BeginInvoke(() => _consultationMemoHud.TriggerFinalInsert(targetHwnd, bsCount));
+            Dispatcher.BeginInvoke(() => _consultationMemoWindow.TriggerFinalInsert(targetHwnd, bsCount));
         };
 
         _hookService.MemoDetailRequested += (targetHwnd) =>
@@ -352,29 +350,23 @@ public partial class MainWindow : Window
                     TextInjectionService.SendBackspaces(bsCount);
                 });
             }
-            _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
-            ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+            _consultationMemoWindow.AddMemo(candidate, token, targetHwnd);
+            ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
         };
 
-        _consultationMemoHud.MemoCountChanged += (count) =>
+        _consultationMemoWindow.MemoCountChanged += (count) =>
         {
             _hookService.HasActiveMemos = count > 0;
-        };
-
-        _consultationMemoHud.OpenDetailRequested += (targetHwnd) =>
-        {
-            OpenConsultationMemo(targetHwnd);
-        };
-
-        _consultationMemoHud.FinalInsertRequested += (finalText, targetHwnd, bsCount) =>
-        {
-            Task.Run(() =>
+            if (BtnOpenMemo != null)
             {
-                if (bsCount > 0)
-                    TextInjectionService.ReplaceText(bsCount, finalText, targetHwnd, useShiftHome: false);
-                else
-                    TextInjectionService.FastPasteText(finalText, targetHwnd);
-            });
+                BtnOpenMemo.Content = count > 0 ? $"메모열기 ({count})" : "메모열기";
+            }
+        };
+
+        _consultationMemoWindow.FinalTextReady += (finalText, targetHwnd) =>
+        {
+            IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _hookService.LastTargetHwnd;
+            Task.Run(() => TextInjectionService.FastPasteText(finalText, dst));
         };
 
         _hookService.QuickRegisterHotkeyTriggered += (targetHwnd) =>
@@ -471,14 +463,18 @@ public partial class MainWindow : Window
             _suggestionBar.Hide();
         }
 
-        // 상담 메모 HUD 토글 상태 동기화
+        // 상담 메모 토글 상태 동기화
         if (MemoDot != null && TxtMemoToggle != null)
         {
             bool memoOn = _configManager.Config.EnableConsultationMemo;
             MemoDot.Fill = memoOn ? ThemeColors.StatusGreen : ThemeColors.StatusAmber;
             TxtMemoToggle.Text = memoOn ? "메모 ON" : "메모 OFF";
         }
-        _consultationMemoHud?.RefreshHud();
+        if (BtnOpenMemo != null)
+        {
+            int cnt = _consultationMemoWindow?.MemoCount ?? 0;
+            BtnOpenMemo.Content = cnt > 0 ? $"메모열기 ({cnt})" : "메모열기";
+        }
 
         LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
 
@@ -534,8 +530,17 @@ public partial class MainWindow : Window
 
     private void BtnOpenMemo_Click(object sender, RoutedEventArgs e)
     {
-        _consultationMemoHud.ShowEmptyOrCurrent(_hookService.LastTargetHwnd);
-        UpdateStatusUi();
+        ToggleUnifiedMemoWindow(_hookService.LastTargetHwnd);
+    }
+
+    private void ToggleUnifiedMemoWindow(IntPtr targetHwnd)
+    {
+        if (_consultationMemoWindow.IsVisible)
+        {
+            _consultationMemoWindow.Hide();
+            return;
+        }
+        OpenConsultationMemo(targetHwnd);
     }
 
     private string ResolveTemplatePlaceholdersSync(string content)
@@ -546,7 +551,7 @@ public partial class MainWindow : Window
         IReadOnlyList<MemoEntry> entries = Array.Empty<MemoEntry>();
         try
         {
-            entries = Dispatcher.Invoke(() => _consultationMemoHud.Entries.ToList());
+            entries = Dispatcher.Invoke(() => _consultationMemoWindow.Entries.ToList());
         }
         catch { }
 
@@ -946,21 +951,9 @@ public partial class MainWindow : Window
             hwnd = _hookService.LastTargetHwnd;
         }
 
-        if (_consultationMemoWindow == null || !_consultationMemoWindow.IsLoaded)
-        {
-            _consultationMemoWindow = new ConsultationMemoWindow(_templateManager, _configManager);
-            _consultationMemoWindow.FinalTextReady += (finalText, target) =>
-            {
-                _consultationMemoHud.ClearMemos();
-                IntPtr dst = Win32Api.IsValidTargetWindow(target) ? target : _hookService.LastTargetHwnd;
-                Task.Run(() => TextInjectionService.FastPasteText(finalText, dst));
-            };
-        }
-
         try
         {
             AppLogger.Info("MainWindow", $"OpenConsultationMemo 호출 (target=0x{hwnd.ToInt64():X})");
-            _consultationMemoWindow.SyncEntriesFromHud(_consultationMemoHud.Entries);
             _consultationMemoWindow.ShowAtCenter(hwnd);
         }
         catch (Exception ex)
@@ -1011,7 +1004,7 @@ public partial class MainWindow : Window
             {
                 UpdateStatusUi();
                 RefreshGlobalHotkeys();
-                _consultationMemoHud.ApplyOpacity();
+                _consultationMemoWindow.ApplyOpacity();
                 RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)
                     ShowStatusWindow();
@@ -1143,8 +1136,7 @@ public partial class MainWindow : Window
             }
             else if (id == HOTKEY_MEMO_ID)
             {
-                _consultationMemoHud.ShowEmptyOrCurrent(_hookService.LastTargetHwnd);
-                UpdateStatusUi();
+                ToggleUnifiedMemoWindow(_hookService.LastTargetHwnd);
                 handled = true;
             }
         }

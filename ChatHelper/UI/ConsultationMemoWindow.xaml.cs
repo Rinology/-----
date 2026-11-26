@@ -25,6 +25,80 @@ public partial class ConsultationMemoWindow : Window
 
     public event Action<string, IntPtr>? FinalTextReady;
     public event Action<IReadOnlyList<MemoEntry>>? EntriesSynced;
+    public event Action<int>? MemoCountChanged;
+    public event Action<string>? RegisterSheetRequested;
+
+    public int MemoCount => _memoEntries.Count;
+    public IReadOnlyList<MemoEntry> Entries => _memoEntries;
+
+    public void ApplyOpacity()
+    {
+        double winAlpha = Math.Clamp(_configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        Win32Api.SetWindowAlpha(this, winAlpha);
+    }
+
+    public void AddMemo(TemplateItem? candidate, string rawKeyword, IntPtr targetHwnd)
+    {
+        if (!_configManager.Config.EnableConsultationMemo) return;
+        if (Win32Api.IsValidTargetWindow(targetHwnd))
+            _targetHwnd = targetHwnd;
+
+        string kw = !string.IsNullOrWhiteSpace(candidate?.Keyword)
+            ? candidate.Keyword
+            : (string.IsNullOrWhiteSpace(rawKeyword) ? "메모" : rawKeyword.Trim());
+
+        string content = !string.IsNullOrWhiteSpace(candidate?.Content)
+            ? candidate.Content
+            : rawKeyword.Trim();
+
+        if (string.IsNullOrWhiteSpace(kw) && string.IsNullOrWhiteSpace(content))
+            return;
+
+        _memoEntries.Add(new MemoEntry
+        {
+            Keyword = kw,
+            Category = candidate?.Category ?? "메모",
+            MemoNote = candidate?.Title ?? kw,
+            Content = content
+        });
+
+        RenderMemoEntries();
+    }
+
+    public void ClearMemos()
+    {
+        _memoEntries.Clear();
+        _variableValues.Clear();
+        _keywordChips.Clear();
+        TxtKeywordInput.Clear();
+        RenderKeywordChips();
+        RenderMemoEntries();
+    }
+
+    public void TriggerFinalInsert(IntPtr targetHwnd, int backspaceCount = 0)
+    {
+        if (!_configManager.Config.EnableConsultationMemo || _memoEntries.Count == 0) return;
+
+        string composed = ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode());
+        string finalText = !string.IsNullOrWhiteSpace(TxtFinalPreview.Text) && IsVisible
+            ? TxtFinalPreview.Text.Trim()
+            : ApplyVariableValues(composed).Trim();
+        if (string.IsNullOrWhiteSpace(finalText)) return;
+
+        IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _targetHwnd;
+        if (ChkClearAfterInsert.IsChecked != false)
+            ClearMemos();
+
+        Hide();
+        if (backspaceCount > 0)
+        {
+            Task.Run(() => TextInjectionService.ReplaceText(backspaceCount, finalText, dst, useShiftHome: false));
+        }
+        else
+        {
+            FinalTextReady?.Invoke(finalText, dst);
+        }
+    }
 
     public void SyncEntriesFromHud(IEnumerable<MemoEntry> entries)
     {
@@ -189,6 +263,7 @@ public partial class ConsultationMemoWindow : Window
 
     private void RenderMemoEntries()
     {
+        MemoCountChanged?.Invoke(_memoEntries.Count);
         MemoEntriesPanel.Children.Clear();
         TxtMemoCount.Text = $"📌 달아둔 상담 메모 ({_memoEntries.Count}개)";
 
@@ -219,7 +294,20 @@ public partial class ConsultationMemoWindow : Window
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(7),
                 Padding = new Thickness(9, 7, 9, 7),
-                Margin = new Thickness(0, 0, 0, 6)
+                Margin = new Thickness(0, 0, 0, 6),
+                Cursor = Cursors.Hand,
+                ToolTip = "드래그해서 아래 변수 입력 칸에 끌어다 놓을 수 있습니다"
+            };
+            card.MouseMove += (s, e) =>
+            {
+                if (e.LeftButton == MouseButtonState.Pressed && !(e.OriginalSource is TextBox) && !(e.OriginalSource is Button))
+                {
+                    string dragVal = !string.IsNullOrWhiteSpace(entry.Content) ? entry.Content : entry.MemoNote;
+                    if (!string.IsNullOrWhiteSpace(dragVal))
+                    {
+                        try { DragDrop.DoDragDrop(card, dragVal, DragDropEffects.Copy); } catch { }
+                    }
+                }
             };
 
             var stack = new StackPanel();
@@ -416,8 +504,28 @@ public partial class ConsultationMemoWindow : Window
                 FontSize = 11.5,
                 Padding = new Thickness(6, 2, 6, 2),
                 VerticalContentAlignment = VerticalAlignment.Center,
+                AllowDrop = true,
+                ToolTip = "직접 입력하거나 텍스트/메모 카드를 이곳으로 드래그해 놓으세요",
                 Text = _variableValues.TryGetValue(key, out var existing) ? existing : string.Empty,
                 Tag = key
+            };
+            tb.PreviewDragOver += (s, e) =>
+            {
+                if (e.Data.GetDataPresent(DataFormats.UnicodeText) || e.Data.GetDataPresent(DataFormats.Text))
+                {
+                    e.Effects = DragDropEffects.Copy;
+                    e.Handled = true;
+                }
+            };
+            tb.PreviewDrop += (s, e) =>
+            {
+                string? dropped = e.Data.GetData(DataFormats.UnicodeText) as string
+                    ?? e.Data.GetData(DataFormats.Text) as string;
+                if (!string.IsNullOrWhiteSpace(dropped))
+                {
+                    tb.Text = dropped.Trim();
+                    e.Handled = true;
+                }
             };
             tb.TextChanged += (s, e) =>
             {
@@ -425,6 +533,42 @@ public partial class ConsultationMemoWindow : Window
                 TxtFinalPreview.Text = ApplyVariableValues(ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode()));
             };
             boxStack.Children.Add(tb);
+
+            // 변수명 기반 스마트 입력 타입: 날짜/일/일자/예약 포함 시 달력 + 오늘/내일 빠른 선택 제공
+            bool isDateVar = key.Contains("날짜", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("예약", StringComparison.OrdinalIgnoreCase)
+                || key.EndsWith("일", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("date", StringComparison.OrdinalIgnoreCase);
+            if (isDateVar)
+            {
+                var dp = new DatePicker
+                {
+                    Width = 104,
+                    Height = 26,
+                    FontSize = 11,
+                    Margin = new Thickness(3, 0, 0, 0),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ToolTip = $"달력에서 {{{key}}} 날짜 선택"
+                };
+                dp.SelectedDateChanged += (s, e) =>
+                {
+                    if (dp.SelectedDate.HasValue)
+                        tb.Text = dp.SelectedDate.Value.ToString("yyyy-MM-dd");
+                };
+                boxStack.Children.Add(dp);
+
+                var todayBtn = new Button
+                {
+                    Content = "오늘",
+                    Height = 26,
+                    Padding = new Thickness(6, 0, 6, 0),
+                    Margin = new Thickness(3, 0, 0, 0),
+                    FontSize = 10.5,
+                    Cursor = Cursors.Hand
+                };
+                todayBtn.Click += (s, e) => tb.Text = DateTime.Today.ToString("yyyy-MM-dd");
+                boxStack.Children.Add(todayBtn);
+            }
 
             var clipBtn = new Button
             {
