@@ -112,10 +112,9 @@ public partial class SuggestionBar : Window
     private void BtnQuickRegisterToken_Click(object sender, RoutedEventArgs e)
     {
         string clean = (_recognizedToken ?? string.Empty).Trim().TrimStart('\\', '/');
-        var topCandidate = _candidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
         int bsCount = _matchedLen > 0 ? _matchedLen : clean.Length;
         Hide();
-        MemoPinRequested?.Invoke(topCandidate, clean, _targetHwnd, bsCount);
+        MemoPinRequested?.Invoke(null, clean, _targetHwnd, bsCount);
     }
 
     private void BtnCloseSuggestion_Click(object sender, RoutedEventArgs e)

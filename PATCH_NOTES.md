@@ -4,6 +4,32 @@
 
 ---
 
+## [v3.1.0] — 2026-11-27 (초경량 포스트잇 메모지 `StickyMemoWindow` ↔ 스무고개 답변 조합기 2-트랙 분리)
+
+### ✨ Added / Changed
+- **초경량 포스트잇 메모지([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs)) 신설**:
+  - 채팅 화면 구석을 가리지 않는 작은 플로팅 포스트잇(`330×370`)으로, `\+M` / `\+V`(이미지 OCR 포함) / 알약 `+ 메모` / 직접 입력 / `📋` 클립보드 담기로 모은 조각 메모(`{1}`, `{2}`)를 가볍게 보관.
+  - 카드 더블클릭/`입력` 버튼으로 즉시 채팅창 입력, **마우스 드래그 앤 드롭**으로 스무고개 조합기 `{변수}` 칸에 끌어다 놓기 지원.
+  - `Alt+N` 또는 마스터창 **`메모지 (N)`** 버튼으로 즉시 열기/닫기, 투명도(`MemoOpacity`) 적용.
+- **스무고개 답변 조합기([ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))와의 역할 분리 및 연동**:
+  - 마스터창 **`스무고개`** 버튼, `\+N`, 포스트잇 내 **`🧩 스무고개`** 버튼으로 호출하며, 포스트잇 메모지에 모아둔 값들을 `{송장번호}`/`{1}` 변수에 자동 공급하거나 드래그 앤 드롭으로 바로 결합 가능.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.0.4] — 2026-11-26 (마스터창 배지 잘림 수정 · `+ 메모`/`\+M` 입력 단어 원문 보존 · 미리보기 2배 확대)
+
+### 🐛 Fixed
+- **마스터창 동기화·메모 알림 배지 글씨 잘림 수정 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml))**:
+  - `SizeToContent="Width"` (`MinWidth="760"`)를 적용해 우측 배지(`BadgeNotice`) 표시 시에도 버튼과 글씨가 잘리지 않고 자연스럽게 확장되도록 수정.
+- **알약 제안 중 `+ 메모` / `\ + M` 시 제안 알약이 들어가고 단어가 잘리던 현상 수정 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - `\` 입력이 버퍼를 지워 `"단어거 잘림"`이 `"단"`으로 잘리던 문제를 차단하고, 알약 제안 여부와 무관하게 사용자가 입력한 단어 원문 그대로를 자유 메모에 추가하도록 수정.
+- **최종 완성 문장 미리보기 높이 2배 확대 ([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml))**:
+  - 창 높이를 `760px`, 미리보기 입력란(`TxtFinalPreview`) 높이를 `86px` → `175px`로 확대.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.0.3] — 2026-11-26 (상담 메모 · 답변 조합기 단일 창 완전 통합 & 변수 드래그 앤 드롭 · 날짜 스마트 입력 타입)
 
 ### ✨ Added / Changed

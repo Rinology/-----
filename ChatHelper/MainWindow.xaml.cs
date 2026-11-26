@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
+    private readonly StickyMemoWindow _stickyMemoWindow;
     private readonly ConsultationMemoWindow _consultationMemoWindow;
     private QuickSearchWindow? _quickSearchWindow;
     private SymbolPickerWindow? _symbolPickerWindow;
@@ -54,6 +55,7 @@ public partial class MainWindow : Window
         _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);
+        _stickyMemoWindow = new StickyMemoWindow(_configManager);
         _consultationMemoWindow = new ConsultationMemoWindow(_templateManager, _configManager);
 
         if (!PerformInitialLogin())
@@ -253,7 +255,7 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
-                ToggleUnifiedMemoWindow(targetHwnd);
+                _stickyMemoWindow.ToggleWindow(targetHwnd);
             });
         };
 
@@ -282,8 +284,9 @@ public partial class MainWindow : Window
             }
             Dispatcher.BeginInvoke(() =>
             {
-                _consultationMemoWindow.AddMemo(candidate, token, targetHwnd);
-                ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
+                string memoText = candidate != null && string.IsNullOrWhiteSpace(token) ? candidate.Title : token;
+                _stickyMemoWindow.AddMemo(memoText, targetHwnd);
+                ShowNoticeBadge($"📌 메모지 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
             });
         };
 
@@ -291,8 +294,9 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
+                _stickyMemoWindow.ClearMemos();
                 _consultationMemoWindow.ClearMemos();
-                ShowNoticeBadge("🧹 상담 메모 초기화", "#64748B");
+                ShowNoticeBadge("🧹 메모 비우기 완료", "#64748B");
             });
         };
 
@@ -313,15 +317,35 @@ public partial class MainWindow : Window
                 string clip = result.ExtractedText.Trim();
                 if (!string.IsNullOrWhiteSpace(clip))
                 {
-                    _consultationMemoWindow.AddMemo(null, clip, targetHwnd);
+                    _stickyMemoWindow.AddMemo(clip, targetHwnd);
                     string srcTag = result.IsFromImage ? "🖼️ 이미지 OCR" : "📋 클립보드";
-                    ShowNoticeBadge($"{srcTag} 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
+                    ShowNoticeBadge($"{srcTag} 메모 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
                 }
                 else
                 {
                     ShowNoticeBadge("⚠️ 클립보드가 비어 있습니다", "#B45309");
                 }
             });
+        };
+
+        _stickyMemoWindow.MemoCountChanged += (count) =>
+        {
+            _hookService.HasActiveMemos = count > 0 || _consultationMemoWindow.MemoCount > 0;
+            if (BtnOpenMemo != null)
+            {
+                BtnOpenMemo.Content = count > 0 ? $"메모지 ({count})" : "메모지";
+            }
+        };
+
+        _stickyMemoWindow.OpenCombinerRequested += (targetHwnd) =>
+        {
+            OpenConsultationMemo(targetHwnd);
+        };
+
+        _stickyMemoWindow.PasteSingleRequested += (memoText, targetHwnd) =>
+        {
+            IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _hookService.LastTargetHwnd;
+            Task.Run(() => TextInjectionService.FastPasteText(memoText, dst));
         };
 
         _consultationMemoWindow.RegisterSheetRequested += (editedContent) =>
@@ -350,16 +374,16 @@ public partial class MainWindow : Window
                     TextInjectionService.SendBackspaces(bsCount);
                 });
             }
-            _consultationMemoWindow.AddMemo(candidate, token, targetHwnd);
-            ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoWindow.MemoCount}개)", "#2563EB");
+            _stickyMemoWindow.AddMemo(token, targetHwnd);
+            ShowNoticeBadge($"📌 메모지 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
         };
 
         _consultationMemoWindow.MemoCountChanged += (count) =>
         {
-            _hookService.HasActiveMemos = count > 0;
-            if (BtnOpenMemo != null)
+            _hookService.HasActiveMemos = count > 0 || _stickyMemoWindow.MemoCount > 0;
+            if (BtnOpenCombiner != null)
             {
-                BtnOpenMemo.Content = count > 0 ? $"메모열기 ({count})" : "메모열기";
+                BtnOpenCombiner.Content = count > 0 ? $"스무고개 ({count})" : "스무고개";
             }
         };
 
@@ -472,8 +496,13 @@ public partial class MainWindow : Window
         }
         if (BtnOpenMemo != null)
         {
-            int cnt = _consultationMemoWindow?.MemoCount ?? 0;
-            BtnOpenMemo.Content = cnt > 0 ? $"메모열기 ({cnt})" : "메모열기";
+            int cnt = _stickyMemoWindow?.MemoCount ?? 0;
+            BtnOpenMemo.Content = cnt > 0 ? $"메모지 ({cnt})" : "메모지";
+        }
+        if (BtnOpenCombiner != null)
+        {
+            int cCnt = _consultationMemoWindow?.MemoCount ?? 0;
+            BtnOpenCombiner.Content = cCnt > 0 ? $"스무고개 ({cCnt})" : "스무고개";
         }
 
         LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
@@ -530,17 +559,12 @@ public partial class MainWindow : Window
 
     private void BtnOpenMemo_Click(object sender, RoutedEventArgs e)
     {
-        ToggleUnifiedMemoWindow(_hookService.LastTargetHwnd);
+        _stickyMemoWindow.ToggleWindow(_hookService.LastTargetHwnd);
     }
 
-    private void ToggleUnifiedMemoWindow(IntPtr targetHwnd)
+    private void BtnOpenCombiner_Click(object sender, RoutedEventArgs e)
     {
-        if (_consultationMemoWindow.IsVisible)
-        {
-            _consultationMemoWindow.Hide();
-            return;
-        }
-        OpenConsultationMemo(targetHwnd);
+        OpenConsultationMemo();
     }
 
     private string ResolveTemplatePlaceholdersSync(string content)
@@ -551,7 +575,7 @@ public partial class MainWindow : Window
         IReadOnlyList<MemoEntry> entries = Array.Empty<MemoEntry>();
         try
         {
-            entries = Dispatcher.Invoke(() => _consultationMemoWindow.Entries.ToList());
+            entries = Dispatcher.Invoke(() => _stickyMemoWindow.Entries.ToList());
         }
         catch { }
 
@@ -954,6 +978,7 @@ public partial class MainWindow : Window
         try
         {
             AppLogger.Info("MainWindow", $"OpenConsultationMemo 호출 (target=0x{hwnd.ToInt64():X})");
+            _consultationMemoWindow.SetExternalStickyMemos(_stickyMemoWindow.Entries);
             _consultationMemoWindow.ShowAtCenter(hwnd);
         }
         catch (Exception ex)
@@ -1004,6 +1029,7 @@ public partial class MainWindow : Window
             {
                 UpdateStatusUi();
                 RefreshGlobalHotkeys();
+                _stickyMemoWindow.ApplyOpacity();
                 _consultationMemoWindow.ApplyOpacity();
                 RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)
@@ -1136,7 +1162,7 @@ public partial class MainWindow : Window
             }
             else if (id == HOTKEY_MEMO_ID)
             {
-                ToggleUnifiedMemoWindow(_hookService.LastTargetHwnd);
+                _stickyMemoWindow.ToggleWindow(_hookService.LastTargetHwnd);
                 handled = true;
             }
         }

@@ -347,12 +347,15 @@ public class KeyboardHookService : IDisposable
                     {
                         while (_keyChannel.Reader.TryRead(out var pending))
                         {
+                            if (pending.VkCode == Win32Api.VK_OEM_5) continue;
                             ProcessBufferedKeyDown(pending.VkCode, pending.IsShift, pending.Hwnd, skipPositionCheck: true);
                         }
-                        string token = !string.IsNullOrWhiteSpace(LastRecognizedToken)
-                            ? LastRecognizedToken
-                            : (!string.IsNullOrWhiteSpace(_buffer.GetHangulText()) ? _buffer.GetHangulText().Trim() : _buffer.GetRawText().Trim());
-                        token = token.TrimStart('\\', '/');
+                        string bufHangul = _buffer.GetHangulText().Trim();
+                        string bufRaw = _buffer.GetRawText().Trim();
+                        string token = !string.IsNullOrWhiteSpace(bufHangul)
+                            ? bufHangul
+                            : (!string.IsNullOrWhiteSpace(LastRecognizedToken) ? LastRecognizedToken : bufRaw);
+                        token = token.TrimStart('\\', '/').Trim();
                         if (!string.IsNullOrWhiteSpace(token))
                         {
                             int bsCount = token.Length + 1;
@@ -589,17 +592,18 @@ public class KeyboardHookService : IDisposable
             {
                 if (vkCode == Win32Api.VK_M)
                 {
-                    string token = LastRecognizedToken;
-                    var topCandidate = IsNumericOrCodeToken(token)
-                        ? null
-                        : _currentCandidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
+                    string bufHangul = _buffer.GetHangulText().Trim();
+                    string token = !string.IsNullOrWhiteSpace(bufHangul)
+                        ? bufHangul
+                        : LastRecognizedToken;
+                    token = token.TrimStart('\\', '/').Trim();
                     int bsCount = Math.Max(_currentMatchedLen, token.Length);
                     IntPtr target = _lastTargetHwnd;
                     _triggerArmed = false;
                     _buffer.Clear();
                     LastRecognizedToken = string.Empty;
                     ClearCandidates(cancelAi: true);
-                    MemoAddRequested?.Invoke(topCandidate, token, target, bsCount);
+                    MemoAddRequested?.Invoke(null, token, target, bsCount);
                     return true;
                 }
                 if (vkCode == Win32Api.VK_V)

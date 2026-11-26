@@ -4,7 +4,7 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         Background="{DynamicResource ThemeBg}"
-        Width="900" Height="640"
+        Width="900" Height="760"
         ShowInTaskbar="False"
         Topmost="True"
         UseLayoutRounding="True"
@@ -232,7 +232,7 @@
                     </Grid>
 
                     <TextBox x:Name="TxtFinalPreview"
-                             Height="86"
+                             Height="175"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
