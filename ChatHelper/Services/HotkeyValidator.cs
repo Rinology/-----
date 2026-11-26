@@ -5,7 +5,7 @@ public static class HotkeyValidator
     private static readonly Dictionary<string, string> KnownConflictHotkeys = new(StringComparer.OrdinalIgnoreCase)
     {
         { "Alt+X", "ChatHelper 내부 '특수기호 입력창(Alt+X)' 단축키와 중복됩니다." },
-        { "Alt+T", "ChatHelper 내부 '드래그 영문 번역(Alt+T)' 단축키와 중복됩니다." },
+        { "Alt+T", "ChatHelper 내부 '드래그 Google 번역(Alt+T)' 단축키와 중복됩니다." },
         { "Alt+R", "ChatHelper 예약 단축키(Alt+R)와 중복됩니다." },
         { "Alt+Tab", "윈도우 활성 창 전환 단축키와 충돌합니다." },
         { "Alt+F4", "윈도우 프로그램 종료 단축키와 충돌합니다." },

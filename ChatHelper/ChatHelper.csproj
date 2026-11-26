@@ -23,4 +23,11 @@
     </None>
   </ItemGroup>
 
+  <Target Name="CleanSensitiveFilesFromPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <SensitivePublishFiles Include="$(PublishDir)config.json;$(PublishDir)*.log;$(PublishDir)*.csv;$(PublishDir).env;$(PublishDir)*.tmp" />
+    </ItemGroup>
+    <Delete Files="@(SensitivePublishFiles)" />
+  </Target>
+
 </Project>

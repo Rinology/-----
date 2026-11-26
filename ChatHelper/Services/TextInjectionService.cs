@@ -202,10 +202,12 @@ public static class TextInjectionService
             Win32Api.SendInput((uint)releaseAlt.Length, releaseAlt, Marshal.SizeOf<Win32Api.INPUT>());
             Thread.Sleep(25);
 
+            uint seqBefore = Win32Api.GetClipboardSequenceNumber();
             SendKeyCombo(Win32Api.VK_CONTROL, Win32Api.VK_C);
             Thread.Sleep(110);
+            uint seqAfter = Win32Api.GetClipboardSequenceNumber();
 
-            string copied = GetClipboardTextSafe();
+            string copied = seqAfter != seqBefore ? GetClipboardTextSafe() : string.Empty;
             if (string.IsNullOrWhiteSpace(copied))
             {
                 if (!string.IsNullOrEmpty(prevClip))

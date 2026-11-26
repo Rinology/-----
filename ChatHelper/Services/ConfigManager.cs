@@ -31,9 +31,37 @@ public class ConfigManager
 
     public ConfigManager(string fileName = "config.json")
     {
-        _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+        _filePath = ResolveConfigPath(fileName);
+        if (!Path.IsPathRooted(fileName))
+        {
+            TryRemoveLegacyBaseDirConfig(fileName);
+        }
         _config = LoadInternal();
         DataSourceResolver.Config = this;
+    }
+
+    public string ConfigFilePath => _filePath;
+
+    public static string ResolveConfigPath(string fileName)
+    {
+        if (Path.IsPathRooted(fileName))
+            return fileName;
+
+        string dir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "ChatHelper");
+        return Path.Combine(dir, fileName);
+    }
+
+    private static void TryRemoveLegacyBaseDirConfig(string fileName)
+    {
+        try
+        {
+            string legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
+            if (File.Exists(legacyPath))
+                File.Delete(legacyPath);
+        }
+        catch { }
     }
 
     public AppConfig Load()
@@ -57,6 +85,15 @@ public class ConfigManager
                 var config = JsonSerializer.Deserialize<AppConfig>(json);
                 if (config != null)
                 {
+                    if (config.KeepLoggedIn && !string.IsNullOrWhiteSpace(config.EncryptedUserId))
+                    {
+                        config.CurrentUserId = SecretVault.UnprotectForCurrentUser(config.EncryptedUserId);
+                    }
+                    else
+                    {
+                        config.CurrentUserId = string.Empty;
+                        config.EncryptedUserId = string.Empty;
+                    }
                     return config;
                 }
             }
@@ -89,6 +126,14 @@ public class ConfigManager
         string tempPath = _filePath + ".tmp";
         try
         {
+            string? dir = Path.GetDirectoryName(_filePath);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+
+            configToSave.EncryptedUserId = (configToSave.KeepLoggedIn && !string.IsNullOrWhiteSpace(configToSave.CurrentUserId))
+                ? SecretVault.ProtectForCurrentUser(configToSave.CurrentUserId)
+                : string.Empty;
+
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,

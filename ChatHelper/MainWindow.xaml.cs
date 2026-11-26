@@ -19,8 +19,10 @@ public partial class MainWindow : Window
     private readonly KeyboardHookService _hookService;
 
     private readonly SuggestionBar _suggestionBar;
+    private readonly ConsultationMemoHud _consultationMemoHud;
     private QuickSearchWindow? _quickSearchWindow;
     private SymbolPickerWindow? _symbolPickerWindow;
+    private ConsultationMemoWindow? _consultationMemoWindow;
     private GlossaryWindow? _glossaryWindow;
     private ControlPanelWindow? _controlPanelWindow;
     private TrayIconService? _trayIconService;
@@ -52,6 +54,7 @@ public partial class MainWindow : Window
         _hookService = new KeyboardHookService(_configManager, _templateManager, _glossaryService);
 
         _suggestionBar = new SuggestionBar(_configManager);
+        _consultationMemoHud = new ConsultationMemoHud(_templateManager, _configManager);
 
         if (!PerformInitialLogin())
         {
@@ -256,6 +259,52 @@ public partial class MainWindow : Window
             _ = HandleSelectionTranslateAsync(targetHwnd);
         };
 
+        _hookService.MemoAddRequested += (candidate, token, targetHwnd) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
+                ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+            });
+        };
+
+        _hookService.MemoFinalizeRequested += (targetHwnd, bsCount) =>
+        {
+            Dispatcher.BeginInvoke(() => _consultationMemoHud.TriggerFinalInsert(targetHwnd, bsCount));
+        };
+
+        _hookService.MemoDetailRequested += (targetHwnd) =>
+        {
+            Dispatcher.BeginInvoke(() => OpenConsultationMemo(targetHwnd));
+        };
+
+        _suggestionBar.MemoPinRequested += (candidate, token, targetHwnd) =>
+        {
+            _consultationMemoHud.AddMemo(candidate, token, targetHwnd);
+            ShowNoticeBadge($"📝 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+        };
+
+        _consultationMemoHud.MemoCountChanged += (count) =>
+        {
+            _hookService.HasActiveMemos = count > 0;
+        };
+
+        _consultationMemoHud.OpenDetailRequested += (targetHwnd) =>
+        {
+            OpenConsultationMemo(targetHwnd);
+        };
+
+        _consultationMemoHud.FinalInsertRequested += (finalText, targetHwnd, bsCount) =>
+        {
+            Task.Run(() =>
+            {
+                if (bsCount > 0)
+                    TextInjectionService.ReplaceText(bsCount, finalText, targetHwnd, useShiftHome: false);
+                else
+                    TextInjectionService.FastPasteText(finalText, targetHwnd);
+            });
+        };
+
         _hookService.QuickRegisterHotkeyTriggered += (targetHwnd) =>
         {
             _ = HandleSelectionQuickRegisterAsync(targetHwnd);
@@ -304,6 +353,12 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(recognizedWord));
         };
 
+        _suggestionBar.TranslationRetranslateRequested += (originalText, newDirection, targetHwnd) =>
+        {
+            string sourceForRetranslate = ResolveRetranslateSource(originalText, newDirection);
+            _ = ExecuteTranslationAsync(sourceForRetranslate, targetHwnd, newDirection);
+        };
+
         _hookService.ItemAutoCompleted += (item) => { };
     }
 
@@ -343,6 +398,15 @@ public partial class MainWindow : Window
             _suggestionBar.Hide();
         }
 
+        // 상담 메모 HUD 토글 상태 동기화
+        if (MemoDot != null && TxtMemoToggle != null)
+        {
+            bool memoOn = _configManager.Config.EnableConsultationMemo;
+            MemoDot.Fill = memoOn ? ThemeColors.StatusGreen : ThemeColors.StatusAmber;
+            TxtMemoToggle.Text = memoOn ? "메모 ON" : "메모 OFF";
+        }
+        _consultationMemoHud?.RefreshHud();
+
         LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
 
         // 스프레드시트 동기화 실시간 상태 표시 (1/3 도킹 바 & 2/3 인식 현황 항상 동기화)
@@ -380,6 +444,21 @@ public partial class MainWindow : Window
         OpenSymbolPicker();
     }
 
+    private void BtnToggleMemo_Click(object sender, RoutedEventArgs e)
+    {
+        _configManager.Config.EnableConsultationMemo = !_configManager.Config.EnableConsultationMemo;
+        _configManager.Save();
+        UpdateStatusUi();
+        ShowNoticeBadge(
+            _configManager.Config.EnableConsultationMemo ? "📝 상담 메모 HUD 켜짐" : "📝 상담 메모 HUD 꺼짐",
+            _configManager.Config.EnableConsultationMemo ? "#16A34A" : "#64748B");
+    }
+
+    private void BtnToggleMemo_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        OpenConsultationMemo();
+    }
+
     private void BtnQuickAddTemplate_Click(object sender, RoutedEventArgs e)
     {
         _ = HandleQuickRegisterAsync(null);
@@ -391,8 +470,8 @@ public partial class MainWindow : Window
         {
             Dispatcher.BeginInvoke(() =>
             {
-                AddStatusLog("ℹ️ 영문 번역 기능이 꺼져 있습니다. 제어판에서 '구글 영문 번역'을 켜주세요.");
-                ShowNoticeBadge("ℹ️ 제어판에서 영문 번역을 켜주세요", "#B45309");
+                AddStatusLog("ℹ️ 번역 기능이 꺼져 있습니다. 제어판에서 '구글 번역'을 켜주세요.");
+                ShowNoticeBadge("ℹ️ 제어판에서 번역을 켜주세요", "#B45309");
             });
             return;
         }
@@ -408,33 +487,69 @@ public partial class MainWindow : Window
             return;
         }
 
+        await ExecuteTranslationAsync(selected, targetHwnd, _configManager.Config.TranslationDirection);
+    }
+
+    private sealed class TranslationSession
+    {
+        public string KoreanText { get; set; } = string.Empty;
+        public string EnglishText { get; set; } = string.Empty;
+    }
+
+    private TranslationSession? _activeTranslationSession;
+
+    private string ResolveRetranslateSource(string fallbackText, string newDirection)
+    {
+        if (_activeTranslationSession == null) return fallbackText;
+        if (string.Equals(newDirection, "EnToKo", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(_activeTranslationSession.EnglishText))
+        {
+            return _activeTranslationSession.EnglishText;
+        }
+        if (string.Equals(newDirection, "KoToEn", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(_activeTranslationSession.KoreanText))
+        {
+            return _activeTranslationSession.KoreanText;
+        }
+        return fallbackText;
+    }
+
+    private async Task ExecuteTranslationAsync(string selected, IntPtr targetHwnd, string? direction)
+    {
+        var (fromLang, toLang) = DataSourceResolver.ResolveTranslationPair(direction, selected);
+        string dirLabel = fromLang == "en" ? "영→한" : "한→영";
+
         await Dispatcher.InvokeAsync(() =>
         {
-            AddStatusLog($"🌐 선택 문장 번역 중... (\"{selected}\")");
-            _suggestionBar.ShowAiGeneratingPlaceholder(selected, targetHwnd, isSelectionMode: true);
+            AddStatusLog($"🌐 선택 문장 {dirLabel} 번역 중 ({selected.Length}자)");
+            _suggestionBar.ShowAiGeneratingPlaceholder(selected, targetHwnd, isSelectionMode: true, directionLabel: dirLabel);
         });
 
-        string enAnswer = await DataSourceResolver.TranslateViaGasAsync(selected, "ko", "en");
+        string translated = await DataSourceResolver.TranslateViaGasAsync(selected, fromLang, toLang);
         await Dispatcher.InvokeAsync(() =>
         {
-            if (string.IsNullOrWhiteSpace(enAnswer))
+            if (string.IsNullOrWhiteSpace(translated))
             {
                 _suggestionBar.Hide();
-                AddStatusLog("❌ Google 영문 번역 응답이 비어 있거나 실패했습니다.");
+                AddStatusLog($"❌ Google {dirLabel} 번역 응답이 비어 있거나 실패했습니다.");
                 ShowNoticeBadge("❌ 번역 실패 (로그 확인)", "#B91C1C");
                 return;
             }
 
+            _activeTranslationSession = fromLang == "ko"
+                ? new TranslationSession { KoreanText = selected, EnglishText = translated }
+                : new TranslationSession { EnglishText = selected, KoreanText = translated };
+
             var transItem = new Models.TemplateItem
             {
                 Keyword = selected,
-                ContentKeyword = "영문번역",
-                Title = "Google 영문 번역",
-                Content = enAnswer,
+                ContentKeyword = $"번역:{fromLang}->{toLang}",
+                Title = $"Google {dirLabel} 번역",
+                Content = translated,
                 Category = "AI번역"
             };
             _suggestionBar.UpdateAiCandidate(transItem, 0, targetHwnd);
-            AddStatusLog($"✅ 번역 완료: {enAnswer}");
+            AddStatusLog($"✅ {dirLabel} 번역 완료 ({translated.Length}자)");
         });
     }
 
@@ -706,6 +821,47 @@ public partial class MainWindow : Window
         {
             AppLogger.Error("MainWindow", "QuickSearchWindow 열기 실패", ex);
             AddStatusLog($"❌ Alt+Q 검색창 열기 실패: {ex.Message}");
+        }
+    }
+
+    private void OpenConsultationMemo(IntPtr? targetHwnd = null)
+    {
+        _hookService.ClearAll();
+        _suggestionBar.Hide();
+        IntPtr hwnd = targetHwnd.HasValue && targetHwnd.Value != IntPtr.Zero
+            ? targetHwnd.Value
+            : Win32Api.GetForegroundWindow();
+
+        if (Win32Api.IsValidTargetWindow(hwnd))
+        {
+            _hookService.RememberTargetWindow(hwnd);
+        }
+        else if (_hookService.LastTargetHwnd != IntPtr.Zero)
+        {
+            hwnd = _hookService.LastTargetHwnd;
+        }
+
+        if (_consultationMemoWindow == null || !_consultationMemoWindow.IsLoaded)
+        {
+            _consultationMemoWindow = new ConsultationMemoWindow(_templateManager, _configManager);
+            _consultationMemoWindow.FinalTextReady += (finalText, target) =>
+            {
+                _consultationMemoHud.ClearMemos();
+                IntPtr dst = Win32Api.IsValidTargetWindow(target) ? target : _hookService.LastTargetHwnd;
+                Task.Run(() => TextInjectionService.FastPasteText(finalText, dst));
+            };
+        }
+
+        try
+        {
+            AppLogger.Info("MainWindow", $"OpenConsultationMemo 호출 (target=0x{hwnd.ToInt64():X})");
+            _consultationMemoWindow.SyncEntriesFromHud(_consultationMemoHud.Entries);
+            _consultationMemoWindow.ShowAtCenter(hwnd);
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Error("MainWindow", "ConsultationMemoWindow 열기 실패", ex);
+            AddStatusLog($"❌ Alt+M 상담 메모창 열기 실패: {ex.Message}");
         }
     }
 

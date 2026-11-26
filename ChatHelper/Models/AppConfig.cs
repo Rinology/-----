@@ -1,13 +1,17 @@
+using System.Text.Json.Serialization;
+
 namespace ChatHelper.Models;
 
 public class AppConfig
 {
     // 버전 정보
-    public string Version { get; set; } = "v2.2.0";
-    public string BuildDate { get; set; } = "2026-11-20";
+    public string Version { get; set; } = "v3.0.0";
+    public string BuildDate { get; set; } = "2026-11-26";
 
-    // 로그인 및 세션 관리 (비밀번호는 보안상 디스크에 저장하지 않고 아이디만 기억)
+    // 로그인 및 세션 관리 (보안상 평문 아이디는 디스크에 저장하지 않고 DPAPI 암호화 토큰만 선택 저장)
+    [JsonIgnore]
     public string CurrentUserId { get; set; } = "";
+    public string EncryptedUserId { get; set; } = "";
     public bool KeepLoggedIn { get; set; } = false; // 아이디 기억 여부
     public bool LogoutOnExit { get; set; } = false; // 종료 시 자동 로그아웃(아이디 기억 해제) 여부
     public string UserCsvUrl { get; set; } = "";
@@ -71,7 +75,9 @@ public class AppConfig
     public List<DataSourceProfile> DataSourceProfiles { get; set; } = new();
     public string ActiveDataSourceProfile { get; set; } = "";
 
-    // 로컬 AI 사칙연산 계산 및 한->영 번역/학습 기능 ON/OFF
+    // 로컬 AI 사칙연산 계산 및 양방향 번역(한↔영) · 상담 스무고개 메모 기능 ON/OFF
     public bool EnableMathCalc { get; set; } = true;
     public bool EnableKoToEnTranslation { get; set; } = false;
+    public string TranslationDirection { get; set; } = "Auto"; // Auto(자동감지), KoToEn(한→영), EnToKo(영→한)
+    public bool EnableConsultationMemo { get; set; } = true; // 상담 스무고개 메모 HUD ON/OFF (테스트용 기본 ON)
 }

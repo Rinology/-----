@@ -30,6 +30,9 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr>? GlobalHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<IntPtr>? TranslateHotkeyTriggered;
+    public event Action<TemplateItem?, string, IntPtr>? MemoAddRequested;
+    public event Action<IntPtr, int>? MemoFinalizeRequested;
+    public event Action<IntPtr>? MemoDetailRequested;
     public event Action<IntPtr>? QuickRegisterHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
     public event Action<string, string>? RecognitionStateChanged;
@@ -65,6 +68,13 @@ public class KeyboardHookService : IDisposable
         Channel.CreateUnbounded<(int, bool, IntPtr)>(new UnboundedChannelOptions { SingleReader = true });
     private readonly CancellationTokenSource _workerCts = new();
     private volatile bool _hasCandidates = false;
+    private volatile bool _hasActiveMemos = false;
+    private volatile bool _memoSlashArmed = false;
+    public bool HasActiveMemos
+    {
+        get => _hasActiveMemos;
+        set => _hasActiveMemos = value;
+    }
     private IntPtr _cachedFgHwnd = IntPtr.Zero;
     private bool _cachedFgValid = false;
     private string? _cachedHotkeyText;
@@ -233,7 +243,7 @@ public class KeyboardHookService : IDisposable
                 return (IntPtr)1;
             }
 
-            // Alt + T 드래그 선택 문장 Google 영문 번역 호출 (왼쪽 Alt + T)
+            // Alt + T 드래그 선택 문장 Google 번역 호출 (왼쪽 Alt + T)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_T || scanCode == Win32Api.SCAN_T))
             {
                 // Alt 단독 입력으로 오인되어 대상 창의 Alt 메뉴바(기본 명령어)가 열리지 않도록 더미 키(VK_NONAME) 전송
@@ -242,6 +252,19 @@ public class KeyboardHookService : IDisposable
                 IntPtr fgHwnd = Win32Api.GetForegroundWindow();
                 TranslateHotkeyTriggered?.Invoke(fgHwnd);
                 return (IntPtr)1;
+            }
+
+            // Ctrl + Shift + Enter: 상담 메모 최종 완성 답변 즉시 입력 (메모가 1개 이상일 때)
+            if (isCtrlPressed && isShiftPressed && vkCode == Win32Api.VK_RETURN &&
+                _configManager.Config.EnableConsultationMemo && _hasActiveMemos)
+            {
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                if (IsValidTargetWindowCached(fgHwnd))
+                {
+                    _memoSlashArmed = false;
+                    MemoFinalizeRequested?.Invoke(fgHwnd, 0);
+                    return (IntPtr)1;
+                }
             }
 
             /* 바로등록 기능 임시 비활성화
@@ -278,8 +301,37 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // 실제 완성 트리거(\, 후보 표시 중 Tab / Shift+Space / \ 이후 숫자·A·E)일 때만
+            // 실제 완성 트리거(\, 후보 표시 중 Tab / Shift+Space / \ 이후 숫자·A·E·M·F·N)일 때만
             // 채널 대기 키를 플러시하고 _lock 경합을 허용해 일반 채팅 타이핑 렉을 원천 차단
+            if (!_hasCandidates && _configManager.Config.EnableConsultationMemo)
+            {
+                if (vkCode == Win32Api.VK_OEM_5)
+                {
+                    _memoSlashArmed = true;
+                }
+                else if (_memoSlashArmed)
+                {
+                    _memoSlashArmed = false;
+                    if (vkCode == Win32Api.VK_F && _hasActiveMemos)
+                    {
+                        _buffer.Clear();
+                        MemoFinalizeRequested?.Invoke(currentFgHwnd, 1);
+                        return (IntPtr)1;
+                    }
+                    if (vkCode == Win32Api.VK_N)
+                    {
+                        _buffer.Clear();
+                        Task.Run(() => TextInjectionService.SendBackspaces(1));
+                        MemoDetailRequested?.Invoke(currentFgHwnd);
+                        return (IntPtr)1;
+                    }
+                }
+            }
+            else if (vkCode != Win32Api.VK_OEM_5)
+            {
+                _memoSlashArmed = false;
+            }
+
             if (ShouldHandleTriggerInHook(vkCode, isShiftPressed))
             {
                 if (_keyChannel.Reader.TryPeek(out _))
@@ -358,7 +410,9 @@ public class KeyboardHookService : IDisposable
             return true;
 
         if ((_triggerArmed || (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0) &&
-            (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E || (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
+            (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E ||
+             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
+             (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
             return true;
 
         return false;
@@ -440,6 +494,37 @@ public class KeyboardHookService : IDisposable
                 if (transCandidate != null)
                 {
                     CompleteSelection(transCandidate, _currentMatchedLen);
+                    return true;
+                }
+            }
+
+            if ((isSlashHeld || _triggerArmed) && _configManager.Config.EnableConsultationMemo)
+            {
+                if (vkCode == Win32Api.VK_M)
+                {
+                    var topCandidate = _currentCandidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
+                    string token = LastRecognizedToken;
+                    IntPtr target = _lastTargetHwnd;
+                    _triggerArmed = false;
+                    MemoAddRequested?.Invoke(topCandidate, token, target);
+                    return true;
+                }
+                if (vkCode == Win32Api.VK_F && _hasActiveMemos)
+                {
+                    IntPtr target = _lastTargetHwnd;
+                    _triggerArmed = false;
+                    _buffer.Clear();
+                    ClearCandidates();
+                    MemoFinalizeRequested?.Invoke(target, 0);
+                    return true;
+                }
+                if (vkCode == Win32Api.VK_N)
+                {
+                    IntPtr target = _lastTargetHwnd;
+                    _triggerArmed = false;
+                    _buffer.Clear();
+                    ClearCandidates();
+                    MemoDetailRequested?.Invoke(target);
                     return true;
                 }
             }
@@ -745,15 +830,16 @@ public class KeyboardHookService : IDisposable
                 else if (cleanHangul.StartsWith("번역 ")) cleanHangul = cleanHangul[3..].Trim();
                 if (cleanHangul.Length < 2) return;
 
-                string enAnswer = await DataSourceResolver.TranslateViaGasAsync(cleanHangul, "ko", "en", token);
-                if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(enAnswer))
+                var (fromLang, toLang) = DataSourceResolver.ResolveTranslationPair(_configManager.Config.TranslationDirection, cleanHangul);
+                string translated = await DataSourceResolver.TranslateViaGasAsync(cleanHangul, fromLang, toLang, token);
+                if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(translated))
                 {
                     var transItem = new TemplateItem
                     {
                         Keyword = cleanHangul,
-                        ContentKeyword = $"영문번역,{cleanHangul}",
-                        Title = $"영문 번역 ({cleanHangul})",
-                        Content = enAnswer,
+                        ContentKeyword = $"번역:{fromLang}->{toLang}",
+                        Title = $"Google 번역 ({cleanHangul})",
+                        Content = translated,
                         Category = "AI번역"
                     };
                     AddOrUpdateDynamicCandidate(targetRaw, transItem, hangul.Length);

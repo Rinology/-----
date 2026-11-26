@@ -162,7 +162,18 @@ public partial class ControlPanelWindow : Window
 
         ChkShowStatusWindow.IsChecked = cfg.ShowStatusWindow;
         ChkEnableMathCalc.IsChecked = cfg.EnableMathCalc;
+        ChkEnableConsultationMemo.IsChecked = cfg.EnableConsultationMemo;
         ChkEnableTranslation.IsChecked = cfg.EnableKoToEnTranslation;
+        string transDir = string.IsNullOrWhiteSpace(cfg.TranslationDirection) ? "Auto" : cfg.TranslationDirection;
+        foreach (System.Windows.Controls.ComboBoxItem item in CmbTranslationDirection.Items)
+        {
+            if (string.Equals(item.Tag?.ToString(), transDir, StringComparison.OrdinalIgnoreCase))
+            {
+                CmbTranslationDirection.SelectedItem = item;
+                break;
+            }
+        }
+        if (CmbTranslationDirection.SelectedIndex < 0) CmbTranslationDirection.SelectedIndex = 0;
         if (ChkLogoutOnExit != null)
             ChkLogoutOnExit.IsChecked = cfg.LogoutOnExit;
 
@@ -486,7 +497,13 @@ public partial class ControlPanelWindow : Window
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.EnableMathCalc = ChkEnableMathCalc.IsChecked == true;
+        cfg.EnableConsultationMemo = ChkEnableConsultationMemo.IsChecked == true;
         cfg.EnableKoToEnTranslation = ChkEnableTranslation.IsChecked == true;
+        if (CmbTranslationDirection.SelectedItem is System.Windows.Controls.ComboBoxItem transDirItem &&
+            transDirItem.Tag != null)
+        {
+            cfg.TranslationDirection = transDirItem.Tag.ToString() ?? "Auto";
+        }
         if (CmbAutoHideSeconds.SelectedItem is System.Windows.Controls.ComboBoxItem hideItem &&
             int.TryParse(hideItem.Tag?.ToString(), out int hideSec))
         {

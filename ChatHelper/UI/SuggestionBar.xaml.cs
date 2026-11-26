@@ -22,6 +22,8 @@ public partial class SuggestionBar : Window
 
     public event Action<TemplateItem, int, IntPtr>? ItemSelected;
     public event Action<TemplateItem, IntPtr>? SelectionReplaceRequested;
+    public event Action<string, string, IntPtr>? TranslationRetranslateRequested;
+    public event Action<TemplateItem?, string, IntPtr>? MemoPinRequested;
     public event Action<string>? QuickRegisterRequested;
     public event Action? AutoHideExpired;
 
@@ -98,15 +100,17 @@ public partial class SuggestionBar : Window
         if (BtnQuickRegisterToken != null)
         {
             string clean = (token ?? string.Empty).Trim().TrimStart('\\', '/');
-            BtnQuickRegisterToken.Visibility = string.IsNullOrWhiteSpace(clean) ? Visibility.Collapsed : Visibility.Visible;
+            BtnQuickRegisterToken.Visibility = (_configManager.Config.EnableConsultationMemo && !string.IsNullOrWhiteSpace(clean))
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
     }
 
     private void BtnQuickRegisterToken_Click(object sender, RoutedEventArgs e)
     {
         string clean = (_recognizedToken ?? string.Empty).Trim().TrimStart('\\', '/');
-        Hide();
-        QuickRegisterRequested?.Invoke(clean);
+        var topCandidate = _candidates.FirstOrDefault(c => c.Category != "AI생성" && c.Category != "AI번역");
+        MemoPinRequested?.Invoke(topCandidate, clean, _targetHwnd);
     }
 
     private void BtnCloseSuggestion_Click(object sender, RoutedEventArgs e)
@@ -361,7 +365,7 @@ public partial class SuggestionBar : Window
         Show();
     }
 
-    public void ShowAiGeneratingPlaceholder(string promptHint = "", IntPtr targetHwnd = default, bool isSelectionMode = false)
+    public void ShowAiGeneratingPlaceholder(string promptHint = "", IntPtr targetHwnd = default, bool isSelectionMode = false, string directionLabel = "한↔영")
     {
         if (!_configManager.Config.EnableKoToEnTranslation || !_configManager.Config.IsEnabled) return;
 
@@ -389,7 +393,7 @@ public partial class SuggestionBar : Window
 
         var loadingTitle = new TextBlock
         {
-            Text = "🌐 Google 영문 번역 중...",
+            Text = $"🌐 Google {directionLabel} 번역 중...",
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
             FontSize = 12,
             FontWeight = FontWeights.Bold,
@@ -471,8 +475,16 @@ public partial class SuggestionBar : Window
         var trigger = _configManager.Config.TriggerKey ?? "\\";
         var sheetItems = _candidates.Where(c => c.Category != "AI번역").ToList();
         string keyHint = sheetItems.Count == 0 ? $"{trigger}+Tab" : $"{trigger}+E";
+        bool isEnToKo = string.Equals(item.ContentKeyword, "번역:en->ko", StringComparison.OrdinalIgnoreCase);
+        string srcLangLabel = isEnToKo ? "영문 원문" : "한국어 원문";
+        string dstLangLabel = isEnToKo ? "Google 한글 번역" : "Google 영문 번역";
+        string dirTitle = isEnToKo ? "🌐 Google 영→한 번역 결과" : "🌐 Google 한→영 번역 결과";
+        string replaceBtnText = isEnToKo ? "선택 영역을 한글로 바꾸기" : "선택 영역을 영문으로 바꾸기";
+        string targetOnlyText = isEnToKo ? "한글만 입력" : "영문만 입력";
+        string swapBtnText = isEnToKo ? "⇄ 한→영 다시 번역" : "⇄ 영→한 다시 번역";
+        string oppositeDirection = isEnToKo ? "KoToEn" : "EnToKo";
 
-        // 구글 번역기 스타일 2열 비교 카드 (원문 ↔ 영문) + 상단 헤더(우측 상단 X 닫기 포함) + 하단 액션 바
+        // 구글 번역기 스타일 2열 비교 카드 (원문 ↔ 번역) + 상단 헤더(우측 상단 X 닫기 포함) + 하단 액션 바
         var outer = new StackPanel { MinWidth = 420, MaxWidth = 640 };
 
         if (_isSelectionTranslationMode || RecognitionHeaderBorder.Visibility != Visibility.Visible)
@@ -490,7 +502,7 @@ public partial class SuggestionBar : Window
 
             var transTitle = new TextBlock
             {
-                Text = "🌐 Google 영문 번역 결과",
+                Text = dirTitle,
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
@@ -512,7 +524,7 @@ public partial class SuggestionBar : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        // 좌측: 한국어 원문 카드
+        // 좌측: 원문 카드
         var srcBox = new Border
         {
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8FAFC")),
@@ -524,7 +536,7 @@ public partial class SuggestionBar : Window
         var srcStack = new StackPanel();
         srcStack.Children.Add(new TextBlock
         {
-            Text = "한국어 원문",
+            Text = srcLangLabel,
             FontSize = 10,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#64748B")),
@@ -542,7 +554,7 @@ public partial class SuggestionBar : Window
         Grid.SetColumn(srcBox, 0);
         grid.Children.Add(srcBox);
 
-        // 우측: Google 영문 번역 카드
+        // 우측: Google 번역 카드
         var dstBox = new Border
         {
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5")),
@@ -554,7 +566,7 @@ public partial class SuggestionBar : Window
         var dstStack = new StackPanel();
         dstStack.Children.Add(new TextBlock
         {
-            Text = "Google 영문 번역",
+            Text = dstLangLabel,
             FontSize = 10,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#059669")),
@@ -578,9 +590,29 @@ public partial class SuggestionBar : Window
         // 하단 액션 버튼 바
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 5, 0, 0) };
 
+        if (_isSelectionTranslationMode)
+        {
+            var btnSwap = new Button
+            {
+                Content = swapBtnText,
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EFF6FF")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1D4ED8")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(8, 3, 8, 3),
+                Margin = new Thickness(0, 0, 5, 0),
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                Focusable = false
+            };
+            btnSwap.Click += (s, e) => TranslationRetranslateRequested?.Invoke(item.Keyword, oppositeDirection, _targetHwnd);
+            actions.Children.Add(btnSwap);
+        }
+
         var btnEnOnly = new Button
         {
-            Content = _isSelectionTranslationMode ? "선택 영역을 영문으로 바꾸기" : $"[{keyHint}] 영문만 입력",
+            Content = _isSelectionTranslationMode ? replaceBtnText : $"[{keyHint}] {targetOnlyText}",
             Style = TryFindResource("ThemeButtonStyle") as Style,
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D1FAE5")),
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
@@ -609,7 +641,7 @@ public partial class SuggestionBar : Window
 
         var btnBoth = new Button
         {
-            Content = "원문+영문 함께 입력",
+            Content = "원문+번역 함께 입력",
             Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF")),
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
             BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#A7F3D0")),

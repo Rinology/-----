@@ -1,4 +1,4 @@
-﻿# ChatHelper 현재 상태 기준선 (Baseline) — 다음 작업 시 참고용
+# ChatHelper 현재 상태 기준선 (Baseline) — 다음 작업 시 참고용
 
 > 작성: 2026-11-21 / 버전 v2.2.0 + 데이터 소스 프로필 기능
 > 이 문서는 "지금 정상 동작하는 기능 목록"이다. 이후 수정 시 아래 항목이 깨지지 않았는지 회귀 점검할 것.
@@ -12,7 +12,9 @@
 | 인식 배너 | `🔎 인식됨`, `⏳ [대기중]`, `❓ [알아듣지 못함]` | 상태창 확인 |
 | 로컬 AI | Ollama `qwen2.5:3b`, 실시간 AI 추천(`[\+A]`), 영문 번역(`[\+E]`), 용어집 RAG(별칭→공식 용어 치환) | AI: ON 상태에서 입력 |
 | 계산 | `5 * 10 =` → `50` (`MathCalcHelper`), ON/OFF 가능 | 단위테스트 |
-| 번역 | 한→영 순수 번역(톤앤매너 미적용, 시트 업로드 안 함), ON/OFF 가능 | 제어판 |
+| 번역 | `Alt+T` 드래그 양방향 번역(`Auto` / `KoToEn` / `EnToKo`), `TranslationSession` 역번역 & 클립보드 시퀀스 검증 | 제어판 & `TemplateManagerTests` |
+| 상담 메모 | 비방해형 별도 HUD(`ConsultationMemoHud`), `\+M` 메모 추가, `\+F`/`Ctrl+Shift+Enter` 최종 입력, `\+N` 편집, ON/OFF 토글 | 마스터창 & `TemplateManagerTests` |
+| 배포 보안 | `%LocalAppData%\ChatHelper\` 설정/7일 로그 분리, DPAPI 아이디 암호화, `publish/` 민감파일 자동 정리 | `ConfigManagerTests` |
 | 시트 동기화 | 채팅템플릿/용어집/톤앤매너 CSV 읽기, 15분 주기 자동, 수동 즉시, 2회 재시도, 오프라인 로컬 캐시 | 제어판 > 동기화 |
 | 시트 쓰기 | 키워드/용어 등록·삭제 → GAS `doPost` | 용어집 창, 등록 기능 |
 | 특수기호 바 | `Alt+S`(기본) 상단 1클릭 기호(→ ■ ★ ✔ 등) | 빠른검색창 |

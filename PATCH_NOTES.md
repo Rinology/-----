@@ -4,6 +4,47 @@
 
 ---
 
+## [v3.0.0] — 2026-11-26 (비방해형 스무고개 메모 HUD · 양방향 번역 세션 · 배포 보안 강화)
+
+### ✨ Added / Changed
+- **비방해형 스무고개 상담 메모 HUD (`ConsultationMemoHud`) & 키보드 전용 단축키 ([ConsultationMemoHud.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml), [ConsultationMemoHud.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - Windows 음소거 단축키(`Alt+M`) 충돌을 제거하고, 채팅 흐름을 끊지 않는 **역슬래시(`\`)+문자** 및 `Ctrl+Shift+Enter` 키보드 워크플로우로 재설계.
+  - **`\ + M`** (또는 제안 알약 헤더 **`+ 메모`** 버튼): 현재 인식된 키워드·추천 답변을 별도 플로팅 HUD(`WS_EX_NOACTIVATE`, 포커스 비탈취)에 즉시 달아두고 대화를 계속 이어갈 수 있음.
+  - **`\ + F`** 또는 **`Ctrl + Shift + Enter`**: 누적된 메모 이력(또는 스무고개 좁히기 일치 템플릿)을 최종 완성 문장으로 채팅창에 한 번에 입력.
+  - **`\ + N`** (또는 마스터창 `메모` 우클릭 / HUD `편집` 버튼): 상세 편집기([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml)) 호출.
+  - **마스터창 & 제어판 ON/OFF 토글**: [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml) 도킹 바 `메모 ON/OFF` 버튼 및 제어판 체크박스(`EnableConsultationMemo`, 테스트 기본값 `ON`)로 일반 사용자와 상담사가 손쉽게 켜고 끌 수 있음.
+
+### 🐛 Fixed
+- **양방향 번역 재전환 버그 수정 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs))**:
+  - `한→영` 번역 후 `⇄ 영→한 다시 번역` 클릭 시 한글 원문을 재전송해 `한글 ↔ 한글`로 나오던 문제를 **인메모리 `TranslationSession`** (`KoreanText` / `EnglishText` 임시 보관)으로 해결해 항상 반대 언어 원문으로 정확히 역번역.
+  - `CaptureSelectedText`에 `GetClipboardSequenceNumber()` 검증을 추가해 드래그 선택이 복사되지 않았을 때 이전 클립보드 데이터가 오번역되는 현상 차단.
+
+### 🔒 Security
+- **배포(`publish/`) 개인 ID · 설정 · 로그 유출 원천 차단 ([ConfigManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConfigManager.cs), [SecretVault.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/SecretVault.cs), [AppLogger.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/AppLogger.cs), [ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj))**:
+  - **경로 분리**: `config.json`은 `%LocalAppData%\ChatHelper\`, 일자별 로그는 `%LocalAppData%\ChatHelper\logs\`로 분리 저장해 `publish/` 폴더에 개인 데이터가 절대 남지 않도록 개선.
+  - **DPAPI 아이디 암호화**: `KeepLoggedIn == false`이면 디스크에 아이디를 저장하지 않으며, `true`일 때도 Windows DPAPI(`CryptProtectData`, 현재 Windows 사용자 계정 전용)로 암호화된 `EncryptedUserId`만 저장(평문 `CurrentUserId`는 `[JsonIgnore]`).
+  - **7일 달력 기준 로그 자동 삭제(방안 C)** & 민감정보 마스킹: 현재 날짜 기준 7일이 지난 로그 파일은 자동 삭제되며, 로그인 ID·번역 원문/결과·고객 대화 내용은 디스크 로그에 기록하지 않음.
+  - **빌드 자동 정리**: `ChatHelper.csproj` `AfterTargets="Publish"` 타겟이 `publish/` 내 `config.json`, `*.log`, `*.csv`, `.env`, `*.tmp`를 자동 삭제.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v2.5.0] — 2026-11-26 (한↔영 양방향 번역 선택 & 스무고개 상담 메모 조합기 `Alt+M` 추가)
+
+### ✨ Added / Changed
+- **양방향 Google 번역 선택 지원 (`한글 → 영문` / `영문 → 한글` / `자동 감지`) ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [DataSourceResolver.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/DataSourceResolver.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - **제어판 > 단축키 & 동작**에서 번역 방향을 `🔄 자동 감지 (한글 ↔ 영문)`, `🇰🇷 → 🇺🇸 한글 → 영문`, `🇺🇸 → 🇰🇷 영문 → 한글` 중 선택할 수 있도록 추가.
+  - `Alt+T` 드래그 번역 결과 카드(`SuggestionBar`)에서도 방향에 맞는 라벨(`영문 원문` ↔ `Google 한글 번역` / `한국어 원문` ↔ `Google 영문 번역`)과 **`⇄ 영→한 / 한→영 다시 번역`** 원클릭 전환 버튼을 제공해 즉시 재번역 가능.
+- **스무고개 키워드 메모 & 최종 답변 조합기 (`Alt+M`) ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs), [ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs), [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - 상담 중 중간중간 답변해야 하는 상황에서 스무고개처럼 키워드를 `Enter`로 하나씩 칩(`🏷 키워드`)으로 누적해 DB 후보를 단계적으로 좁히고(초성/부분일치 AND 검색), 필요한 템플릿 답변이나 자유 메모를 우측 **상담 메모 보드**에 순서대로 달아둘 수 있는 전용 창 추가.
+  - 창을 닫아도(`Esc`) 상담 중 모은 메모가 유지되며, 연결 형식(`문단 구분`, `줄바꿈`, `번호 매기기 1. 2. 3.`, `불릿 •`)을 선택해 실시간 미리보기 후 **`✅ 최종 완성 입력 (Ctrl+Enter)`** 또는 **`📋 전체 복사`**로 한 번에 완성 전송 가능.
+  - 메인 HUD 도킹 바 `메모` 버튼 및 전역 단축키 `Alt+M`으로 즉시 호출 가능.
+- **단위 테스트 확장 ([TemplateManagerTests.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper.Tests/TemplateManagerTests.cs))**:
+  - `ResolveTranslationPair` (`Auto`, `KoToEn`, `EnToKo`) 및 `ConsultationMemoService` 다중 키워드·초성 좁히기 필터링, 최종 문장 조합(`Numbered`, `Bulleted`) 검증 추가.
+- **GAS 재배포 필요 여부**: 불필요 (기존 `action=translate`의 `from`/`to` 파라미터 활용 및 클라이언트 기능 추가).
+
+---
+
 ## [v2.4.3] — 2026-11-24 (`Alt+Q` 전역 핫키 등록 누락 보완 & 간헐적 채팅 타이핑 지연 해결)
 
 ### 🐛 Fixed

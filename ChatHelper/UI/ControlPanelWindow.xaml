@@ -396,9 +396,18 @@
                             <!-- 카드 3: 편의 보조 기능 (기존 디자인 탭에서 이동) -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16">
                                 <StackPanel>
-                                    <TextBlock Text="실시간 계산 및 드래그 영문 번역 기능" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <TextBlock Text="실시간 계산 및 드래그 Google 번역 기능" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
                                     <CheckBox x:Name="ChkEnableMathCalc" Content="🧮 사칙연산 자동 계산 기능 사용 (예: 5 * 10 = 입력 시 50 즉시 추천)" Margin="8,4,0,8" IsChecked="True" FontWeight="SemiBold"/>
-                                    <CheckBox x:Name="ChkEnableTranslation" Content="🌐 드래그 선택 Google 영문 번역 사용 (문장 드래그 후 Alt+T 입력 시 원문 ↔ 영문 비교 카드 표시)" Margin="8,4,0,2" IsChecked="False" FontWeight="SemiBold"/>
+                                    <CheckBox x:Name="ChkEnableConsultationMemo" Content="📝 상담 스무고개 메모 HUD 사용 (\+M 메모 달기 · \+F / Ctrl+Shift+Enter 최종 완성 입력 · \+N 편집)" Margin="8,0,0,8" IsChecked="True" FontWeight="SemiBold"/>
+                                    <CheckBox x:Name="ChkEnableTranslation" Content="🌐 드래그 선택 Google 번역 사용 (문장 드래그 후 Alt+T 입력 시 원문 ↔ 번역 비교 카드 표시)" Margin="8,4,0,6" IsChecked="False" FontWeight="SemiBold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="28,0,0,4" VerticalAlignment="Center">
+                                        <TextBlock Text="번역 방향:" VerticalAlignment="Center" FontSize="12.5" Foreground="{DynamicResource ThemeSubText}" Margin="0,0,8,0"/>
+                                        <ComboBox x:Name="CmbTranslationDirection" Width="220" Height="28" FontSize="12.5" VerticalContentAlignment="Center">
+                                            <ComboBoxItem Content="🔄 자동 감지 (한글 ↔ 영문)" Tag="Auto"/>
+                                            <ComboBoxItem Content="🇰🇷 → 🇺🇸 한글 → 영문" Tag="KoToEn"/>
+                                            <ComboBoxItem Content="🇺🇸 → 🇰🇷 영문 → 한글" Tag="EnToKo"/>
+                                        </ComboBox>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </StackPanel>

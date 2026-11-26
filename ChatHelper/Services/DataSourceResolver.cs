@@ -308,7 +308,23 @@ public static class DataSourceResolver
         return $"{webhook}{sep}action=users&token={Uri.EscapeDataString(ApiToken)}";
     }
 
-    /// <summary>GAS 내장 Google 번역(LanguageApp.translate)을 호출해 한글->영문 번역을 수행합니다.</summary>
+    /// <summary>
+    /// 번역 방향 설정(Auto / KoToEn / EnToKo)과 원문 텍스트를 바탕으로 (from, to) 언어 코드를 결정합니다.
+    /// </summary>
+    public static (string From, string To) ResolveTranslationPair(string? direction, string text)
+    {
+        if (string.Equals(direction, "EnToKo", StringComparison.OrdinalIgnoreCase))
+            return ("en", "ko");
+        if (string.Equals(direction, "KoToEn", StringComparison.OrdinalIgnoreCase))
+            return ("ko", "en");
+
+        // Auto: 원문에 한글(가-힣, 자모)이 포함되어 있으면 한→영, 없으면 영→한
+        bool hasHangul = !string.IsNullOrEmpty(text) &&
+            text.Any(c => (c >= '\uAC00' && c <= '\uD7A3') || (c >= '\u3131' && c <= '\u318E'));
+        return hasHangul ? ("ko", "en") : ("en", "ko");
+    }
+
+    /// <summary>GAS 내장 Google 번역(LanguageApp.translate)을 호출해 번역을 수행합니다.</summary>
     public static async Task<string> TranslateViaGasAsync(string text, string from = "ko", string to = "en", CancellationToken ct = default)
     {
         string webhook = WebhookUrl;

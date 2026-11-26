@@ -4,7 +4,7 @@ public static class AppConstants
 {
     // 애플리케이션 메타데이터
     public const string AppName = "ChatHelper";
-    public const string AppVersion = "v2.4.0";
+    public const string AppVersion = "v3.0.0";
     public const string DefaultTheme = "FluentLight";
 
     // 파일 및 리소스 경로

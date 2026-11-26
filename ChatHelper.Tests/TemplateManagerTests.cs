@@ -190,6 +190,38 @@ public static class TemplateManagerTests
             glossary.ParseGlossaryCsv("term,aliases,description,guide,category\n폴드,\"폴더, fold\",퀄리스포츠 접이식 전기자전거 모델입니다.,폴드 표기 유지,제품\n");
             var matchedTerms = glossary.FindRelevantTerms("폴더 추천해줘");
             Assert(matchedTerms.Count == 1 && matchedTerms[0].Term == "폴드", "Glossary should match alias '폴더' -> '폴드'");
+
+            // 양방향 번역 방향 판별 테스트
+            Assert(DataSourceResolver.ResolveTranslationPair("KoToEn", "Hello") == ("ko", "en"), "KoToEn should force ko->en");
+            Assert(DataSourceResolver.ResolveTranslationPair("EnToKo", "안녕하세요") == ("en", "ko"), "EnToKo should force en->ko");
+            Assert(DataSourceResolver.ResolveTranslationPair("Auto", "배송 언제 출발하나요?") == ("ko", "en"), "Auto should detect Korean -> ko->en");
+            Assert(DataSourceResolver.ResolveTranslationPair("Auto", "Where is my order?") == ("en", "ko"), "Auto should detect English -> en->ko");
+
+            // 스무고개 다중 키워드 필터링 및 최종 문장 조합 테스트
+            var memoTemplates = new List<TemplateItem>
+            {
+                new() { Keyword = "bd1", Title = "배송 일반 안내", Content = "오늘 출고 예정입니다.", Category = "배송" },
+                new() { Keyword = "bd2", Title = "배송 지연 사과", Content = "물량 증가로 배송이 지연되고 있습니다.", Category = "배송" },
+                new() { Keyword = "rf1", Title = "반품 접수 안내", Content = "수거 접수를 도와드리겠습니다.", Category = "반품" }
+            };
+            var step1 = ConsultationMemoService.FilterTemplates(memoTemplates, new[] { "배송" }, "");
+            Assert(step1.Count == 2, $"Step 1 should match 2 delivery items, got {step1.Count}");
+            var step2 = ConsultationMemoService.FilterTemplates(memoTemplates, new[] { "배송", "지연" }, "");
+            Assert(step2.Count == 1 && step2[0].Keyword == "bd2", "Step 2 should narrow down to 'bd2'");
+            var stepCho = ConsultationMemoService.FilterTemplates(memoTemplates, new[] { "ㅂㅅ", "ㅈㅇ" }, "");
+            Assert(stepCho.Count == 1 && stepCho[0].Keyword == "bd2", "Choseong progressive filter should match 'bd2'");
+
+            var entries = new List<MemoEntry>
+            {
+                new() { Keyword = "bd2", Content = "물량 증가로 배송이 지연되고 있습니다." },
+                new() { Keyword = "rf1", Content = "수거 접수를 도와드리겠습니다." }
+            };
+            Assert(ConsultationMemoService.ComposeFinalText(entries, MemoJoinMode.Numbered) ==
+                "1. 물량 증가로 배송이 지연되고 있습니다.\r\n\r\n2. 수거 접수를 도와드리겠습니다.",
+                "Numbered join mode mismatch");
+            Assert(ConsultationMemoService.ComposeFinalText(entries, MemoJoinMode.Bulleted) ==
+                "• 물량 증가로 배송이 지연되고 있습니다.\r\n• 수거 접수를 도와드리겠습니다.",
+                "Bulleted join mode mismatch");
         }
         finally
         {

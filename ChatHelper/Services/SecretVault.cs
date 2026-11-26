@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -39,6 +40,104 @@ public static class SecretVault
             byte[] cipher = Convert.FromBase64String(base64Cipher);
             byte[] plain = dec.TransformFinalBlock(cipher, 0, cipher.Length);
             return Encoding.UTF8.GetString(plain);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct DATA_BLOB
+    {
+        public int cbData;
+        public IntPtr pbData;
+    }
+
+    [DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool CryptProtectData(
+        ref DATA_BLOB pDataIn,
+        string? szDataDescr,
+        IntPtr pOptionalEntropy,
+        IntPtr pvReserved,
+        IntPtr pPromptStruct,
+        int dwFlags,
+        out DATA_BLOB pDataOut);
+
+    [DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool CryptUnprotectData(
+        ref DATA_BLOB pDataIn,
+        IntPtr ppszDataDescr,
+        IntPtr pOptionalEntropy,
+        IntPtr pvReserved,
+        IntPtr pPromptStruct,
+        int dwFlags,
+        out DATA_BLOB pDataOut);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr LocalFree(IntPtr hMem);
+
+    /// <summary>
+    /// Windows DPAPI(현재 Windows 사용자 계정 전용)로 민감 문자열을 암호화합니다.
+    /// 다른 PC나 다른 사용자 계정으로 config.json이 유출되어도 복호화할 수 없습니다.
+    /// </summary>
+    public static string ProtectForCurrentUser(string? plainText)
+    {
+        if (string.IsNullOrEmpty(plainText)) return string.Empty;
+        byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+        DATA_BLOB inBlob = new();
+        DATA_BLOB outBlob = new();
+        GCHandle handle = GCHandle.Alloc(plainBytes, GCHandleType.Pinned);
+        try
+        {
+            inBlob.cbData = plainBytes.Length;
+            inBlob.pbData = handle.AddrOfPinnedObject();
+            if (!CryptProtectData(ref inBlob, null, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0x01 /* CRYPTPROTECT_UI_FORBIDDEN */, out outBlob))
+                return string.Empty;
+
+            byte[] cipherBytes = new byte[outBlob.cbData];
+            Marshal.Copy(outBlob.pbData, cipherBytes, 0, outBlob.cbData);
+            return Convert.ToBase64String(cipherBytes);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+        finally
+        {
+            handle.Free();
+            if (outBlob.pbData != IntPtr.Zero) LocalFree(outBlob.pbData);
+        }
+    }
+
+    /// <summary>
+    /// Windows DPAPI로 암호화된 Base64 문자열을 복호화합니다.
+    /// </summary>
+    public static string UnprotectForCurrentUser(string? protectedBase64)
+    {
+        if (string.IsNullOrWhiteSpace(protectedBase64)) return string.Empty;
+        try
+        {
+            byte[] cipherBytes = Convert.FromBase64String(protectedBase64);
+            DATA_BLOB inBlob = new();
+            DATA_BLOB outBlob = new();
+            GCHandle handle = GCHandle.Alloc(cipherBytes, GCHandleType.Pinned);
+            try
+            {
+                inBlob.cbData = cipherBytes.Length;
+                inBlob.pbData = handle.AddrOfPinnedObject();
+                if (!CryptUnprotectData(ref inBlob, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0x01, out outBlob))
+                    return string.Empty;
+
+                byte[] plainBytes = new byte[outBlob.cbData];
+                Marshal.Copy(outBlob.pbData, plainBytes, 0, outBlob.cbData);
+                return Encoding.UTF8.GetString(plainBytes);
+            }
+            finally
+            {
+                handle.Free();
+                if (outBlob.pbData != IntPtr.Zero) LocalFree(outBlob.pbData);
+            }
         }
         catch
         {

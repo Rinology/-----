@@ -52,6 +52,9 @@ public static class Win32Api
     public const int VK_A = 0x41;
     public const int VK_C = 0x43;
     public const int VK_E = 0x45;
+    public const int VK_F = 0x46;
+    public const int VK_M = 0x4D;
+    public const int VK_N = 0x4E;
     public const int VK_Q = 0x51;
     public const int VK_R = 0x52;
     public const int VK_T = 0x54;
@@ -76,6 +79,7 @@ public static class Win32Api
     public const int VK_OEM_5 = 0xDC;      // '\'
     public const int VK_PROCESSKEY = 0xE5;
     public const int SCAN_Q = 0x10;
+    public const int SCAN_M = 0x32;
     public const int SCAN_R = 0x13;
     public const int SCAN_T = 0x14;
     public const int SCAN_X = 0x2D;
@@ -148,6 +152,9 @@ public static class Win32Api
 
     [DllImport("kernel32.dll")]
     public static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    public static extern uint GetClipboardSequenceNumber();
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
