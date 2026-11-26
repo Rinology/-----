@@ -19,7 +19,9 @@ public partial class ConsultationMemoWindow : Window
     private IntPtr _targetHwnd = IntPtr.Zero;
     private readonly List<string> _keywordChips = new();
     private readonly List<MemoEntry> _memoEntries = new();
+    private readonly Dictionary<string, string> _variableValues = new(StringComparer.OrdinalIgnoreCase);
     private bool _suppressPreviewRebuild = false;
+    private bool _navigatedCandidateList = false;
 
     public event Action<string, IntPtr>? FinalTextReady;
     public event Action<IReadOnlyList<MemoEntry>>? EntriesSynced;
@@ -85,7 +87,7 @@ public partial class ConsultationMemoWindow : Window
         RefreshCandidates();
         RenderMemoEntries();
 
-        double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double winAlpha = Math.Clamp(_configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, winAlpha);
 
         ShowActivated = true;
@@ -113,6 +115,7 @@ public partial class ConsultationMemoWindow : Window
 
     private void RefreshCandidates()
     {
+        _navigatedCandidateList = false;
         string input = TxtKeywordInput.Text?.Trim() ?? string.Empty;
         var filtered = ConsultationMemoService.FilterTemplates(_templateManager.Templates, _keywordChips, input);
         LstCandidates.ItemsSource = filtered;
@@ -359,7 +362,93 @@ public partial class ConsultationMemoWindow : Window
     private void RebuildFinalPreview()
     {
         if (_suppressPreviewRebuild) return;
-        TxtFinalPreview.Text = ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode());
+        string composed = ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode());
+        RebuildVariableInputs(composed);
+        TxtFinalPreview.Text = ApplyVariableValues(composed);
+    }
+
+    private string ApplyVariableValues(string text)
+    {
+        if (string.IsNullOrEmpty(text) || _variableValues.Count == 0)
+            return text;
+
+        foreach (var kv in _variableValues)
+        {
+            if (!string.IsNullOrWhiteSpace(kv.Value))
+            {
+                text = text.Replace($"{{{kv.Key}}}", kv.Value.Trim(), StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        return text;
+    }
+
+    private void RebuildVariableInputs(string composedText)
+    {
+        if (VariableInputsBar == null || VariableInputsPanel == null) return;
+
+        var vars = ConsultationMemoService.ExtractPlaceholderNames(composedText);
+        VariableInputsPanel.Children.Clear();
+        if (vars.Count == 0)
+        {
+            VariableInputsBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        VariableInputsBar.Visibility = Visibility.Visible;
+        foreach (var varName in vars)
+        {
+            string key = varName;
+            var boxStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 4), VerticalAlignment = VerticalAlignment.Center };
+            boxStack.Children.Add(new TextBlock
+            {
+                Text = $"{key}:",
+                FontSize = 11.5,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 0)
+            });
+
+            var tb = new TextBox
+            {
+                Width = 150,
+                Height = 26,
+                FontSize = 11.5,
+                Padding = new Thickness(6, 2, 6, 2),
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Text = _variableValues.TryGetValue(key, out var existing) ? existing : string.Empty,
+                Tag = key
+            };
+            tb.TextChanged += (s, e) =>
+            {
+                _variableValues[key] = tb.Text;
+                TxtFinalPreview.Text = ApplyVariableValues(ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode()));
+            };
+            boxStack.Children.Add(tb);
+
+            var clipBtn = new Button
+            {
+                Content = "📋",
+                Width = 26,
+                Height = 26,
+                Margin = new Thickness(3, 0, 0, 0),
+                Padding = new Thickness(0),
+                Cursor = Cursors.Hand,
+                ToolTip = $"클립보드(텍스트/이미지 OCR) 내용을 {{{key}}}에 채우기"
+            };
+            clipBtn.Click += async (s, e) =>
+            {
+                var res = await ClipboardSmartService.GetCustomerMessageAsync();
+                string clip = res.ExtractedText.Trim();
+                if (!string.IsNullOrWhiteSpace(clip))
+                {
+                    tb.Text = clip;
+                }
+            };
+            boxStack.Children.Add(clipBtn);
+
+            VariableInputsPanel.Children.Add(boxStack);
+        }
     }
 
     private void AddCandidateToMemo(TemplateItem item)
@@ -506,9 +595,36 @@ public partial class ConsultationMemoWindow : Window
             return;
         }
 
+        if (actualKey == Key.Down || actualKey == Key.Up)
+        {
+            if (LstCandidates.Items.Count > 0 && !TxtFinalPreview.IsFocused)
+            {
+                int idx = LstCandidates.SelectedIndex;
+                if (actualKey == Key.Down)
+                    idx = idx < LstCandidates.Items.Count - 1 ? idx + 1 : 0;
+                else
+                    idx = idx > 0 ? idx - 1 : LstCandidates.Items.Count - 1;
+
+                LstCandidates.SelectedIndex = idx;
+                LstCandidates.ScrollIntoView(LstCandidates.SelectedItem);
+                _navigatedCandidateList = true;
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (actualKey == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             ExecuteFinalInsert();
+            e.Handled = true;
+            return;
+        }
+
+        if (actualKey == Key.Enter && (_navigatedCandidateList || LstCandidates.IsKeyboardFocusWithin) && LstCandidates.SelectedItem is TemplateItem selectedItem)
+        {
+            AddCandidateToMemo(selectedItem);
+            _navigatedCandidateList = false;
+            TxtKeywordInput.Focus();
             e.Handled = true;
             return;
         }

@@ -88,6 +88,7 @@ public partial class ControlPanelWindow : Window
         // 2. 단축키 설정 로드
         var cfg = _configManager.Config;
         TxtGlobalHotkey.Text = cfg.GlobalHotkey ?? "Alt+S";
+        TxtMemoHotkey.Text = cfg.MemoHotkey ?? "Alt+N";
         TxtTriggerKey.Text = cfg.TriggerKey ?? "\\";
         ChkNumbers.IsChecked = cfg.EnableNumberSelection;
 
@@ -112,20 +113,25 @@ public partial class ControlPanelWindow : Window
             RadioPillScale1.IsChecked = true;
         else if (cfg.PillScale == 3)
             RadioPillScale3.IsChecked = true;
+        else if (cfg.PillScale == 4)
+            RadioPillScale4.IsChecked = true;
+        else if (cfg.PillScale == 5)
+            RadioPillScale5.IsChecked = true;
         else
             RadioPillScale2.IsChecked = true;
 
-        // 알약 위치 및 간격
-        if (cfg.PillPlacement == "ScreenBottomRight")
-            RadioPosFixed.IsChecked = true;
-        else if (cfg.PillPlacement == "MousePointer")
+        // 알약 위치 및 간격 (4배 이상은 반드시 마우스 포인터 위치로 고정)
+        if (cfg.PillScale >= 4 || cfg.PillPlacement == "MousePointer")
             RadioPosMouse.IsChecked = true;
+        else if (cfg.PillPlacement == "ScreenBottomRight")
+            RadioPosFixed.IsChecked = true;
         else if (cfg.PillOffsetY >= 55)
             RadioPosFar.IsChecked = true;
         else if (cfg.PillOffsetY <= 20)
             RadioPosNearby1.IsChecked = true;
         else
             RadioPosNearby2.IsChecked = true;
+        UpdatePillScalePlacementLock();
 
         // 창 투명도 (흐리게)
         if (cfg.WindowOpacity <= 0.75)
@@ -146,6 +152,16 @@ public partial class ControlPanelWindow : Window
             RadioStatusOpacity85.IsChecked = true;
         else
             RadioStatusOpacity100.IsChecked = true;
+
+        // 상담 메모 HUD 투명도
+        if (cfg.MemoOpacity <= 0.75)
+            RadioMemoOpacity70.IsChecked = true;
+        else if (cfg.MemoOpacity <= 0.85)
+            RadioMemoOpacity80.IsChecked = true;
+        else if (cfg.MemoOpacity <= 0.95)
+            RadioMemoOpacity90.IsChecked = true;
+        else
+            RadioMemoOpacity100.IsChecked = true;
 
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
@@ -337,21 +353,25 @@ public partial class ControlPanelWindow : Window
     // --- 단축키 충돌 검사 ---
     private void TxtGlobalHotkey_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (LblHotkeyWarning == null || TxtGlobalHotkey == null) return;
+        ValidateHotkeyField(TxtGlobalHotkey, LblHotkeyWarning, TxtMemoHotkey?.Text, _configManager.Config.GlobalHotkey);
+    }
 
-        string hk = TxtGlobalHotkey.Text.Trim();
-        var (isConflict, msg) = HotkeyValidator.ValidateHotkey(hk);
+    private void TxtMemoHotkey_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        ValidateHotkeyField(TxtMemoHotkey, LblMemoHotkeyWarning, TxtGlobalHotkey?.Text, _configManager.Config.MemoHotkey);
+    }
 
-        if (isConflict)
-        {
-            LblHotkeyWarning.Text = msg;
-            LblHotkeyWarning.Foreground = Brushes.Red;
-        }
-        else
-        {
-            LblHotkeyWarning.Text = msg;
-            LblHotkeyWarning.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
-        }
+    private static void ValidateHotkeyField(TextBox? box, TextBlock? warningLabel, string? otherHotkey, string? currentOwnHotkey)
+    {
+        if (warningLabel == null || box == null) return;
+
+        string hk = box.Text.Trim();
+        var (isConflict, msg) = HotkeyValidator.ValidateHotkey(hk, otherHotkey, currentOwnHotkey);
+
+        warningLabel.Text = msg;
+        warningLabel.Foreground = isConflict
+            ? Brushes.Red
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#006000"));
     }
 
     // --- 완성 키 모드 변경 (SlashOnly 시 단일 알약 고정 및 안내) ---
@@ -425,6 +445,7 @@ public partial class ControlPanelWindow : Window
     {
         var cfg = _configManager.Config;
         cfg.GlobalHotkey = TxtGlobalHotkey.Text.Trim();
+        cfg.MemoHotkey = string.IsNullOrWhiteSpace(TxtMemoHotkey?.Text) ? "Alt+N" : TxtMemoHotkey.Text.Trim();
         cfg.TriggerKey = string.IsNullOrEmpty(TxtTriggerKey.Text) ? "\\" : TxtTriggerKey.Text;
         cfg.EnableNumberSelection = ChkNumbers.IsChecked == true;
 
@@ -463,11 +484,19 @@ public partial class ControlPanelWindow : Window
             cfg.PillScale = AppConstants.PillScaleNormal;
         else if (RadioPillScale3.IsChecked == true)
             cfg.PillScale = AppConstants.PillScaleExtraLarge;
+        else if (RadioPillScale4?.IsChecked == true)
+            cfg.PillScale = AppConstants.PillScaleXLarge;
+        else if (RadioPillScale5?.IsChecked == true)
+            cfg.PillScale = AppConstants.PillScaleXXLarge;
         else
             cfg.PillScale = AppConstants.PillScaleLarge;
 
-        // 알약 위치 및 간격 저장
-        if (RadioPosFixed.IsChecked == true)
+        // 알약 위치 및 간격 저장 (4배 이상은 반드시 마우스 포인터 위치로 강제)
+        if (cfg.PillScale >= 4)
+        {
+            cfg.PillPlacement = "MousePointer";
+        }
+        else if (RadioPosFixed.IsChecked == true)
         {
             cfg.PillPlacement = "ScreenBottomRight";
         }
@@ -494,6 +523,12 @@ public partial class ControlPanelWindow : Window
         else if (RadioStatusOpacity65.IsChecked == true) cfg.StatusWindowOpacity = 0.65;
         else if (RadioStatusOpacity85.IsChecked == true) cfg.StatusWindowOpacity = 0.85;
         else cfg.StatusWindowOpacity = 1.0;
+
+        // 상담 메모 HUD 투명도 저장
+        if (RadioMemoOpacity70?.IsChecked == true) cfg.MemoOpacity = 0.70;
+        else if (RadioMemoOpacity80?.IsChecked == true) cfg.MemoOpacity = 0.80;
+        else if (RadioMemoOpacity90?.IsChecked == true) cfg.MemoOpacity = 0.90;
+        else cfg.MemoOpacity = 1.0;
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.EnableMathCalc = ChkEnableMathCalc.IsChecked == true;
@@ -548,7 +583,23 @@ public partial class ControlPanelWindow : Window
     {
         if (_isInitializing) return;
         UpdateSlashOnlyLock();
+        UpdatePillScalePlacementLock();
         UpdateDesignPreview();
+    }
+
+    private void UpdatePillScalePlacementLock()
+    {
+        bool forceMouse = RadioPillScale4?.IsChecked == true || RadioPillScale5?.IsChecked == true;
+        if (forceMouse && RadioPosMouse != null)
+        {
+            RadioPosMouse.IsChecked = true;
+        }
+        if (RadioPosNearby1 != null) RadioPosNearby1.IsEnabled = !forceMouse;
+        if (RadioPosNearby2 != null) RadioPosNearby2.IsEnabled = !forceMouse;
+        if (RadioPosFar != null) RadioPosFar.IsEnabled = !forceMouse;
+        if (RadioPosFixed != null) RadioPosFixed.IsEnabled = !forceMouse;
+        if (TxtLargePillMouseNotice != null)
+            TxtLargePillMouseNotice.Visibility = forceMouse ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void UpdateDesignPreview()
@@ -579,9 +630,24 @@ public partial class ControlPanelWindow : Window
             Win32Api.SetWindowAlpha(Application.Current.MainWindow, statusAlpha);
         }
 
-        int scale = RadioPillScale1?.IsChecked == true ? 1 : (RadioPillScale3?.IsChecked == true ? 3 : 2);
-        double chipFont = scale switch { 1 => 11, 3 => 15.5, _ => 13 };
-        Thickness chipPad = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 6, 12, 6), _ => new Thickness(9, 4, 9, 4) };
+        double memoAlpha = RadioMemoOpacity70?.IsChecked == true ? 0.70
+            : RadioMemoOpacity80?.IsChecked == true ? 0.80
+            : RadioMemoOpacity90?.IsChecked == true ? 0.90 : 1.0;
+
+        int scale = RadioPillScale1?.IsChecked == true ? 1
+            : RadioPillScale3?.IsChecked == true ? 3
+            : RadioPillScale4?.IsChecked == true ? 4
+            : RadioPillScale5?.IsChecked == true ? 5
+            : 2;
+        double chipFont = scale switch { 1 => 11, 3 => 15.5, 4 => 17.5, 5 => 19.5, _ => 13 };
+        Thickness chipPad = scale switch
+        {
+            1 => new Thickness(6, 2, 6, 2),
+            3 => new Thickness(12, 6, 12, 6),
+            4 => new Thickness(14, 7, 14, 7),
+            5 => new Thickness(16, 8, 16, 8),
+            _ => new Thickness(9, 4, 9, 4)
+        };
 
         PreviewPillItemsPanel.Children.Clear();
         bool isManual = RadioModeManual?.IsChecked == true;
@@ -682,7 +748,7 @@ public partial class ControlPanelWindow : Window
             PreviewLocationText.Text = $"표시 위치 ➔ [{posDesc}]";
 
         if (PreviewSummaryText != null)
-            PreviewSummaryText.Text = $"현재 미리보기: 알약 투명도 {(int)(pillAlpha * 100)}% · 마스터창 투명도 {(int)(statusAlpha * 100)}% · 크기 {scale}단계 · {posDesc}";
+            PreviewSummaryText.Text = $"현재 미리보기: 알약 {(int)(pillAlpha * 100)}% · 마스터창 {(int)(statusAlpha * 100)}% · 메모 {(int)(memoAlpha * 100)}% · 크기 {scale}단계 · {posDesc}";
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

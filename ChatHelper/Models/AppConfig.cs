@@ -27,8 +27,9 @@ public class AppConfig
     // 투명도 설정 (바탕화면 은은하게 비침 조절)
     public double StatusWindowOpacity { get; set; } = 0.90; // 활성 상태 프로그램창(우측하단) 투명도 (0.4 ~ 1.0)
     public double WindowOpacity { get; set; } = 0.95; // 알약 및 검색창 투명도 (0.6 ~ 1.0)
+    public double MemoOpacity { get; set; } = 0.95; // 상담 메모 HUD 투명도 (0.6 ~ 1.0)
 
-    // 알약 크기 배율 (1: 1.0배 보통, 2: 2.0배 큼(기본 권장), 3: 3.0배 아주 큼)
+    // 알약 크기 배율 (1: 1.0x 보통, 2: 2.0x 큼(기본 권장), 3: 3.0x 아주 큼, 4: 4.0x 매우 큼, 5: 5.0x 최대)
     public int PillScale { get; set; } = 2;
 
     // 알약 위치 및 간격 설정 (채팅 방해 방지)
@@ -46,6 +47,7 @@ public class AppConfig
     public string CompleteKeyMode { get; set; } = "SlashTab"; // SlashTab(\+Tab, 기본값), ShiftSpace(Shift+Space + Ctrl+숫자), SlashOnly(\)
     public bool EnableNumberSelection { get; set; } = true;
     public string GlobalHotkey { get; set; } = "Alt+S";
+    public string MemoHotkey { get; set; } = "Alt+N";
 
     // 템플릿 데이터 소스 및 로컬 AI
     public string DisplayMode { get; set; } = "InlinePill";

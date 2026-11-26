@@ -35,6 +35,7 @@ public partial class MainWindow : Window
 
     private const int HOTKEY_SEARCH_ID = 9001;
     private const int HOTKEY_AI_ID = 9002;
+    private const int HOTKEY_MEMO_ID = 9003;
     private HwndSource? _hwndSource;
     private bool _hotkeyHookAttached;
     private bool _hotkeysRegistered;
@@ -249,6 +250,17 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() => OpenQuickSearch(targetHwnd));
         };
 
+        _hookService.MemoHudHotkeyTriggered += (targetHwnd) =>
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _consultationMemoHud.ShowEmptyOrCurrent(targetHwnd);
+                UpdateStatusUi();
+            });
+        };
+
+        _hookService.TemplateContentResolver = ResolveTemplatePlaceholdersSync;
+
         _hookService.AiHotkeyTriggered += (targetHwnd) =>
         {
             Dispatcher.BeginInvoke(() => OpenSymbolPicker(targetHwnd));
@@ -297,13 +309,15 @@ public partial class MainWindow : Window
                     TextInjectionService.SendBackspaces(bsCount);
                 });
             }
-            Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(async () =>
             {
-                string clip = TextInjectionService.GetClipboardTextSafe().Trim();
+                var result = await ClipboardSmartService.GetCustomerMessageAsync();
+                string clip = result.ExtractedText.Trim();
                 if (!string.IsNullOrWhiteSpace(clip))
                 {
                     _consultationMemoHud.AddMemo(null, clip, targetHwnd);
-                    ShowNoticeBadge($"📋 클립보드 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
+                    string srcTag = result.IsFromImage ? "🖼️ 이미지 OCR" : "📋 클립보드";
+                    ShowNoticeBadge($"{srcTag} 메모 추가 ({_consultationMemoHud.MemoCount}개)", "#2563EB");
                 }
                 else
                 {
@@ -400,9 +414,10 @@ public partial class MainWindow : Window
         {
             bool useShiftHome = _hookService.IsNaturalLanguageMode;
             _hookService.ClearAll();
-            Task.Run(async () =>
+            Task.Run(() =>
             {
-                TextInjectionService.ReplaceText(matchedLen, item.Content, targetHwnd, useShiftHome);
+                string resolved = ResolveTemplatePlaceholdersSync(item.Content);
+                TextInjectionService.ReplaceText(matchedLen, resolved, targetHwnd, useShiftHome);
             });
         };
 
@@ -515,6 +530,38 @@ public partial class MainWindow : Window
     private void BtnToggleMemo_RightClick(object sender, MouseButtonEventArgs e)
     {
         OpenConsultationMemo();
+    }
+
+    private void BtnOpenMemo_Click(object sender, RoutedEventArgs e)
+    {
+        _consultationMemoHud.ShowEmptyOrCurrent(_hookService.LastTargetHwnd);
+        UpdateStatusUi();
+    }
+
+    private string ResolveTemplatePlaceholdersSync(string content)
+    {
+        if (!ConsultationMemoService.ContainsPlaceholders(content))
+            return content;
+
+        IReadOnlyList<MemoEntry> entries = Array.Empty<MemoEntry>();
+        try
+        {
+            entries = Dispatcher.Invoke(() => _consultationMemoHud.Entries.ToList());
+        }
+        catch { }
+
+        string? clipFallback = null;
+        try
+        {
+            clipFallback = ClipboardSmartService.GetCustomerMessageAsync().GetAwaiter().GetResult().ExtractedText;
+        }
+        catch
+        {
+            clipFallback = TextInjectionService.GetClipboardTextSafe();
+        }
+
+        return ConsultationMemoService.ResolveTemplateWithMemosOrClipboard(
+            content, entries, clipFallback, TextInjectionService.LastInjectedText);
     }
 
     private void BtnQuickAddTemplate_Click(object sender, RoutedEventArgs e)
@@ -964,6 +1011,7 @@ public partial class MainWindow : Window
             {
                 UpdateStatusUi();
                 RefreshGlobalHotkeys();
+                _consultationMemoHud.ApplyOpacity();
                 RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)
                     ShowStatusWindow();
@@ -1059,7 +1107,14 @@ public partial class MainWindow : Window
         {
             AppLogger.Warn("MainWindow", $"RegisterHotKey(Alt+X) 실패 (err={errX}) — 저수준 키훅 폴백 사용");
         }
-        AppLogger.Info("MainWindow", $"RegisterGlobalHotkeys: hwnd=0x{hwnd.ToInt64():X}, {hotkey.NormalizedLabel}={okQ}(err={errQ}), Alt+X={okX}(err={errX})");
+        var memoHotkey = HotkeyParser.ResolveOrDefault(string.IsNullOrWhiteSpace(_configManager.Config.MemoHotkey) ? "Alt+N" : _configManager.Config.MemoHotkey);
+        bool okM = Win32Api.RegisterHotKey(hwnd, HOTKEY_MEMO_ID, memoHotkey.ModFlags | Win32Api.MOD_NOREPEAT, (uint)memoHotkey.VkCode);
+        int errM = okM ? 0 : System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+        if (!okM)
+        {
+            AppLogger.Warn("MainWindow", $"RegisterHotKey({memoHotkey.NormalizedLabel}) 실패 (err={errM}) — 저수준 키훅 폴백 사용");
+        }
+        AppLogger.Info("MainWindow", $"RegisterGlobalHotkeys: hwnd=0x{hwnd.ToInt64():X}, {hotkey.NormalizedLabel}={okQ}(err={errQ}), Alt+X={okX}(err={errX}), {memoHotkey.NormalizedLabel}={okM}(err={errM})");
     }
 
     private void UnregisterGlobalHotkeys(IntPtr hwnd)
@@ -1067,6 +1122,7 @@ public partial class MainWindow : Window
         if (hwnd == IntPtr.Zero) return;
         Win32Api.UnregisterHotKey(hwnd, HOTKEY_SEARCH_ID);
         Win32Api.UnregisterHotKey(hwnd, HOTKEY_AI_ID);
+        Win32Api.UnregisterHotKey(hwnd, HOTKEY_MEMO_ID);
     }
 
     private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -1076,13 +1132,19 @@ public partial class MainWindow : Window
             int id = wParam.ToInt32();
             if (id == HOTKEY_SEARCH_ID)
             {
-                AppLogger.Info("MainWindow", "WM_HOTKEY(Alt+Q) 수신");
+                AppLogger.Info("MainWindow", "WM_HOTKEY(Alt+S) 수신");
                 OpenQuickSearch();
                 handled = true;
             }
             else if (id == HOTKEY_AI_ID)
             {
                 OpenSymbolPicker();
+                handled = true;
+            }
+            else if (id == HOTKEY_MEMO_ID)
+            {
+                _consultationMemoHud.ShowEmptyOrCurrent(_hookService.LastTargetHwnd);
+                UpdateStatusUi();
                 handled = true;
             }
         }

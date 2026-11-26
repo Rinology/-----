@@ -328,18 +328,28 @@
                             <!-- 카드 1: 수동 팝업 단축키 -->
                             <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,14">
                                 <StackPanel>
-                                    <TextBlock Text="수동 검색 팝업 단축키 (기본: Alt+S)" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
+                                    <TextBlock Text="수동 검색 · 메모 열기 전역 단축키" FontWeight="Bold" FontSize="15" Margin="0,0,0,10"/>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="150"/>
                                             <ColumnDefinition Width="160"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="전역 호출 단축키:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="템플릿 검색 (기본 Alt+S):" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                         <TextBox x:Name="TxtGlobalHotkey" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" FontSize="14" TextChanged="TxtGlobalHotkey_TextChanged"/>
                                         <TextBlock x:Name="LblHotkeyWarning" Grid.Column="2" Text="" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
                                     </Grid>
-                                    <TextBlock Text="• 언제 어디서든 이 키를 누르면 템플릿 검색창이 즉시 열리며, 변경 시 내부 단축키(Alt+X/T) 및 Windows 충돌을 실시간으로 검사합니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="메모 HUD 열기 (기본 Alt+N):" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBox x:Name="TxtMemoHotkey" Grid.Column="1" Style="{DynamicResource ThemeTextBoxStyle}" Height="34" FontSize="14" TextChanged="TxtMemoHotkey_TextChanged"/>
+                                        <TextBlock x:Name="LblMemoHotkeyWarning" Grid.Column="2" Text="" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
+                                    </Grid>
+                                    <TextBlock Text="• 메모가 비어 있어도 메모 열기 단축키(Alt+N) 또는 마스터창 [메모열기] 버튼으로 언제든 메모 HUD를 열 수 있습니다." Foreground="{DynamicResource ThemeSubText}" FontSize="12"/>
                                 </StackPanel>
                             </Border>
 
@@ -495,11 +505,15 @@
                                         <Border Height="1" Background="{DynamicResource ThemePanelBorder}" Margin="0,10"/>
 
                                         <TextBlock Text="알약 글자 및 카드 크기:" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,0,6"/>
-                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                            <RadioButton x:Name="RadioPillScale1" Content="보통 (1.0x)" Margin="6,3,16,3" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioPillScale2" Content="크게 (2.0x · 권장)" Margin="6,3,16,3" IsChecked="True" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioPillScale3" Content="아주 크게 (3.0x)" Margin="6,3,16,3" Checked="DesignOption_Changed"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <RadioButton x:Name="RadioPillScale1" Content="보통 (1.0x)" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale2" Content="크게 (2.0x · 권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale3" Content="아주 크게 (3.0x)" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale4" Content="매우 크게 (4.0x)" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioPillScale5" Content="최대 (5.0x)" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
+                                        <TextBlock x:Name="TxtLargePillMouseNotice" Text="※ 4.0x 이상 큰 알약은 채팅창을 가리지 않도록 등장 위치가 [마우스 포인터 위치]로 자동 고정됩니다."
+                                                   Foreground="#B45309" FontWeight="SemiBold" FontSize="11.5" Margin="6,0,0,8" Visibility="Collapsed" TextWrapping="Wrap"/>
 
                                         <StackPanel Orientation="Horizontal" Margin="6,2,0,0">
                                             <TextBlock Text="추천 알약 자동 숨김 시간:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,10,0"/>
@@ -545,6 +559,14 @@
                                             <RadioButton x:Name="RadioStatusOpacity85" Content="85% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioStatusOpacity65" Content="65% 반투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioStatusOpacity45" Content="45% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                        </WrapPanel>
+
+                                        <TextBlock Text="상담 스무고개 메모 HUD 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <RadioButton x:Name="RadioMemoOpacity100" Content="100% 불투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoOpacity90" Content="90% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoOpacity80" Content="80% 반투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoOpacity70" Content="70% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
 
                                         <CheckBox x:Name="ChkShowStatusWindow" Content="화면 중앙 하단 및 작업표시줄에 마스터 도킹 바 항상 보이기" Margin="6,4,0,2" IsChecked="True" FontWeight="SemiBold"/>

@@ -243,13 +243,24 @@
                              Foreground="{DynamicResource ThemeText}"
                              BorderBrush="{DynamicResource ThemePanelBorder}"
                              BorderThickness="1"/>
+
+                    <!-- 변수 전용 입력 바 ({송장번호}, {날짜} 등 감지 시 자동 표시) -->
+                    <Border x:Name="VariableInputsBar" Visibility="Collapsed"
+                            Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="6"
+                            Padding="8,6" Margin="0,6,0,0">
+                        <StackPanel>
+                            <TextBlock Text="✏️ 감지된 변수 입력 (입력 시 위 최종 문장에 즉시 반영됩니다 · 📋 버튼으로 클립보드 채우기)"
+                                       FontSize="11" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,5"/>
+                            <WrapPanel x:Name="VariableInputsPanel" Orientation="Horizontal"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 
             <!-- 5. 하단 액션 바 -->
             <Grid Grid.Row="4" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center"
-                           Text="Enter 키워드 좁히기  ·  Ctrl+Enter 최종 완성 입력  ·  Esc 창 숨기기(메모 유지)"
+                           Text="↑/↓ 후보 선택 · Enter 좁히기/담기 · Ctrl+Enter 최종 완성 입력 · Esc 닫기"
                            Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="Malgun Gothic, Segoe UI"/>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">

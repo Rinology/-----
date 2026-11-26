@@ -35,7 +35,10 @@ public static class HotkeyValidator
         { "Win+R", "실행 창 열기 단축키와 충돌합니다." }
     };
 
-    public static (bool IsConflict, string WarningMessage) ValidateHotkey(string hotkey)
+    public static (bool IsConflict, string WarningMessage) ValidateHotkey(
+        string hotkey,
+        string? otherConfiguredHotkey = null,
+        string? currentOwnHotkey = null)
     {
         if (string.IsNullOrWhiteSpace(hotkey))
             return (true, "⚠️ 단축키를 입력해 주세요. (예: Alt+Q)");
@@ -90,19 +93,37 @@ public static class HotkeyValidator
             return (true, $"⚠️ 주의: '{canonical}'는 GeForce 오버레이나 브라우저 탭 전환 단축키와 충돌할 수 있습니다.");
         }
 
-        // 실제 Windows OS에서 다른 프로그램이 이미 RegisterHotKey로 선점 중인지 실시간 검사
-        if (!canonical.Equals(Constants.AppConstants.DefaultGlobalHotkey, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(otherConfiguredHotkey))
         {
-            const int probeHotkeyId = 0x7FFF;
-            bool canRegister = Win32Api.RegisterHotKey(IntPtr.Zero, probeHotkeyId, modifiers | Win32Api.MOD_NOREPEAT, vk);
-            if (canRegister)
+            var otherParsed = HotkeyParser.TryParse(otherConfiguredHotkey, out var om, out var ovk, out _)
+                ? BuildCanonicalName(om, ((char)ovk).ToString())
+                : otherConfiguredHotkey.Trim();
+            if (canonical.Equals(otherParsed, StringComparison.OrdinalIgnoreCase) ||
+                canonical.Equals(otherConfiguredHotkey.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                Win32Api.UnregisterHotKey(IntPtr.Zero, probeHotkeyId);
+                return (true, $"⚠️ 주의: '{canonical}'는 다른 ChatHelper 단축키와 중복됩니다.");
             }
-            else
-            {
-                return (true, $"⚠️ 주의: '{canonical}'는 현재 실행 중인 다른 프로그램 또는 Windows에서 이미 사용 중입니다.");
-            }
+        }
+
+        bool isOwnActive = !string.IsNullOrWhiteSpace(currentOwnHotkey) &&
+            HotkeyParser.TryParse(currentOwnHotkey, out var cm, out var cvk, out _) &&
+            cm == modifiers && cvk == vk;
+
+        if (isOwnActive)
+        {
+            return (false, $"✅ 현재 적용 중인 단축키입니다 ({canonical}).");
+        }
+
+        // 실제 Windows OS에서 다른 프로그램이 이미 RegisterHotKey로 선점 중인지 실시간 검사
+        const int probeHotkeyId = 0x7FFF;
+        bool canRegister = Win32Api.RegisterHotKey(IntPtr.Zero, probeHotkeyId, modifiers | Win32Api.MOD_NOREPEAT, vk);
+        if (canRegister)
+        {
+            Win32Api.UnregisterHotKey(IntPtr.Zero, probeHotkeyId);
+        }
+        else
+        {
+            return (true, $"⚠️ 주의: '{canonical}'는 현재 실행 중인 다른 프로그램 또는 Windows에서 이미 사용 중입니다.");
         }
 
         return (false, $"✅ 사용 가능한 안전한 단축키입니다 ({canonical}).");

@@ -28,6 +28,7 @@ public class KeyboardHookService : IDisposable
     public event Action<string>? AiGeneratingStarted;
     public event Action? RequestCloseCandidates;
     public event Action<IntPtr>? GlobalHotkeyTriggered;
+    public event Action<IntPtr>? MemoHudHotkeyTriggered;
     public event Action<IntPtr>? AiHotkeyTriggered;
     public event Action<IntPtr>? TranslateHotkeyTriggered;
     public event Action<TemplateItem?, string, IntPtr, int>? MemoAddRequested;
@@ -37,6 +38,7 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr>? MemoClearRequested;
     public event Action<IntPtr>? QuickRegisterHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
+    public Func<string, string>? TemplateContentResolver { get; set; }
     public event Action<string, string>? RecognitionStateChanged;
 
     public IntPtr LastTargetHwnd => _lastTargetHwnd;
@@ -82,6 +84,9 @@ public class KeyboardHookService : IDisposable
     private string? _cachedHotkeyText;
     private (uint ModFlags, int VkCode, int ScanCode, string Label) _parsedGlobalHotkey =
         (HotkeyParser.MOD_ALT, 'S', 0x1F, "Alt+S");
+    private string? _cachedMemoHotkeyText;
+    private (uint ModFlags, int VkCode, int ScanCode, string Label) _parsedMemoHotkey =
+        (HotkeyParser.MOD_ALT, 'N', 0x31, "Alt+N");
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -235,6 +240,30 @@ public class KeyboardHookService : IDisposable
                 return (IntPtr)1;
             }
 
+            // 상담 메모 HUD 열기 전역 단축키 감지 (기본: Alt+N, 제어판에서 변경 가능)
+            var memoHotkey = GetConfiguredMemoHotkey();
+            bool mNeedAlt = (memoHotkey.ModFlags & HotkeyParser.MOD_ALT) != 0;
+            bool mNeedCtrl = (memoHotkey.ModFlags & HotkeyParser.MOD_CONTROL) != 0;
+            bool mNeedShift = (memoHotkey.ModFlags & HotkeyParser.MOD_SHIFT) != 0;
+            bool mNeedWin = (memoHotkey.ModFlags & HotkeyParser.MOD_WIN) != 0;
+            bool mKeyMatched = vkCode == memoHotkey.VkCode || (memoHotkey.ScanCode > 0 && scanCode == memoHotkey.ScanCode);
+            if (mKeyMatched &&
+                isLeftAltPressed == mNeedAlt &&
+                isCtrlPressed == mNeedCtrl &&
+                isShiftPressed == mNeedShift &&
+                isWinPressed == mNeedWin)
+            {
+                if (mNeedAlt)
+                {
+                    Win32Api.keybd_event(0xFC, 0, 0, UIntPtr.Zero);
+                    Win32Api.keybd_event(0xFC, 0, Win32Api.KEYEVENTF_KEYUP, UIntPtr.Zero);
+                }
+                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
+                AppLogger.Info("KeyboardHook", $"메모 열기 {memoHotkey.Label} 훅 감지 (vk=0x{vkCode:X}, fg=0x{fgHwnd.ToInt64():X})");
+                MemoHudHotkeyTriggered?.Invoke(fgHwnd);
+                return (IntPtr)1;
+            }
+
             // Alt + X 특수문자 전용 창 호출 (왼쪽 Alt + X)
             if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_X || scanCode == Win32Api.SCAN_X))
             {
@@ -336,26 +365,38 @@ public class KeyboardHookService : IDisposable
                     }
                     if (vkCode == Win32Api.VK_V)
                     {
+                        while (_keyChannel.Reader.TryRead(out _)) { }
                         _buffer.Clear();
+                        LastRecognizedToken = string.Empty;
+                        ClearCandidates(cancelAi: true);
                         MemoClipboardRequested?.Invoke(currentFgHwnd, 1);
                         return (IntPtr)1;
                     }
-                    if (vkCode == Win32Api.VK_C && _hasActiveMemos)
+                    if (vkCode == Win32Api.VK_C)
                     {
+                        while (_keyChannel.Reader.TryRead(out _)) { }
                         _buffer.Clear();
+                        LastRecognizedToken = string.Empty;
+                        ClearCandidates(cancelAi: true);
                         Task.Run(() => TextInjectionService.SendBackspaces(1));
                         MemoClearRequested?.Invoke(currentFgHwnd);
                         return (IntPtr)1;
                     }
                     if (vkCode == Win32Api.VK_F && _hasActiveMemos)
                     {
+                        while (_keyChannel.Reader.TryRead(out _)) { }
                         _buffer.Clear();
+                        LastRecognizedToken = string.Empty;
+                        ClearCandidates(cancelAi: true);
                         MemoFinalizeRequested?.Invoke(currentFgHwnd, 1);
                         return (IntPtr)1;
                     }
                     if (vkCode == Win32Api.VK_N)
                     {
+                        while (_keyChannel.Reader.TryRead(out _)) { }
                         _buffer.Clear();
+                        LastRecognizedToken = string.Empty;
+                        ClearCandidates(cancelAi: true);
                         Task.Run(() => TextInjectionService.SendBackspaces(1));
                         MemoDetailRequested?.Invoke(currentFgHwnd);
                         return (IntPtr)1;
@@ -411,6 +452,17 @@ public class KeyboardHookService : IDisposable
             _cachedHotkeyText = raw;
         }
         return _parsedGlobalHotkey;
+    }
+
+    private (uint ModFlags, int VkCode, int ScanCode, string Label) GetConfiguredMemoHotkey()
+    {
+        string raw = string.IsNullOrWhiteSpace(_configManager.Config.MemoHotkey) ? "Alt+N" : _configManager.Config.MemoHotkey!;
+        if (!string.Equals(raw, _cachedMemoHotkeyText, StringComparison.Ordinal))
+        {
+            _parsedMemoHotkey = HotkeyParser.ResolveOrDefault(raw);
+            _cachedMemoHotkeyText = raw;
+        }
+        return _parsedMemoHotkey;
     }
 
     private bool IsValidTargetWindowCached(IntPtr hwnd)
@@ -559,12 +611,14 @@ public class KeyboardHookService : IDisposable
                     MemoClipboardRequested?.Invoke(target, 0);
                     return true;
                 }
-                if (vkCode == Win32Api.VK_C && _hasActiveMemos)
+                if (vkCode == Win32Api.VK_C)
                 {
                     IntPtr target = _lastTargetHwnd;
                     _triggerArmed = false;
                     _buffer.Clear();
+                    LastRecognizedToken = string.Empty;
                     ClearCandidates();
+                    Task.Run(() => TextInjectionService.SendBackspaces(1));
                     MemoClearRequested?.Invoke(target);
                     return true;
                 }
@@ -956,7 +1010,10 @@ public class KeyboardHookService : IDisposable
         {
             try
             {
-                TextInjectionService.ReplaceText(deleteCount, item.Content, hwnd, useShiftHome);
+                string finalContent = TemplateContentResolver != null
+                    ? TemplateContentResolver(item.Content)
+                    : item.Content;
+                TextInjectionService.ReplaceText(deleteCount, finalContent, hwnd, useShiftHome);
                 ItemAutoCompleted?.Invoke(item);
             }
             finally

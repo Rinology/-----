@@ -7,6 +7,8 @@ namespace ChatHelper.Services;
 
 public static class TextInjectionService
 {
+    public static string LastInjectedText { get; private set; } = string.Empty;
+
     public static void SendBackspaces(int count)
     {
         if (count <= 0) return;
@@ -47,6 +49,8 @@ public static class TextInjectionService
                        .Replace("\r\n", "\n")
                        .Replace("\r", "\n")
                        .Replace("\n", "\r\n");
+
+            LastInjectedText = text;
 
             // 1. 클립보드에 텍스트 복사 (OpenClipboard 점유 충돌 대비 최대 5회 재시도)
             SetClipboardTextWithRetry(text);

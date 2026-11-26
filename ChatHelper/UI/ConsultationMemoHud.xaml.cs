@@ -25,6 +25,7 @@ public partial class ConsultationMemoHud : Window
     private bool _hasCustomPosition = false;
     private bool _suppressPreviewSync = false;
     private bool _isPreviewEdited = false;
+    private bool _allowEmptyShow = false;
 
     public event Action<string, IntPtr, int>? FinalInsertRequested;
     public event Action<IntPtr>? OpenDetailRequested;
@@ -52,8 +53,30 @@ public partial class ConsultationMemoHud : Window
 
     public void ApplyOpacity()
     {
-        double alpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double alpha = Math.Clamp(_configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, alpha);
+    }
+
+    public void ShowEmptyOrCurrent(IntPtr targetHwnd)
+    {
+        if (Win32Api.IsValidTargetWindow(targetHwnd))
+            _targetHwnd = targetHwnd;
+
+        if (!_configManager.Config.EnableConsultationMemo)
+        {
+            _configManager.Config.EnableConsultationMemo = true;
+            _configManager.Save();
+        }
+
+        if (IsVisible)
+        {
+            Hide();
+            _allowEmptyShow = false;
+            return;
+        }
+
+        _allowEmptyShow = true;
+        RefreshHud();
     }
 
     public void AddMemo(TemplateItem? candidate, string rawKeyword, IntPtr targetHwnd)
@@ -98,6 +121,7 @@ public partial class ConsultationMemoHud : Window
     {
         _entries.Clear();
         _isPreviewEdited = false;
+        _allowEmptyShow = false;
         RefreshHud();
     }
 
@@ -154,13 +178,15 @@ public partial class ConsultationMemoHud : Window
     {
         MemoCountChanged?.Invoke(_entries.Count);
 
-        if (!_configManager.Config.EnableConsultationMemo || _entries.Count == 0)
+        if (!_configManager.Config.EnableConsultationMemo || (_entries.Count == 0 && !_allowEmptyShow))
         {
             Hide();
             return;
         }
 
-        TxtMemoHeader.Text = $"📝 상담 스무고개 메모 ({_entries.Count}개 누적)";
+        TxtMemoHeader.Text = _entries.Count == 0
+            ? "📝 상담 스무고개 메모 (비어 있음 — \\+V로 클립보드 담기)"
+            : $"📝 상담 스무고개 메모 ({_entries.Count}개 누적)";
         ChipsPanel.Children.Clear();
         MemoCardsPanel.Children.Clear();
 
@@ -452,9 +478,10 @@ public partial class ConsultationMemoHud : Window
         _isPreviewEdited = true;
     }
 
-    private void BtnPasteClipboardMemo_Click(object sender, RoutedEventArgs e)
+    private async void BtnPasteClipboardMemo_Click(object sender, RoutedEventArgs e)
     {
-        string clip = TextInjectionService.GetClipboardTextSafe().Trim();
+        var result = await ClipboardSmartService.GetCustomerMessageAsync();
+        string clip = result.ExtractedText.Trim();
         if (string.IsNullOrWhiteSpace(clip)) return;
         AddMemo(null, clip, _targetHwnd);
     }
@@ -472,7 +499,11 @@ public partial class ConsultationMemoHud : Window
 
     private void BtnClearMemos_Click(object sender, RoutedEventArgs e) => ClearMemos();
 
-    private void BtnHideHud_Click(object sender, RoutedEventArgs e) => Hide();
+    private void BtnHideHud_Click(object sender, RoutedEventArgs e)
+    {
+        _allowEmptyShow = false;
+        Hide();
+    }
 
     private void MainBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {

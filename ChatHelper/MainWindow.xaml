@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ChatHelper"
-        Height="48" Width="694"
+        Height="48" Width="760"
         WindowStyle="None"
         Background="{DynamicResource ThemeHudBg}"
         ResizeMode="NoResize"
@@ -72,13 +72,16 @@
                                 <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
                                 <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
                                 <Button x:Name="BtnToggleMemo" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="클릭: 상담 스무고개 메모 HUD ON/OFF 전환 · 우클릭: 메모 편집창(\+N)"
-                                        Click="BtnToggleMemo_Click" MouseRightButtonUp="BtnToggleMemo_RightClick">
+                                        ToolTip="클릭: 상담 스무고개 메모 HUD ON/OFF 전환"
+                                        Click="BtnToggleMemo_Click">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Ellipse x:Name="MemoDot" Width="7" Height="7" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <TextBlock x:Name="TxtMemoToggle" Text="메모" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeText}"/>
                                     </StackPanel>
                                 </Button>
+                                <Button x:Name="BtnOpenMemo" Content="메모열기" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
+                                        ToolTip="메모가 비어 있어도 상담 메모 HUD 열기/닫기 (단축키: Alt+N · 우클릭: 상세 편집창)"
+                                        Click="BtnOpenMemo_Click" MouseRightButtonUp="BtnToggleMemo_RightClick"/>
                                 <TextBlock x:Name="LblSyncStatus" Text="↻ 0" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"
                                            Padding="6,4" Cursor="Hand"

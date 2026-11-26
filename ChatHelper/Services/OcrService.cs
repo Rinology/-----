@@ -142,15 +142,36 @@ public static class OcrService
             formatted = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
         }
 
-        // 2. Alpha 복원 완료 후 해상도 보정: 너무 큰 경우 축소(2400px 이하), 작은 한 줄 말풍선은 2배 확대
+        // 2. Alpha 복원 완료 후 해상도 보정: 너무 큰 경우 축소(2400px 이하), 작은 1줄 캡처는 2~3배 확대
         if (w > 2400 || h > 2400)
         {
             double scale = Math.Min(2400.0 / w, 2400.0 / h);
             formatted = new TransformedBitmap(formatted, new ScaleTransform(scale, scale));
         }
-        else if (h < 90 || w < 350)
+        else if (h < 60 || w < 220)
+        {
+            formatted = new TransformedBitmap(formatted, new ScaleTransform(3.0, 3.0));
+        }
+        else if (h < 120 || w < 450)
         {
             formatted = new TransformedBitmap(formatted, new ScaleTransform(2.0, 2.0));
+        }
+
+        // 3. 경계에 바짝 잘린 1줄 숫자/텍스트 인식을 돕기 위해 24px 흰색 여백(Padding) 추가
+        int pw = formatted.PixelWidth;
+        int ph = formatted.PixelHeight;
+        if (pw > 0 && ph > 0 && pw < 2300 && ph < 2300)
+        {
+            const int pad = 24;
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen())
+            {
+                dc.DrawRectangle(Brushes.White, null, new System.Windows.Rect(0, 0, pw + pad * 2, ph + pad * 2));
+                dc.DrawImage(formatted, new System.Windows.Rect(pad, pad, pw, ph));
+            }
+            var rtb = new RenderTargetBitmap(pw + pad * 2, ph + pad * 2, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(dv);
+            formatted = rtb;
         }
 
         if (formatted.CanFreeze && !formatted.IsFrozen)

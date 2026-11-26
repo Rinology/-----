@@ -45,7 +45,7 @@ public static class ClipboardSmartService
                         imageSource = Clipboard.GetImage();
                     }
 
-                    // 2. 윈도우 캡처 도구(Win+Shift+S) PNG 스트림 검사
+                    // 2. 윈도우 캡처 도구(Win+Shift+S) / Win+V 히스토리의 PNG·DIB 스트림 검사
                     if (imageSource == null)
                     {
                         IDataObject? dataObj = Clipboard.GetDataObject();
@@ -71,10 +71,14 @@ public static class ClipboardSmartService
                                 }
                             }
                         }
+                        if (imageSource == null && dataObj != null && dataObj.GetDataPresent(DataFormats.Dib, true))
+                        {
+                            try { imageSource = Clipboard.GetImage(); } catch { }
+                        }
                     }
 
-                    // 3. 복사된 텍스트 검사
-                    if (imageSource == null && Clipboard.ContainsText())
+                    // 3. 복사된 텍스트 검사 (이미지와 텍스트가 함께 들어있는 경우에도 텍스트를 백업 확보)
+                    if (Clipboard.ContainsText())
                     {
                         directText = Clipboard.GetText()?.Trim() ?? string.Empty;
                     }

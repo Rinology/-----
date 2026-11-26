@@ -25,10 +25,13 @@ public static class AppConstants
     public const double MinWindowOpacity = 0.50;
     public const double MaxWindowOpacity = 1.0;
     public const double DefaultWindowOpacity = 0.95;
+    public const double DefaultMemoOpacity = 0.95;
 
     public const int PillScaleNormal = 1;
     public const int PillScaleLarge = 2;
     public const int PillScaleExtraLarge = 3;
+    public const int PillScaleXLarge = 4;
+    public const int PillScaleXXLarge = 5;
 
     public const int PillOffsetTight = 15;
     public const int PillOffsetNormal = 35;
@@ -56,6 +59,7 @@ public static class AppConstants
     public const string NoticeSlashOnly = "※ '\\' 단독 즉시 실행 모드에서는 1번 항목이 즉시 치환되므로 추천 알약 형태가 [단일 알약 툴팁]으로 자동 고정됩니다.";
     public const string DefaultTriggerKey = "\\";
     public const string DefaultGlobalHotkey = "Alt+S";
+    public const string DefaultMemoHotkey = "Alt+N";
 
     // 구글 스프레드시트 기본 식별자 및 URL 빌더 (AES 암호화 보관)
     public static string DefaultPublishedSheetId => Services.SecretVault.FallbackPublishedSheetId;

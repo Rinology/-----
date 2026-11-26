@@ -184,6 +184,75 @@ public static class ConsultationMemoService
 
     private static readonly Regex PlaceholderRegex = new(@"\{([^{}\r\n]{1,24})\}", RegexOptions.Compiled);
 
+    public static bool ContainsPlaceholders(string? text)
+        => !string.IsNullOrEmpty(text) && PlaceholderRegex.IsMatch(text);
+
+    public static List<string> ExtractPlaceholderNames(string? text)
+    {
+        var list = new List<string>();
+        if (string.IsNullOrEmpty(text)) return list;
+        foreach (Match m in PlaceholderRegex.Matches(text))
+        {
+            string key = m.Groups[1].Value.Trim();
+            if (!string.IsNullOrEmpty(key) && !list.Contains(key, StringComparer.OrdinalIgnoreCase))
+                list.Add(key);
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// 템플릿 본문 내 {송장번호}, {1}, {메모} 등을 메모 HUD의 자유 메모 또는 짧은 한 줄 클립보드 값으로 자동 치환합니다.
+    /// </summary>
+    public static string ResolveTemplateWithMemosOrClipboard(
+        string templateText,
+        IEnumerable<MemoEntry>? entries,
+        string? clipboardFallback,
+        string? lastInjectedText = null)
+    {
+        if (string.IsNullOrEmpty(templateText) || !PlaceholderRegex.IsMatch(templateText))
+            return templateText;
+
+        var freeMemos = new List<(int EntryIndex, string Value)>();
+        if (entries != null)
+        {
+            int idx = 0;
+            foreach (var e in entries)
+            {
+                if (string.Equals(e.Category, "메모", StringComparison.OrdinalIgnoreCase))
+                {
+                    string val = !string.IsNullOrWhiteSpace(e.Content)
+                        ? e.Content.Trim()
+                        : (e.MemoNote?.Trim() ?? string.Empty);
+                    if (!string.IsNullOrWhiteSpace(val))
+                        freeMemos.Add((idx, val));
+                }
+                idx++;
+            }
+        }
+
+        string resolved = templateText;
+        if (freeMemos.Count > 0)
+        {
+            var consumed = new HashSet<int>();
+            int nextIdx = 0;
+            resolved = ReplacePlaceholders(resolved, freeMemos, consumed, ref nextIdx);
+        }
+
+        if (!string.IsNullOrWhiteSpace(clipboardFallback) && PlaceholderRegex.IsMatch(resolved))
+        {
+            string clip = clipboardFallback.Trim();
+            bool isSelfInjected = !string.IsNullOrEmpty(lastInjectedText) &&
+                string.Equals(clip.Replace("\r\n", "\n"), lastInjectedText.Trim().Replace("\r\n", "\n"), StringComparison.Ordinal);
+            bool isSingleLineShort = !clip.Contains('\n') && !clip.Contains('\r') && clip.Length <= 60;
+            if (!isSelfInjected && isSingleLineShort)
+            {
+                resolved = PlaceholderRegex.Replace(resolved, clip);
+            }
+        }
+
+        return resolved;
+    }
+
     /// <summary>
     /// 본문 내 {1}, {메모}, {날짜} 등의 자리표시자를 자유 메모 값으로 자동 치환합니다.
     /// </summary>

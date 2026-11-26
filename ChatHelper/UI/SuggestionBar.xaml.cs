@@ -40,7 +40,9 @@ public partial class SuggestionBar : Window
             return;
         }
 
-        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        // 4배(4.0x) 이상 큰 알약은 채팅창을 가리지 않도록 반드시 마우스 포인터 위치만 사용
+        bool forceMouse = _configManager.Config.PillScale >= 4;
+        bool useMouse = forceMouse || _configManager.Config.PillPlacement == "MousePointer";
         if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _, useMouse))
         {
             Hide();
@@ -57,6 +59,7 @@ public partial class SuggestionBar : Window
         BottomAiRowPanel.Visibility = Visibility.Collapsed;
 
         ApplyRecognitionBanner(statusMode, _recognizedToken, _recognizedToken.Length);
+        ApplyHeaderScale(Math.Max(1, _configManager.Config.PillScale));
         RecognitionHeaderBorder.Margin = new Thickness(0);
         RecognitionHeaderBorder.BorderThickness = new Thickness(0);
 
@@ -204,6 +207,40 @@ public partial class SuggestionBar : Window
         Win32Api.SetWindowAlpha(this, winAlpha);
     }
 
+    private void ApplyHeaderScale(int scale)
+    {
+        double headerFont = scale switch { 1 => 10.5, 3 => 13.5, 4 => 16, 5 => 18.5, _ => 11.5 };
+        double closeSize = scale switch { 1 => 18, 3 => 24, 4 => 28, 5 => 32, _ => 20 };
+        Thickness headerPad = scale switch
+        {
+            1 => new Thickness(6, 3, 6, 3),
+            3 => new Thickness(10, 5, 10, 5),
+            4 => new Thickness(12, 6, 12, 6),
+            5 => new Thickness(14, 7, 14, 7),
+            _ => new Thickness(8, 4, 8, 4)
+        };
+
+        if (RecognitionHeaderBorder != null)
+            RecognitionHeaderBorder.Padding = headerPad;
+        if (TxtRecognitionHeader != null)
+            TxtRecognitionHeader.FontSize = headerFont;
+        if (TxtAutoHideCountdown != null)
+            TxtAutoHideCountdown.FontSize = Math.Max(10, headerFont - 0.5);
+        if (BtnQuickRegisterToken != null)
+        {
+            BtnQuickRegisterToken.FontSize = Math.Max(10, headerFont - 0.5);
+            BtnQuickRegisterToken.Padding = scale >= 4 ? new Thickness(10, 4, 10, 4) : new Thickness(7, 2, 7, 2);
+        }
+        if (BtnCloseSuggestion != null)
+        {
+            BtnCloseSuggestion.FontSize = headerFont;
+            BtnCloseSuggestion.Width = closeSize;
+            BtnCloseSuggestion.Height = closeSize;
+        }
+        if (TxtPositionNotice != null)
+            TxtPositionNotice.FontSize = Math.Max(10.5, headerFont - 0.5);
+    }
+
     public void ShowCandidates(List<TemplateItem> candidates, int matchedLen, IntPtr targetHwnd)
     {
         var mode = _configManager.Config.DisplayMode;
@@ -214,7 +251,9 @@ public partial class SuggestionBar : Window
         }
 
         // 유효한 텍스트 입력 창인지 확인 (바탕화면, 자기 자신 창 등 제외)
-        bool useMouse = _configManager.Config.PillPlacement == "MousePointer";
+        // 4배(4.0x) 이상 큰 알약은 채팅창을 가리지 않도록 반드시 마우스 포인터 위치만 사용
+        bool forceMouse = _configManager.Config.PillScale >= 4;
+        bool useMouse = forceMouse || _configManager.Config.PillPlacement == "MousePointer";
         if (!Win32Api.TryGetValidInputPosition(out double caretX, out double caretY, out _, useMouse))
         {
             Hide();
@@ -248,12 +287,27 @@ public partial class SuggestionBar : Window
 
         int scale = _configManager.Config.PillScale;
         if (scale < 1) scale = 2;
+        ApplyHeaderScale(scale);
 
-        double badgeFontSize = scale switch { 1 => 11, 3 => 16, _ => 13 };
-        double contentFontSize = scale switch { 1 => 12, 3 => 19, _ => 16 };
-        Thickness badgePadding = scale switch { 1 => new Thickness(6, 2, 6, 2), 3 => new Thickness(12, 5, 12, 5), _ => new Thickness(9, 3, 9, 3) };
-        Thickness mainPadding = scale switch { 1 => new Thickness(8, 4, 8, 4), 3 => new Thickness(18, 10, 18, 10), _ => new Thickness(14, 7, 14, 7) };
-        int maxPreviewLen = scale switch { 1 => 35, 3 => 85, _ => 65 };
+        double badgeFontSize = scale switch { 1 => 11, 3 => 16, 4 => 19, 5 => 22, _ => 13 };
+        double contentFontSize = scale switch { 1 => 12, 3 => 19, 4 => 23, 5 => 27, _ => 16 };
+        Thickness badgePadding = scale switch
+        {
+            1 => new Thickness(6, 2, 6, 2),
+            3 => new Thickness(12, 5, 12, 5),
+            4 => new Thickness(14, 6, 14, 6),
+            5 => new Thickness(16, 8, 16, 8),
+            _ => new Thickness(9, 3, 9, 3)
+        };
+        Thickness mainPadding = scale switch
+        {
+            1 => new Thickness(8, 4, 8, 4),
+            3 => new Thickness(18, 10, 18, 10),
+            4 => new Thickness(22, 12, 22, 12),
+            5 => new Thickness(26, 14, 26, 14),
+            _ => new Thickness(14, 7, 14, 7)
+        };
+        int maxPreviewLen = scale switch { 1 => 35, 3 => 85, 4 => 110, 5 => 140, _ => 65 };
 
         MainBorder.Padding = mainPadding;
 
@@ -774,7 +828,9 @@ public partial class SuggestionBar : Window
         double winAlpha = Math.Clamp(_configManager.Config.WindowOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, winAlpha);
 
-        string placement = _configManager.Config.PillPlacement ?? "CursorNearby";
+        string placement = _configManager.Config.PillScale >= 4
+            ? "MousePointer"
+            : (_configManager.Config.PillPlacement ?? "CursorNearby");
         int offsetY = _configManager.Config.PillOffsetY;
         var (adjLeft, adjTop, notice) = ComputeAdjustedPosition(
             dipX, dipY, mouseDipX, mouseDipY, w, h,

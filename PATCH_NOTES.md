@@ -4,6 +4,46 @@
 
 ---
 
+## [v3.0.2] — 2026-11-26 (송장번호 2중 붙여넣기 차단 · 작은 이미지 OCR 3배 보정 · 단축키 교차/OS 충돌 감지 · 알약 헤더 비례 확대 · 조합기 방향키/변수 입력 개선)
+
+### ✨ Added / Changed
+- **상담 메모 조합기(`ConsultationMemoWindow`) `↑`/`↓` 방향키 선택 및 `{변수}` 전용 입력 칸 추가 ([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - `Alt+S` 검색창과 동일하게 `↑`/`↓` 방향키로 좌측 후보 목록을 이동하고 `Enter`로 즉시 담기 지원.
+  - 담은 답변에 `{송장번호}`, `{날짜}` 등의 자리표시자가 감지되면 하단에 **전용 변수 입력 칸(`VariableInputsBar`)과 📋 클립보드 채움 버튼**을 자동 생성해 직관적으로 치환 가능.
+- **추천 알약 상단 헤더(인식 텍스트 · 타이머 · `+ 메모` · `✕`) 비례 확대 ([SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - 알약 크기(`1.0x~5.0x`)에 맞춰 상단 인식 배지, 타이머, `+ 메모`, `✕` 닫기 버튼도 동일 비율로 커지도록 개선.
+
+### 🐛 Fixed
+- **송장번호 변수 치환 시 방금 붙여넣은 템플릿 본문이 2번 겹쳐 들어가던 문제 해결 ([TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs), [ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs))**:
+  - `FastPasteText`가 붙여넣기 위해 클립보드에 넣었던 본문(`LastInjectedText`) 및 줄바꿈이 포함된 긴 텍스트는 `{송장번호}` 자동 폴백 대상에서 제외.
+- **작은 1줄 캡처 이미지(`\ + V`) OCR 미인식 수정 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - 높이가 작은 1줄 캡처(`h < 60` 또는 `w < 220`)는 **3배 확대 + 24px 흰색 여백(Padding)**을 추가해 Windows OCR이 숫자·코드를 정확히 인식하도록 개선.
+- **단축키 충돌 검사 누락 수정 ([HotkeyValidator.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/HotkeyValidator.cs), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs))**:
+  - 기본 단축키(`Alt+S`) 예외를 제거하고, 템플릿 검색 단축키와 메모 열기 단축키 간의 내부 중복 및 OS `RegisterHotKey` 실시간 선점 검사가 모두 동작하도록 수정.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.0.1] — 2026-11-26 (메모 열기 단축키·버튼, 클립보드 이미지/자리표시자 자동 결합, `+ 메모` 가독성, `\+C` 수정, 알약 4~5배 마우스 고정)
+
+### ✨ Added / Changed
+- **상담 메모 HUD 전용 열기 단축키(`Alt+N`, 제어판 변경 가능) & 마스터창 `[메모열기]` 버튼 추가 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [ConsultationMemoHud.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoHud.xaml.cs))**:
+  - 메모가 0개일 때도 `Alt+N` 또는 마스터창 도킹 바의 `메모열기` 버튼 클릭으로 즉시 메모 HUD를 열고 닫을 수 있도록 개선.
+- **상담 메모 HUD 투명도(`MemoOpacity`) 독립 설정 추가 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml))**:
+  - 제어판 `🎨 디자인 & 표시`에서 메모 HUD 투명도(`70%` / `80%` / `90%` / `100%`)를 별도로 설정하고 즉시 반영.
+- **추천 알약 크기 `4.0x` / `5.0x` 추가 및 마우스 커서 위치 자동 고정 ([SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs))**:
+  - 기존 `1.0x~3.0x`에 `매우 크게(4.0x)`·`최대(5.0x)`를 추가하고, `4.0x` 이상 선택 시 채팅창을 가리지 않도록 등장 위치를 반드시 `[마우스 포인터 위치]`로 고정.
+- **송장번호 등 복사 후 메모창 없이도 템플릿 자리표시자(`{송장번호}`, `{1}` 등) 즉시 자동 결합 ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - 메모가 비어 있을 때도 클립보드(텍스트 및 이미지 OCR) 값을 읽어 `{...}` 자리표시자에 바로 채워 완성할 수 있도록 개선.
+
+### 🐛 Fixed
+- **`+ 메모` 버튼 흰색 글씨 가독성 수정 ([SuggestionBar.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml))**: 파스텔 배경 위에서 보이지 않던 `#FFFFFF` 글씨를 `ThemeAccentText` + `ThemeAccentBorder` 스타일로 수정.
+- **`\ + C` 메모 초기화 미작동 수정 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**: `\` 직후 대기 큐 정리 및 `_hasActiveMemos` 상태와 무관하게 `\+C`가 즉시 초기화를 수행하도록 수정.
+- **`Win + V` / 캡처 이미지 클립보드 인식 누락 수정 ([ClipboardSmartService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ClipboardSmartService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**: `\+V` 및 HUD `📋 클립보드 담기`가 텍스트 전용 함수 대신 `ClipboardSmartService`(PNG/DIB 이미지 OCR + 텍스트)를 사용하도록 개선.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.0.0] — 2026-11-26 (비방해형 스무고개 메모 HUD · 양방향 번역 세션 · 배포 보안 강화)
 
 ### ✨ Added / Changed
