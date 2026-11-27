@@ -163,6 +163,17 @@ public partial class ControlPanelWindow : Window
         else
             RadioMemoOpacity100.IsChecked = true;
 
+        // 메모장 색상
+        switch (cfg.MemoColor)
+        {
+            case "White": RadioMemoColorWhite.IsChecked = true; break;
+            case "Blue": RadioMemoColorBlue.IsChecked = true; break;
+            case "Mint": RadioMemoColorMint.IsChecked = true; break;
+            case "Lavender": RadioMemoColorLavender.IsChecked = true; break;
+            case "Pink": RadioMemoColorPink.IsChecked = true; break;
+            default: RadioMemoColorYellow.IsChecked = true; break;
+        }
+
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
         else if (cfg.DisplayMode == "ManualOnly")
@@ -529,6 +540,14 @@ public partial class ControlPanelWindow : Window
         else if (RadioMemoOpacity80?.IsChecked == true) cfg.MemoOpacity = 0.80;
         else if (RadioMemoOpacity90?.IsChecked == true) cfg.MemoOpacity = 0.90;
         else cfg.MemoOpacity = 1.0;
+
+        // 메모장 색상 저장
+        if (RadioMemoColorWhite?.IsChecked == true) cfg.MemoColor = "White";
+        else if (RadioMemoColorBlue?.IsChecked == true) cfg.MemoColor = "Blue";
+        else if (RadioMemoColorMint?.IsChecked == true) cfg.MemoColor = "Mint";
+        else if (RadioMemoColorLavender?.IsChecked == true) cfg.MemoColor = "Lavender";
+        else if (RadioMemoColorPink?.IsChecked == true) cfg.MemoColor = "Pink";
+        else cfg.MemoColor = "Yellow";
 
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.EnableMathCalc = ChkEnableMathCalc.IsChecked == true;

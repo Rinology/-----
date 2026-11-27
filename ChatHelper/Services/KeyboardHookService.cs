@@ -74,6 +74,7 @@ public class KeyboardHookService : IDisposable
     private volatile bool _hasCandidates = false;
     private volatile bool _hasActiveMemos = false;
     private volatile bool _memoSlashArmed = false;
+    private string _lastNonSlashWord = string.Empty;
     public bool HasActiveMemos
     {
         get => _hasActiveMemos;
@@ -359,6 +360,12 @@ public class KeyboardHookService : IDisposable
                 }
                 else if (_memoSlashArmed)
                 {
+                    // Shift나 한/영 전환 키가 중간에 눌려도 \+M 대기 상태를 유지
+                    if (vkCode == Win32Api.VK_SHIFT || vkCode == 0xA0 || vkCode == 0xA1 ||
+                        vkCode == Win32Api.VK_HANGUL || vkCode == Win32Api.VK_RMENU)
+                    {
+                        return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
+                    }
                     _memoSlashArmed = false;
                     if (vkCode == Win32Api.VK_M)
                     {
@@ -373,6 +380,9 @@ public class KeyboardHookService : IDisposable
                             ? bufHangul
                             : (!string.IsNullOrWhiteSpace(LastRecognizedToken) ? LastRecognizedToken : bufRaw);
                         token = token.TrimStart('\\', '/').Trim();
+                        if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(_lastNonSlashWord))
+                            token = _lastNonSlashWord;
+                        _lastNonSlashWord = string.Empty;
                         _buffer.Clear();
                         LastRecognizedToken = string.Empty;
                         ClearCandidates(cancelAi: true);
@@ -385,6 +395,7 @@ public class KeyboardHookService : IDisposable
                         else
                         {
                             Task.Run(() => TextInjectionService.SendBackspaces(1));
+                            MemoAddRequested?.Invoke(null, string.Empty, currentFgHwnd, 0);
                         }
                         return (IntPtr)1;
                     }
@@ -619,6 +630,9 @@ public class KeyboardHookService : IDisposable
                         ? bufHangul
                         : LastRecognizedToken;
                     token = token.TrimStart('\\', '/').Trim();
+                    if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(_lastNonSlashWord))
+                        token = _lastNonSlashWord;
+                    _lastNonSlashWord = string.Empty;
                     int bsCount = Math.Max(_currentMatchedLen, token.Length);
                     IntPtr target = _lastTargetHwnd;
                     _triggerArmed = false;
@@ -777,10 +791,13 @@ public class KeyboardHookService : IDisposable
                     return;
                 }
 
-                // '\' 또는 '/' 단축어 시작 기호를 입력한 경우(수식 입력 중이 아닐 때) 이전 잔여 버퍼를 비워 \dz, /dz 즉시 인식 보장
+                // '\' 또는 '/' 단축어 시작 기호를 입력한 경우(수식 입력 중이 아닐 때) 이전 잔여 버퍼를 비우기 전 \+M 용 마지막 단어 보존
                 if (inputChar.Value == '\\' ||
                     (inputChar.Value == '/' && !MathCalcHelper.LooksLikePartialMath(_buffer.GetRawText())))
                 {
+                    string prevWord = _buffer.GetHangulText().Trim().TrimStart('\\', '/').Trim();
+                    if (!string.IsNullOrWhiteSpace(prevWord))
+                        _lastNonSlashWord = prevWord;
                     _buffer.Clear();
                 }
 

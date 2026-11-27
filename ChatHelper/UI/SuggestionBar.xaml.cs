@@ -343,10 +343,12 @@ public partial class SuggestionBar : Window
 
                 var preview = topItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
                 if (preview.Length > maxPreviewLen) preview = preview[..maxPreviewLen] + "...";
+                bool topHasVars = ConsultationMemoService.ContainsPlaceholders(topItem.Content);
+                string topVarMark = topHasVars ? " {}" : string.Empty;
 
                 var btn = new Button
                 {
-                    Content = $"{topItem.Title} — {preview}",
+                    Content = $"{topItem.Title}{topVarMark} — {preview}",
                     Style = TryFindResource("ThemeDockButtonStyle") as Style,
                     Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                     Background = Brushes.Transparent,
@@ -357,6 +359,11 @@ public partial class SuggestionBar : Window
                     FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
                     Focusable = false
                 };
+                if (topHasVars)
+                {
+                    var varNames = ConsultationMemoService.ExtractPlaceholderNames(topItem.Content);
+                    btn.ToolTip = $"변수 포함 템플릿: {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
+                }
                 btn.Click += (s, e) => SelectItem(topItem);
                 ItemsPanel.Children.Add(btn);
             }
@@ -391,10 +398,12 @@ public partial class SuggestionBar : Window
                 {
                     var item = visibleSheetItems[i];
                     string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
+                    bool hasVars = ConsultationMemoService.ContainsPlaceholders(item.Content);
+                    string varSuffix = hasVars ? " {}" : string.Empty;
 
                     var chip = new Button
                     {
-                        Content = $"[{keyHint}] {item.Title}",
+                        Content = $"[{keyHint}] {item.Title}{varSuffix}",
                         Style = btnStyle,
                         Foreground = (i == 0) ? accentText : (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                         Background = (i == 0) ? accentBrush : kbdBg,
@@ -408,6 +417,11 @@ public partial class SuggestionBar : Window
                         FontWeight = (i == 0) ? FontWeights.SemiBold : FontWeights.Normal,
                         Focusable = false
                     };
+                    if (hasVars)
+                    {
+                        var varNames = ConsultationMemoService.ExtractPlaceholderNames(item.Content);
+                        chip.ToolTip = $"변수 포함 템플릿: {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
+                    }
                     chip.Click += (s, e) => SelectItem(item);
                     ItemsPanel.Children.Add(chip);
                 }

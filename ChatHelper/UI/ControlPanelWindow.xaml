@@ -561,12 +561,22 @@
                                             <RadioButton x:Name="RadioStatusOpacity45" Content="45% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
 
-                                        <TextBlock Text="Xenie &amp; 챗헬프 임시메모 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <TextBlock Text="ChatGENIE 메모장 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
                                         <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
                                             <RadioButton x:Name="RadioMemoOpacity100" Content="100% 불투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioMemoOpacity90" Content="90% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioMemoOpacity80" Content="80% 반투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioMemoOpacity70" Content="70% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                        </WrapPanel>
+
+                                        <TextBlock Text="ChatGENIE 메모장 색상:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <RadioButton x:Name="RadioMemoColorYellow" Content="연노랑(기본)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoColorWhite" Content="화이트" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoColorBlue" Content="스카이블루" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoColorMint" Content="민트" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoColorLavender" Content="라벤더" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
+                                            <RadioButton x:Name="RadioMemoColorPink" Content="피치핑크" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
 
                                         <CheckBox x:Name="ChkShowStatusWindow" Content="화면 중앙 하단 및 작업표시줄에 마스터 도킹 바 항상 보이기" Margin="6,4,0,2" IsChecked="True" FontWeight="SemiBold"/>

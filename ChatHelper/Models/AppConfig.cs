@@ -28,6 +28,7 @@ public class AppConfig
     public double StatusWindowOpacity { get; set; } = 0.90; // 활성 상태 프로그램창(우측하단) 투명도 (0.4 ~ 1.0)
     public double WindowOpacity { get; set; } = 0.95; // 알약 및 검색창 투명도 (0.6 ~ 1.0)
     public double MemoOpacity { get; set; } = 0.95; // 상담 메모 HUD 투명도 (0.6 ~ 1.0)
+    public string MemoColor { get; set; } = "Yellow"; // 메모장 색상 테마: Yellow(연노랑), White, Blue, Mint, Lavender, Pink
 
     // 알약 크기 배율 (1: 1.0x 보통, 2: 2.0x 큼(기본 권장), 3: 3.0x 아주 큼, 4: 4.0x 매우 큼, 5: 5.0x 최대)
     public int PillScale { get; set; } = 2;

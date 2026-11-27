@@ -81,8 +81,55 @@ public partial class StickyMemoWindow : Window
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
+        ApplyThemeColor();
         ApplyOpacity();
         Deactivated += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
+    }
+
+    private (string Bg, string HeaderBg, string Border, string AccentText, string AddBg) GetMemoPalette()
+    {
+        return (_configManager.Config.MemoColor ?? "Yellow") switch
+        {
+            "White" => ("#FFFFFF", "#F8FAFC", "#CBD5E1", "#334155", "#E2E8F0"),
+            "Blue" => ("#F4F9FF", "#E8F2FF", "#93C5FD", "#1E3A8A", "#DBEAFE"),
+            "Mint" => ("#F3FCF8", "#E6F7EF", "#86EFAC", "#065F46", "#D1FAE5"),
+            "Lavender" => ("#F9F7FF", "#F0EBFF", "#C4B5FD", "#5B21B6", "#EDE9FE"),
+            "Pink" => ("#FFF7FA", "#FCEBF1", "#F9A8D4", "#9D174D", "#FCE7F3"),
+            _ => ("#FFFDF8", "#FEF9E7", "#E8D284", "#854D0E", "#FEF3C7") // Yellow (연노랑 기본)
+        };
+    }
+
+    public void ApplyThemeColor()
+    {
+        var (bgHex, headerHex, borderHex, textHex, addBgHex) = GetMemoPalette();
+        var bg = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex));
+        var headerBg = new SolidColorBrush((Color)ColorConverter.ConvertFromString(headerHex));
+        var border = new SolidColorBrush((Color)ColorConverter.ConvertFromString(borderHex));
+        var text = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textHex));
+        var addBg = new SolidColorBrush((Color)ColorConverter.ConvertFromString(addBgHex));
+
+        Background = bg;
+        MainBorder.Background = bg;
+        MainBorder.BorderBrush = border;
+        HeaderBorder.Background = headerBg;
+        HeaderBorder.BorderBrush = border;
+        FooterBorder.Background = headerBg;
+        FooterBorder.BorderBrush = border;
+        TxtMemoHeader.Foreground = text;
+        TxtFooterLine1.Foreground = text;
+        TxtFooterLine2.Foreground = text;
+        BtnPasteClip.Foreground = text;
+        BtnPasteClip.BorderBrush = border;
+        BtnClearAll.Foreground = text;
+        BtnClearAll.BorderBrush = border;
+        BtnClose.Foreground = text;
+        TxtQuickMemo.BorderBrush = border;
+        BtnAddQuickMemo.Background = addBg;
+        BtnAddQuickMemo.Foreground = text;
+        BtnAddQuickMemo.BorderBrush = border;
+        CmbDatePreset.Foreground = text;
+        CmbDatePreset.BorderBrush = border;
+        RenderCards();
     }
 
     public void ApplyOpacity()

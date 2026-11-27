@@ -285,6 +285,11 @@ public partial class MainWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 string memoText = candidate != null && string.IsNullOrWhiteSpace(token) ? candidate.Title : token;
+                if (string.IsNullOrWhiteSpace(memoText))
+                {
+                    ShowNoticeBadge("⚠️ 방금 입력한 단어가 없습니다 (단어 입력 후 \\+M)", "#B45309");
+                    return;
+                }
                 _stickyMemoWindow.AddMemo(memoText, targetHwnd);
                 ShowNoticeBadge($"📌 메모지 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
             });
@@ -1169,6 +1174,7 @@ public partial class MainWindow : Window
                 UpdateStatusUi();
                 RefreshGlobalHotkeys();
                 _stickyMemoWindow.ApplyOpacity();
+                _stickyMemoWindow.ApplyThemeColor();
                 _consultationMemoWindow.ApplyOpacity();
                 RestartPeriodicSyncTimer();
                 if (_configManager.Config.ShowStatusWindow)

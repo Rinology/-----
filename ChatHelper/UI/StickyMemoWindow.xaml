@@ -33,7 +33,7 @@
             </Grid.RowDefinitions>
 
             <!-- 1. 헤더 (ChatGENIE + 로딩 표시 + 통일된 붙여넣기/지우기 버튼) -->
-            <Border Grid.Row="0" Background="#FEF9E7" BorderBrush="#F3E5AB" BorderThickness="0,0,0,1" CornerRadius="9,9,0,0" Cursor="SizeAll">
+            <Border x:Name="HeaderBorder" Grid.Row="0" Background="#FEF9E7" BorderBrush="#F3E5AB" BorderThickness="0,0,0,1" CornerRadius="9,9,0,0" Cursor="SizeAll">
                 <Grid Margin="12,0,6,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock x:Name="TxtMemoHeader" Text="ChatGENIE (0)"
@@ -48,17 +48,17 @@
                         </Border>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button Content="📋 붙여넣기" Height="26" Margin="0,0,4,0" Padding="8,0"
+                        <Button x:Name="BtnPasteClip" Content="📋 붙여넣기" Height="26" Margin="0,0,4,0" Padding="8,0"
                                 FontSize="11" FontWeight="SemiBold" Background="#FFFFFF" Foreground="#854D0E" BorderBrush="#E8D284" BorderThickness="1"
                                 Cursor="Hand" Focusable="False" ToolTip="클립보드/OCR 붙여넣기(\+V)"
                                 FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"
                                 Click="BtnPasteClip_Click"/>
-                        <Button Content="🧹 지우기" Height="26" Margin="0,0,4,0" Padding="8,0"
+                        <Button x:Name="BtnClearAll" Content="🧹 지우기" Height="26" Margin="0,0,4,0" Padding="8,0"
                                 FontSize="11" FontWeight="SemiBold" Background="#FFFFFF" Foreground="#854D0E" BorderBrush="#E8D284" BorderThickness="1"
                                 Cursor="Hand" Focusable="False" ToolTip="전체 비우기(\+C)"
                                 FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"
                                 Click="BtnClearAll_Click"/>
-                        <Button Content="✕" Width="30" Height="28" Padding="0"
+                        <Button x:Name="BtnClose" Content="✕" Width="30" Height="28" Padding="0"
                                 FontSize="14" FontWeight="Bold" Background="Transparent" Foreground="#854D0E" BorderThickness="0"
                                 Cursor="Hand" Focusable="False" ToolTip="닫기(Alt+N)"
                                 Click="BtnClose_Click"/>
@@ -79,7 +79,7 @@
                          ToolTip="송장번호나 메모를 직접 입력하고 Enter로 추가하세요"
                          PreviewMouseDown="TxtQuickMemo_PreviewMouseDown"
                          KeyDown="TxtQuickMemo_KeyDown"/>
-                <Button Grid.Column="1" Content="+ 추가" Height="28" Padding="9,0" Margin="5,0,0,0"
+                <Button x:Name="BtnAddQuickMemo" Grid.Column="1" Content="+ 추가" Height="28" Padding="9,0" Margin="5,0,0,0"
                         FontSize="11" FontWeight="Bold" Background="#FEF3C7" Foreground="#854D0E"
                         BorderBrush="#E8D284" BorderThickness="1" Cursor="Hand" Focusable="False"
                         Click="BtnAddQuickMemo_Click"/>
@@ -102,11 +102,11 @@
             </ScrollViewer>
 
             <!-- 4. 하단 2줄 단축키 안내 바 -->
-            <Border Grid.Row="3" Background="#FEF9E7" BorderBrush="#F3E5AB" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,7">
+            <Border x:Name="FooterBorder" Grid.Row="3" Background="#FEF9E7" BorderBrush="#F3E5AB" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,7">
                 <StackPanel Orientation="Vertical">
-                    <TextBlock Text="열기/닫기(Alt+N)  ·  단어담기(\+M)"
+                    <TextBlock x:Name="TxtFooterLine1" Text="열기/닫기(Alt+N)  ·  단어담기(\+M)"
                                FontSize="10.5" FontWeight="SemiBold" Foreground="#854D0E" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
-                    <TextBlock Text="클립보드(\+V)  ·  비우기(\+C)"
+                    <TextBlock x:Name="TxtFooterLine2" Text="클립보드(\+V)  ·  비우기(\+C)"
                                FontSize="10.5" FontWeight="SemiBold" Foreground="#854D0E" Margin="0,3,0,0" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                 </StackPanel>
             </Border>

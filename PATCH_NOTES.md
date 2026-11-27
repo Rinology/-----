@@ -4,6 +4,22 @@
 
 ---
 
+## [v3.5.3] — 2026-11-28 (`\+M` 단어담기 버그 수정 · 메모장 색상 설정 추가 · 알약 `{}` 변수 표시)
+
+### 🐛 Fixed
+- **`\+M` (`\+ㅡ`) 단어 담기 미동작 해결 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - `\` 입력 시 백그라운드 워커가 `_buffer.Clear()`를 먼저 실행해 방금 입력한 단어가 지워지던 타이밍 문제를 `_lastNonSlashWord` 보존으로 해결하고, `\`와 `M` 사이에 `Shift`·`한/영` 키가 눌려도 대기 상태가 풀리지 않도록 보강.
+  - 방금 입력한 단어가 비어 있을 때도 무응답 대신 안내 배지를 표시하도록 개선.
+
+### ✨ Added / Changed
+- **메모장 색상 설정 추가 ([AppConfig.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Models/AppConfig.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs))**:
+  - 제어판 > 디자인 탭에 **ChatGENIE 메모장 색상** 6종(`연노랑(기본)`, `화이트`, `스카이블루`, `민트`, `라벤더`, `피치핑크`) 선택 옵션 추가 및 저장 시 즉시 반영.
+- **추천 알약 `{}` 변수 포함 표시 ([SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - 템플릿 본문에 `{송장번호}` 등 `{}` 자리표시자가 포함된 경우 추천 알약에 `{}` 표시 및 변수 목록 툴팁을 함께 제공.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.5.2] — 2026-11-28 (`ChatGENIE` 메모창 UI 개편 · 날짜 자동 판별 보정 · 변수 타입 수동 변경 · OCR 로딩 표시)
 
 ### ✨ Added / Changed
