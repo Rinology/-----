@@ -1,7 +1,7 @@
 <Window x:Class="ChatHelper.UI.ControlPanelWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="답정너 (DapJeongNer) 환경 설정" 
+        Title="ChatGENIE 환경 설정" 
         Height="840" Width="1320"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -27,7 +27,7 @@
             <!-- 1. 타이틀 바 -->
             <Border Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="16,0,10,0">
-                    <TextBlock Text="답정너 (DapJNR) 환경 설정" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center"/>
+                    <TextBlock Text="ChatGENIE 환경 설정" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13.5" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center"/>
                     <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
                 </Grid>
             </Border>

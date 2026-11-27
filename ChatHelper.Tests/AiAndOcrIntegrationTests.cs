@@ -87,6 +87,44 @@ public static class AiAndOcrIntegrationTests
         Console.WriteLine($"  [OCR Zero-Alpha Recovery] => '{zeroAlphaOcr}'");
         Assert(!string.IsNullOrWhiteSpace(zeroAlphaOcr) && (zeroAlphaOcr.Contains("배송") || zeroAlphaOcr.Contains("반품")),
             $"Zero-Alpha OCR recovery failed, got '{zeroAlphaOcr}'");
+
+        // 2. 작은 엑셀 셀 스타일 (13pt, 회색 격자선 + 한글/영문/숫자/소수점/특수기호 혼합) 인식 검증
+        int exW = 360, exH = 120;
+        var exVisual = new DrawingVisual();
+        using (var dc = exVisual.RenderOpen())
+        {
+            dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, exW, exH));
+            var gridPen = new Pen(new SolidColorBrush(Color.FromRgb(212, 212, 212)), 1.0);
+            string[] rows =
+            {
+                "배터리(KTX6핀)▶ 20Ah(21X)",
+                "메가배터리(6핀)▶ 28.5Ah(29X)",
+                "싯포스트▶ 줌 ZOOM",
+                "배달가방▶ 배달가방+거치대 셋트"
+            };
+            for (int r = 0; r < rows.Length; r++)
+            {
+                double yTop = 6 + r * 26;
+                dc.DrawLine(gridPen, new Point(0, yTop + 24), new Point(exW, yTop + 24));
+                var ft = new FormattedText(
+                    rows[r],
+                    CultureInfo.GetCultureInfo("ko-KR"),
+                    FlowDirection.LeftToRight,
+                    new Typeface(new FontFamily("Malgun Gothic"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal),
+                    13,
+                    Brushes.Black,
+                    1.0);
+                dc.DrawText(ft, new Point(8, yTop + 4));
+            }
+        }
+        var exRtb = new RenderTargetBitmap(exW, exH, 96, 96, PixelFormats.Pbgra32);
+        exRtb.Render(exVisual);
+        exRtb.Freeze();
+
+        string excelOcr = await OcrService.RecognizeTextAsync(exRtb);
+        Console.WriteLine($"  [OCR Small Excel Mixed] =>\n{excelOcr}");
+        Assert(excelOcr.Contains("28.5") || excelOcr.Contains("ZOOM"),
+            $"Small Excel OCR should preserve decimal/English tokens, got '{excelOcr}'");
     }
 
     private static void Test_MathCalc()

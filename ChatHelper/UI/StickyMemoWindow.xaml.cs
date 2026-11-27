@@ -126,7 +126,7 @@ public partial class StickyMemoWindow : Window
     private void RenderCards()
     {
         MemoCountChanged?.Invoke(_entries.Count);
-        TxtMemoHeader.Text = $"📌 답정너 임시메모 ({_entries.Count})";
+        TxtMemoHeader.Text = $"📌 ChatGENIE 임시메모 ({_entries.Count})";
         MemoCardsPanel.Children.Clear();
 
         if (_entries.Count == 0)

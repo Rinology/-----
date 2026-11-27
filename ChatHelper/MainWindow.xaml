@@ -1,7 +1,7 @@
 <Window x:Class="ChatHelper.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="답정너 (DapJNR)"
+        Title="ChatGENIE"
         Height="48" MinWidth="760" SizeToContent="Width"
         WindowStyle="None"
         Background="{DynamicResource ThemeHudBg}"
@@ -49,7 +49,7 @@
                             Padding="6,3" Margin="0,0,6,0" ToolTip="클릭하여 자동완성 ON/OFF 전환" Click="BtnTogglePause_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="LblRunningStatus" Text="ON" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                            <TextBlock x:Name="LblRunningStatus" Text="ON" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                         </StackPanel>
                     </Button>
 
@@ -93,7 +93,7 @@
                                 <Button x:Name="BtnToggleLog" Content="로그" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="실시간 상태 로그 열기/닫기" Click="BtnToggleLog_Click"/>
                                 <Button Content="설정" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="제어판 열기" Click="BtnControlPanel_Click"/>
                                 <Border x:Name="BadgeNotice" Visibility="Collapsed" Background="#16A34A" CornerRadius="10" Padding="7,2" VerticalAlignment="Center" Margin="4,0,0,0">
-                                    <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                                    <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                                 </Border>
                             </StackPanel>
                         </Grid>
@@ -152,7 +152,7 @@
                         BorderThickness="1" CornerRadius="8" Padding="6" Height="120">
                     <ListBox x:Name="LstLiveLog" BorderThickness="0" Background="Transparent"
                              Foreground="{DynamicResource ThemeText}"
-                             FontSize="11" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"
+                             FontSize="11" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
                 </Border>
             </StackPanel>

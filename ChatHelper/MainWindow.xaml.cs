@@ -169,7 +169,7 @@ public partial class MainWindow : Window
         else
         {
             var user = _authService.CurrentUser;
-            _trayIconService?.ShowBalloon($"답정너 (DapJNR) 실행 중 ({user?.UserId})",
+            _trayIconService?.ShowBalloon($"ChatGENIE 실행 중 ({user?.UserId})",
                 "도킹 바 또는 트레이 아이콘에서 설정 및 검색을 열 수 있습니다.");
         }
     }

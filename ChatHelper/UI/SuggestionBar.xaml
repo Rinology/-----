@@ -26,8 +26,8 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="TxtRecognitionHeader" Grid.Column="0" Text="인식됨: " FontSize="11" FontWeight="SemiBold" Foreground="#334155" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock x:Name="TxtAutoHideCountdown" Grid.Column="1" Text="12s" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="TxtRecognitionHeader" Grid.Column="0" Text="인식됨: " FontSize="11" FontWeight="SemiBold" Foreground="#334155" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock x:Name="TxtAutoHideCountdown" Grid.Column="1" Text="12s" FontSize="10.5" FontWeight="SemiBold" Foreground="#64748B" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center" Margin="0,0,6,0"/>
                     <Button x:Name="BtnQuickRegisterToken" Grid.Column="2" Content="+ 메모" Visibility="Collapsed"
                             Style="{DynamicResource ThemeButtonStyle}"
                             FontSize="10.5" FontWeight="Bold" Padding="7,2" Margin="0,0,4,0" Cursor="Hand" Focusable="False"
@@ -48,7 +48,7 @@
             <StackPanel x:Name="BottomAiRowPanel" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed"/>
             <TextBlock x:Name="TxtPositionNotice" Text="" Visibility="Collapsed"
                        FontSize="10.5" Foreground="#B45309" FontWeight="SemiBold"
-                       FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                       FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" Margin="0,4,0,0" TextWrapping="Wrap"/>
         </StackPanel>
     </Border>
 </Window>

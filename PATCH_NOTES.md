@@ -4,6 +4,43 @@
 
 ---
 
+## [v3.5.1] — 2026-11-27 (`ChatGENIE` 전체 브랜드 개편)
+
+### ✨ Added / Changed
+- **프로그램 전체 명칭을 `ChatGENIE`로 통일 ([ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj), [AppConstants.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Constants/AppConstants.cs))**:
+  - 기존 `답정너` / `DapJeongNer` / `DapJNR` 명칭을 메인 창, 로그인 창, 제어판, 임시메모(`ChatGENIE 임시메모`), 트레이 메뉴/풍선 알림, 단축키 검증 안내, 종료 확인 창(`ChatGENIE 종료` / `ChatGENIE를 종료할까요?`), `pack://` 리소스 URI 및 출력 실행 파일([ChatGENIE.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatGENIE.exe))까지 일괄 변경.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.5.0] — 2026-11-27 (OCR 2단계 개편: PaddleOCR PP-OCRv5 한국어 ONNX 로컬 엔진 탑재 & 종료 창 브랜드명 수정)
+
+### ✨ Added / Changed
+- **OCR 2단계 엔진 업그레이드 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs), [ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj))**:
+  - `RapidOcrNet 4.2.0` + **PaddleOCR PP-OCRv5 한국어 ONNX 모델**(`Assets/Ocr/korean_PP-OCRv5_rec_mobile_infer.onnx`, `ppocrv5_korean_dict.txt`, `ch_PP-OCRv5_mobile_det.onnx`, `ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx`)을 1순위 로컬 OCR 엔진으로 탑재.
+  - 작은 엑셀/표 글씨(11–13pt)에서 `28.5Ah`, `(KTX6핀)`, `(21X)`, `(29X)`, `배달가방+거치대셋트` 등 한·영·숫자·소수점·괄호 혼합 인식률을 대폭 개선.
+  - 모델 누락 또는 예외 발생 시 기존 Windows 내장 OCR(`Windows.Media.Ocr`)을 2순위 자동 폴백으로 유지.
+
+### 🐛 Fixed
+- **종료 확인 창 구버전 명칭 수정 ([ExitConfirmWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ExitConfirmWindow.xaml))**:
+  - 창 제목 `"ChatHelper 종료"` → **`"답정너 (DapJNR) 종료"`**, 본문 `"ChatHelper를 종료할까요?"` → **`"답정너를 종료할까요?"`** 로 수정.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.4.4] — 2026-11-27 (OCR 1단계 개선: 고품질 선확대 · 다크모드 반전 · 단어 단위 한/영 교차 검증)
+
+### ✨ Added / Changed
+- **OCR 전처리 파이프라인 고도화 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - 기존 1x 해상도 이진화 대비 보정이 소수점(`.`)과 작은 글자 획(`트`, `X`)을 뭉개는 문제를 개선하기 위해, **고품질 선확대(`BitmapScalingMode.HighQuality`, 최대 3배)**를 먼저 수행한 뒤 약한 Unsharp 선명화(15%)와 소프트 대비 보정을 적용하도록 순서 개편.
+  - 어두운 배경 캡처 자동 감지 및 흑백 반전(`isDarkBg`) 추가.
+- **단어 단위 한(`ko`)/영(`en`) 바운딩 박스 교차 검증 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - 줄 단위 비교 외에 `OcrLine.Words` 좌표 기반으로 한·영 혼합 줄에서도 소수점(`28.5Ah`), 영문/숫자 토큰(`ZOOM`, `KTX`), 한자 오인식(`丁` → `T`)을 영문 엔진 결과로 자동 보정.
+- **작은 엑셀 표 혼합 텍스트 OCR 통합 테스트 추가 ([AiAndOcrIntegrationTests.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper.Tests/AiAndOcrIntegrationTests.cs))**.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.2.0] — 2026-11-27 (`Xenie` · `챗헬프 임시메모` 리브랜딩, OCR 줄바꿈/숫자 보정, 자석 도킹 & 페이퍼로지 폰트)
 
 ### ✨ Added / Changed

@@ -14,7 +14,7 @@
 | 계산 | `5 * 10 =` → `50` (`MathCalcHelper`), ON/OFF 가능 | 단위테스트 |
 | 번역 | `Alt+T` 드래그 양방향 번역(`Auto` / `KoToEn` / `EnToKo`), `TranslationSession` 역번역 & 클립보드 시퀀스 검증 | 제어판 & `TemplateManagerTests` |
 | 상담 메모 | `챗헬프 임시메모`(Alt+N, 의미 이름표·줄나누기) ↔ `Xenie`(\+N, 위치유지·원클릭 변수 채우기) 자석 도킹 & Topmost | 마스터창 & `TemplateManagerTests` |
-| OCR | `Win+Shift+S` 캡처 OCR, Zero-Alpha 복구, `ocrResult.Lines` 줄바꿈 보존 & `ko+en` 이중 엔진 숫자 보정 | `AiAndOcrIntegrationTests` & `TemplateManagerTests` |
+| OCR | `Win+Shift+S` 캡처 OCR (`RapidOcrNet` PP-OCRv5 한국어 ONNX 1순위 + Windows 내장 OCR 폴백), Zero-Alpha 복구, 다크배경 반전 | `AiAndOcrIntegrationTests` & `TemplateManagerTests` |
 | 배포 보안 | `%LocalAppData%\ChatHelper\` 설정/7일 로그 분리, DPAPI 아이디 암호화, `publish/` 민감파일 자동 정리 | `ConfigManagerTests` |
 | 시트 동기화 | 채팅템플릿/용어집/톤앤매너 CSV 읽기, 15분 주기 자동, 수동 즉시, 2회 재시도, 오프라인 로컬 캐시 | 제어판 > 동기화 |
 | 시트 쓰기 | 키워드/용어 등록·삭제 → GAS `doPost` | 용어집 창, 등록 기능 |

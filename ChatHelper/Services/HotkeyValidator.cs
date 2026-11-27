@@ -4,9 +4,9 @@ public static class HotkeyValidator
 {
     private static readonly Dictionary<string, string> KnownConflictHotkeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Alt+X", "DapJNR 내부 '특수기호 입력창(Alt+X)' 단축키와 중복됩니다." },
-        { "Alt+T", "DapJNR 내부 '드래그 Google 번역(Alt+T)' 단축키와 중복됩니다." },
-        { "Alt+R", "DapJNR 예약 단축키(Alt+R)와 중복됩니다." },
+        { "Alt+X", "ChatGENIE 내부 '특수기호 입력창(Alt+X)' 단축키와 중복됩니다." },
+        { "Alt+T", "ChatGENIE 내부 '드래그 Google 번역(Alt+T)' 단축키와 중복됩니다." },
+        { "Alt+R", "ChatGENIE 예약 단축키(Alt+R)와 중복됩니다." },
         { "Alt+Tab", "윈도우 활성 창 전환 단축키와 충돌합니다." },
         { "Alt+F4", "윈도우 프로그램 종료 단축키와 충돌합니다." },
         { "Alt+Space", "윈도우 창 시스템 메뉴 단축키와 충돌합니다." },
@@ -26,7 +26,7 @@ public static class HotkeyValidator
         { "Ctrl+T", "브라우저 새 탭 열기 단축키와 충돌합니다." },
         { "Ctrl+N", "새 창 열기 단축키와 충돌합니다." },
         { "Ctrl+P", "인쇄 단축키와 충돌합니다." },
-        { "Shift+Space", "DapJNR 자동완성 기본 트리거(Shift+Space)와 충돌합니다." },
+        { "Shift+Space", "ChatGENIE 자동완성 기본 트리거(Shift+Space)와 충돌합니다." },
         { "Ctrl+Alt+Delete", "윈도우 보안 및 작업관리자 시스템 단축키와 충돌합니다." },
         { "Ctrl+Shift+Esc", "작업 관리자 호출 단축키와 충돌합니다." },
         { "Win+L", "윈도우 화면 잠금 단축키와 충돌합니다." },
@@ -101,7 +101,7 @@ public static class HotkeyValidator
             if (canonical.Equals(otherParsed, StringComparison.OrdinalIgnoreCase) ||
                 canonical.Equals(otherConfiguredHotkey.Trim(), StringComparison.OrdinalIgnoreCase))
             {
-                return (true, $"⚠️ 주의: '{canonical}'는 다른 DapJNR 단축키와 중복됩니다.");
+                return (true, $"⚠️ 주의: '{canonical}'는 다른 ChatGENIE 단축키와 중복됩니다.");
             }
         }
 

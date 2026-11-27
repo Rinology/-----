@@ -32,8 +32,8 @@
             <Border Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="14,0,8,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="템플릿 빠른 검색" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
-                        <TextBlock Text="열기(Alt+S)  ·  카테고리(Tab)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="템플릿 빠른 검색" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="열기(Alt+S)  ·  카테고리(Tab)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
                 </Grid>
@@ -53,7 +53,7 @@
                              BorderThickness="0"
                              Padding="12,4"
                              FontSize="13.5"
-                             FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"
+                             FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"
                              VerticalContentAlignment="Center"
                              TextChanged="TxtSearch_TextChanged"/>
                     <Button x:Name="BtnClearSearch" Grid.Column="1" Content="✕"
@@ -72,7 +72,7 @@
             <!-- 4. 결과 상태 안내 -->
             <TextBlock x:Name="TxtResultHint" Grid.Row="3" Margin="14,0,14,6"
                        Text="총 0개의 템플릿이 로드되었습니다."
-                       FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                       FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
 
             <!-- 5. 템플릿 목록 -->
             <Border Grid.Row="4" Margin="12,0,12,4" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="1" CornerRadius="8">
@@ -129,16 +129,16 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Border Background="{DynamicResource ThemeAccent}" BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" CornerRadius="4" Padding="7,2" Margin="0,0,7,0">
-                                    <TextBlock Text="{Binding Keyword}" Foreground="{DynamicResource ThemeAccentText}" FontWeight="SemiBold" FontSize="11.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                                    <TextBlock Text="{Binding Keyword}" Foreground="{DynamicResource ThemeAccentText}" FontWeight="SemiBold" FontSize="11.5" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                                 </Border>
 
                                 <Border Grid.Column="1" Background="{DynamicResource ThemePanelBg}" CornerRadius="4" Padding="7,2" Margin="0,0,8,0">
-                                    <TextBlock Text="{Binding Category}" Foreground="{DynamicResource ThemeSubText}" FontWeight="SemiBold" FontSize="11" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                                    <TextBlock Text="{Binding Category}" Foreground="{DynamicResource ThemeSubText}" FontWeight="SemiBold" FontSize="11" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
                                 </Border>
 
-                                <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource ThemeText}" FontWeight="SemiBold" FontSize="13" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Title}" Foreground="{DynamicResource ThemeText}" FontWeight="SemiBold" FontSize="13" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy" LineHeight="19" LineStackingStrategy="BlockLineHeight" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Content}" Foreground="{DynamicResource ThemeSubText}" FontSize="12" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy" LineHeight="19" LineStackingStrategy="BlockLineHeight" TextWrapping="Wrap" MaxHeight="38" TextTrimming="CharacterEllipsis" Margin="0,5,0,0"/>
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -149,7 +149,7 @@
             <Grid Grid.Row="5" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center"
                            Text="입력(Enter)  ·  이동(↑/↓)  ·  카테고리(Tab)  ·  닫기(Esc)"
-                           Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                           Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
 
                 <Button HorizontalAlignment="Right" VerticalAlignment="Center"
                         Content="+ 새 답변 시트 등록"
