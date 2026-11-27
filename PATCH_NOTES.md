@@ -4,6 +4,21 @@
 
 ---
 
+## [v3.5.6] — 2026-11-28 (미리보기 문구 잘림 수정 · 환경설정 최상위 고정 · 메모/답변조합기 투명도 동기화 · 조합기 활성 중 `\+V` 임시메모 입력)
+
+### 🐛 Fixed
+- **답변조합기(`Xenie`) 최종 완성 문장 미리보기 헤더 글씨 잘림 해결 ([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml))**:
+  - 좌측 제목과 우측 버튼(`되돌리기`, `비우기`, `연결`, 체크박스) 영역을 `Grid.ColumnDefinitions`로 분리하고 불필요한 부제를 정리해 글씨가 겹치거나 잘리지 않도록 수정.
+- **프로그램 내 환경설정(`ControlPanelWindow`) 최상위 Z-Order 보장 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs))**:
+  - 환경설정 창이 열려 있을 때는 `Xenie`와 `ChatGENIE` 메모장이 환경설정 창 위로 올라오지 않도록 제어하고, 환경설정 창을 항상 최상단으로 활성화.
+- **메모장(`ChatGENIE`)과 답변조합기(`Xenie`) 투명도 실시간 동기화 ([ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - `ChatGENIE 메모장 · Xenie 답변조합기 투명도` 옵션 변경 즉시 두 창 모두 동일한 투명도로 실시간 반영되도록 연동.
+- **답변조합기 + 임시메모가 열려 있을 때도 `\+V` (`\+ㅍ`)가 임시메모에 담기도록 개선 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - 포커스가 `Xenie` 답변조합기나 `ChatGENIE` 메모장 내부에 있을 때도 `\+V`(클립보드/OCR 담기), `\+C`(비우기), `\+F`(최종입력)가 정상 동작하며 내부 검색창에 입력된 `\` 잔여 문자를 자동 제거하도록 수정.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.5.5] — 2026-11-28 (연속 변수 입력 UX & 임시메모 자동 소모 연동 · 문장/제목 검색 보강 · 알약 하단 강조 및 단축키 분리 · UI/메모 통합 테마)
 
 ### ✨ Added / Changed

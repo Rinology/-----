@@ -222,24 +222,28 @@
             <Border Grid.Row="3" Margin="12,0,12,4" Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="10,8">
                 <StackPanel>
                     <Grid Margin="0,0,0,6">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="✨ 최종 완성 문장 미리보기" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" VerticalAlignment="Center"/>
-                            <TextBlock Text="  ·  직접 수정 후 입력 가능" FontSize="11" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock Text="✨ 최종 완성 문장 미리보기" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" VerticalAlignment="Center"
+                                       ToolTip="미리보기 내용을 직접 수정한 뒤 입력할 수도 있습니다"/>
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Button Content="↩ 되돌리기" Height="26" Padding="8,0" Margin="0,0,4,0" FontSize="11"
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="↩ 되돌리기" Height="26" Padding="7,0" Margin="0,0,4,0" FontSize="11"
                                     Background="{DynamicResource ThemeBg}" Foreground="{DynamicResource ThemeAccentText}"
                                     BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" Cursor="Hand"
                                     ToolTip="직접 수정한 내용을 원래 조합된 문장으로 되돌립니다"
                                     Click="BtnRestorePreview_Click"/>
-                            <Button Content="🧹 비우기" Height="26" Padding="8,0" Margin="0,0,8,0" FontSize="11"
+                            <Button Content="🧹 비우기" Height="26" Padding="7,0" Margin="0,0,6,0" FontSize="11"
                                     Background="Transparent" Foreground="#B91C1C"
                                     BorderBrush="#FECACA" BorderThickness="1" Cursor="Hand"
                                     ToolTip="미리보기 내용만 비웁니다 (담아둔 메모는 유지)"
                                     Click="BtnClearPreview_Click"/>
                             <TextBlock Text="연결:" FontSize="11" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                            <ComboBox x:Name="CmbJoinMode" Width="138" Height="26" FontSize="11" VerticalContentAlignment="Center" SelectionChanged="CmbJoinMode_SelectionChanged">
+                            <ComboBox x:Name="CmbJoinMode" Width="132" Height="26" FontSize="11" VerticalContentAlignment="Center" SelectionChanged="CmbJoinMode_SelectionChanged">
                                 <ComboBoxItem Content="문단 구분 (빈 줄)" Tag="Paragraph" IsSelected="True"/>
                                 <ComboBoxItem Content="줄바꿈으로 연결" Tag="LineBreak"/>
                                 <ComboBoxItem Content="번호 매기기 (1. 2. 3.)" Tag="Numbered"/>

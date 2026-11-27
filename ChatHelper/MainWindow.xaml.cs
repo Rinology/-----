@@ -318,6 +318,11 @@ public partial class MainWindow : Window
             }
             _ = Dispatcher.BeginInvoke(async () =>
             {
+                if (bsCount < 0)
+                {
+                    _consultationMemoWindow.StripTrailingSlashFromInput();
+                    _stickyMemoWindow.StripTrailingSlashFromInput();
+                }
                 _stickyMemoWindow.SetOcrLoading(true);
                 try
                 {
@@ -1170,10 +1175,18 @@ public partial class MainWindow : Window
 
                 _trayIconService?.ShowBalloon("제어판 설정 적용", "커맨드 및 표시 설정이 즉시 반영되었습니다.");
             };
+            _controlPanelWindow.Closed += (_, _) =>
+            {
+                _stickyMemoWindow.ApplyOpacity();
+                _consultationMemoWindow.ApplyOpacity();
+                UpdateStatusUi();
+            };
         }
+        _controlPanelWindow.Topmost = true;
         _controlPanelWindow.Show();
         _controlPanelWindow.WindowState = WindowState.Normal;
         _controlPanelWindow.Activate();
+        Win32Api.EnforceTopmost(_controlPanelWindow, toolWindow: false, noActivate: false);
     }
 
     private void Relogin()

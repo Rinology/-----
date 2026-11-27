@@ -50,10 +50,19 @@ public partial class ConsultationMemoWindow : Window
     public int MemoCount => _memoEntries.Count;
     public IReadOnlyList<MemoEntry> Entries => _memoEntries;
 
-    public void ApplyOpacity()
+    public void ApplyOpacity(double? previewAlpha = null)
     {
-        double winAlpha = Math.Clamp(_configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double winAlpha = Math.Clamp(previewAlpha ?? _configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, winAlpha);
+    }
+
+    public void StripTrailingSlashFromInput()
+    {
+        if (TxtKeywordInput != null && (TxtKeywordInput.Text.EndsWith('\\') || TxtKeywordInput.Text.EndsWith('₩')))
+        {
+            TxtKeywordInput.Text = TxtKeywordInput.Text[..^1];
+            TxtKeywordInput.CaretIndex = TxtKeywordInput.Text.Length;
+        }
     }
 
     public void AddMemo(TemplateItem? candidate, string rawKeyword, IntPtr targetHwnd)
@@ -181,8 +190,18 @@ public partial class ConsultationMemoWindow : Window
         }
         catch { }
 
-        Loaded += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
-        Deactivated += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
+        Loaded += (_, _) =>
+        {
+            Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
+            ApplyOpacity();
+        };
+        Deactivated += (_, _) =>
+        {
+            // 환경설정(ControlPanelWindow)이 열려 있을 때는 환경설정이 항상 최상위에 오도록 Topmost 강제 재적용 생략
+            if (Application.Current?.Windows.OfType<ControlPanelWindow>().Any(w => w.IsVisible) == true)
+                return;
+            Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
+        };
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

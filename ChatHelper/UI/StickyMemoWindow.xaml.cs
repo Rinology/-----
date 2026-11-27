@@ -82,7 +82,21 @@ public partial class StickyMemoWindow : Window
         Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
         ApplyThemeColor();
         ApplyOpacity();
-        Deactivated += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
+        Deactivated += (_, _) =>
+        {
+            if (Application.Current?.Windows.OfType<ControlPanelWindow>().Any(w => w.IsVisible) == true)
+                return;
+            Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
+        };
+    }
+
+    public void StripTrailingSlashFromInput()
+    {
+        if (TxtQuickMemo != null && (TxtQuickMemo.Text.EndsWith('\\') || TxtQuickMemo.Text.EndsWith('₩')))
+        {
+            TxtQuickMemo.Text = TxtQuickMemo.Text[..^1];
+            TxtQuickMemo.CaretIndex = TxtQuickMemo.Text.Length;
+        }
     }
 
     private (string Bg, string HeaderBg, string Border, string AccentText, string AddBg) GetMemoPalette()
@@ -126,9 +140,9 @@ public partial class StickyMemoWindow : Window
         RenderCards();
     }
 
-    public void ApplyOpacity()
+    public void ApplyOpacity(double? previewAlpha = null)
     {
-        double alpha = Math.Clamp(_configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
+        double alpha = Math.Clamp(previewAlpha ?? _configManager.Config.MemoOpacity, AppConstants.MinWindowOpacity, AppConstants.MaxWindowOpacity);
         Win32Api.SetWindowAlpha(this, alpha);
     }
 

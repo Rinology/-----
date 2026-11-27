@@ -5,6 +5,7 @@
         Height="840" Width="1320"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
+        Topmost="True"
         Background="{DynamicResource ThemeBg}"
         ResizeMode="NoResize"
         UseLayoutRounding="True"
@@ -561,7 +562,7 @@
                                             <RadioButton x:Name="RadioStatusOpacity45" Content="45% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
 
-                                        <TextBlock Text="ChatGENIE 메모장 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
+                                        <TextBlock Text="ChatGENIE 메모장 · Xenie 답변조합기 투명도:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
                                         <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
                                             <RadioButton x:Name="RadioMemoOpacity100" Content="100% 불투명" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                             <RadioButton x:Name="RadioMemoOpacity90" Content="90% 은은함(권장)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>

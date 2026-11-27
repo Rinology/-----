@@ -322,11 +322,49 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // 현재 포그라운드 창이 ChatHelper 자신(검색창 Alt+Q, 제어판, 기호창 등)이거나 바탕화면이면
-            // 내부 입력에 전혀 간섭하지 않고 즉시 통과시켜 _lastTargetHwnd 오염 및 Tab/숫자키 가로채기 원천 차단
+            // 현재 포그라운드 창 확인 (단, \+V / \+C / \+F / \+N 메모 단축키는 Xenie나 임시메모 창이 활성화된 상태에서도 동작하도록 허용)
             IntPtr currentFgHwnd = Win32Api.GetForegroundWindow();
-            if (!IsValidTargetWindowCached(currentFgHwnd))
+            bool isTargetValid = IsValidTargetWindowCached(currentFgHwnd);
+
+            if (!isTargetValid)
             {
+                if (_configManager.Config.EnableConsultationMemo && !isCtrlPressed && !isLeftAltPressed && !isWinPressed)
+                {
+                    if (vkCode == Win32Api.VK_OEM_5)
+                    {
+                        _memoSlashArmed = true;
+                    }
+                    else if (_memoSlashArmed)
+                    {
+                        if (vkCode == Win32Api.VK_SHIFT || vkCode == 0xA0 || vkCode == 0xA1 ||
+                            vkCode == Win32Api.VK_HANGUL || vkCode == Win32Api.VK_RMENU)
+                        {
+                            return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
+                        }
+                        _memoSlashArmed = false;
+                        IntPtr fallbackTarget = _lastTargetHwnd;
+                        if (vkCode == Win32Api.VK_V)
+                        {
+                            MemoClipboardRequested?.Invoke(fallbackTarget, -1); // -1: 자체 창 내부 입력란의 '\' 제거
+                            return (IntPtr)1;
+                        }
+                        if (vkCode == Win32Api.VK_C)
+                        {
+                            MemoClearRequested?.Invoke(fallbackTarget);
+                            return (IntPtr)1;
+                        }
+                        if (vkCode == Win32Api.VK_F && _hasActiveMemos)
+                        {
+                            MemoFinalizeRequested?.Invoke(fallbackTarget, 0);
+                            return (IntPtr)1;
+                        }
+                        if (vkCode == Win32Api.VK_N)
+                        {
+                            MemoDetailRequested?.Invoke(fallbackTarget);
+                            return (IntPtr)1;
+                        }
+                    }
+                }
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 

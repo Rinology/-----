@@ -634,6 +634,15 @@ public partial class ControlPanelWindow : Window
             : RadioMemoOpacity80?.IsChecked == true ? 0.80
             : RadioMemoOpacity90?.IsChecked == true ? 0.90 : 1.0;
 
+        if (Application.Current != null)
+        {
+            foreach (Window w in Application.Current.Windows)
+            {
+                if (w is StickyMemoWindow smw) smw.ApplyOpacity(memoAlpha);
+                else if (w is ConsultationMemoWindow cmw) cmw.ApplyOpacity(memoAlpha);
+            }
+        }
+
         if (PreviewStickyMemoBorder != null && PreviewStickyHeaderBorder != null && PreviewStickyHeaderText != null)
         {
             var (mBgHex, mHeaderHex, mBorderHex, mTextHex, _) = ThemeManager.GetEmphasizedMemoPalette(GetSelectedAccentColor());
