@@ -4,6 +4,24 @@
 
 ---
 
+## [v3.5.2] — 2026-11-28 (`ChatGENIE` 메모창 UI 개편 · 날짜 자동 판별 보정 · 변수 타입 수동 변경 · OCR 로딩 표시)
+
+### ✨ Added / Changed
+- **메모창 UI/UX 개편 ([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs))**:
+  - 상단 헤더에서 핀 아이콘(`📌`)과 `임시메모` 및 `Xenie` 버튼을 제거해 **`ChatGENIE`** 단독 표기로 정리하고, **`📋 붙여넣기`** · **`🧹 지우기`** 버튼을 동일 디자인으로 나란히 배치.
+  - 창 너비를 `360px` → **`430px`**로 넓히고, 전체 배경·테두리를 보다 부드러운 연노랑(`#FFFDF8`, `#FEF9E7`, `#E8D284`) 톤으로 조정.
+  - 하단 단축키 안내에서 `조합기(\+N)`를 분리 제거.
+  - `오늘`·`내일`·`금일 오후`·`내일 오전` 빠른 날짜 버튼을 **입력 줄 옆 드롭다운(`📅 날짜 ▾`)**으로 통합.
+  - **OCR 로딩 표시(`⏳ 인식중`)**: `\+V` 또는 붙여넣기 실행 시 헤더 옆에 모래시계 아이콘이 표시되었다가 완료 후 사라지도록 구현 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs)).
+  - **변수 타입 수동 변경**: 카드 왼쪽 배지(`📦 송장`, `📅 날짜`, `💰 금액`, `📝 메모`) 클릭 시 드롭다운 메뉴로 타입을 즉시 전환할 수 있도록 추가.
+
+### 🐛 Fixed
+- **날짜/시간 문자열이 `송장`으로 오인식되던 문제 해결 ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs))**:
+  - `2026-11-27 22:27:44` 같은 날짜·시간 포맷을 `송장`보다 먼저 판별해 **`📅 날짜`**로 정확히 분류되도록 수정.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.5.1] — 2026-11-27 (`ChatGENIE` 전체 브랜드 개편)
 
 ### ✨ Added / Changed

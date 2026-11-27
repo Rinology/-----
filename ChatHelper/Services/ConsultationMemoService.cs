@@ -20,6 +20,7 @@ public class MemoEntry
     public string Category { get; set; } = "메모";
     public string MemoNote { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? KindOverride { get; set; }
 }
 
 /// <summary>
@@ -133,7 +134,7 @@ public static class ConsultationMemoService
             return string.Empty;
 
         // 자유 메모(Category == "메모")와 템플릿 블록 분리
-        var freeMemos = new List<(int EntryIndex, string Value)>();
+        var freeMemos = new List<(int EntryIndex, string Value, string Kind)>();
         for (int i = 0; i < list.Count; i++)
         {
             if (string.Equals(list[i].Category, "메모", StringComparison.OrdinalIgnoreCase))
@@ -142,7 +143,7 @@ public static class ConsultationMemoService
                     ? list[i].Content.Trim()
                     : (list[i].MemoNote?.Trim() ?? string.Empty);
                 if (!string.IsNullOrWhiteSpace(val))
-                    freeMemos.Add((i, val));
+                    freeMemos.Add((i, val, ResolveMemoKind(list[i])));
             }
         }
 
@@ -186,18 +187,27 @@ public static class ConsultationMemoService
     {
         if (string.IsNullOrWhiteSpace(text)) return "메모";
         string s = text.Trim();
+        // 날짜/시간 패턴을 송장보다 먼저 판별 (예: 2026-11-27 22:27:44 가 숫자 개수로 송장 오인식되는 것 방지)
+        if (Regex.IsMatch(s, @"(\d{4}[-/\.]\d{1,2}[-/\.]\d{1,2}|\d{1,2}월\s*\d{1,2}일|\d{1,2}/\d{1,2}|\d{1,2}:\d{2}|오늘|내일|모레|금일|오전|오후|\([월화수목금토일]\)|[월화수목금토일]요일)"))
+            return "날짜";
         if (Regex.IsMatch(s, @"^\d{3,4}-\d{3,4}-\d{3,5}$") || (s.Count(char.IsDigit) >= 8 && !s.Any(c => c >= '\uAC00' && c <= '\uD7A3')))
             return "송장";
-        if (Regex.IsMatch(s, @"(오늘|내일|모레|오전|오후|월|화|수|목|금|토|일|\d{1,2}월\s*\d{1,2}일|\d{1,2}/\d{1,2}|\d{1,2}:\d{2})"))
-            return "날짜";
         if (Regex.IsMatch(s, @"(\d[\d,]*\s*원|무료|유료)"))
             return "금액";
         return "메모";
     }
 
-    public static string DetectMemoLabel(string? text, int index)
+    public static string ResolveMemoKind(MemoEntry entry)
     {
-        return DetectMemoKind(text) switch
+        if (!string.IsNullOrWhiteSpace(entry.KindOverride))
+            return entry.KindOverride;
+        return DetectMemoKind(entry.Content);
+    }
+
+    public static string DetectMemoLabel(string? text, int index, string? kindOverride = null)
+    {
+        string kind = !string.IsNullOrWhiteSpace(kindOverride) ? kindOverride : DetectMemoKind(text);
+        return kind switch
         {
             "송장" => "📦 송장",
             "날짜" => "📅 날짜",
@@ -216,9 +226,9 @@ public static class ConsultationMemoService
         return $"📝 {varName}";
     }
 
-    private static bool MatchesSemanticKind(string placeholderKey, string memoValue)
+    private static bool MatchesSemanticKind(string placeholderKey, string memoValue, string? explicitKind = null)
     {
-        string kind = DetectMemoKind(memoValue);
+        string kind = !string.IsNullOrWhiteSpace(explicitKind) ? explicitKind : DetectMemoKind(memoValue);
         if ((placeholderKey.Contains("송장") || placeholderKey.Contains("운송장") || placeholderKey.Contains("번호")) && kind == "송장")
             return true;
         if ((placeholderKey.Contains("날짜") || placeholderKey.Contains("일정") || placeholderKey.Contains("시간")) && kind == "날짜")
@@ -258,7 +268,7 @@ public static class ConsultationMemoService
         if (string.IsNullOrEmpty(templateText) || !PlaceholderRegex.IsMatch(templateText))
             return templateText;
 
-        var freeMemos = new List<(int EntryIndex, string Value)>();
+        var freeMemos = new List<(int EntryIndex, string Value, string Kind)>();
         if (entries != null)
         {
             int idx = 0;
@@ -270,7 +280,7 @@ public static class ConsultationMemoService
                         ? e.Content.Trim()
                         : (e.MemoNote?.Trim() ?? string.Empty);
                     if (!string.IsNullOrWhiteSpace(val))
-                        freeMemos.Add((idx, val));
+                        freeMemos.Add((idx, val, ResolveMemoKind(e)));
                 }
                 idx++;
             }
@@ -355,7 +365,7 @@ public static class ConsultationMemoService
     /// </summary>
     public static string ReplacePlaceholders(
         string templateText,
-        IReadOnlyList<(int EntryIndex, string Value)> freeMemos,
+        IReadOnlyList<(int EntryIndex, string Value, string Kind)> freeMemos,
         HashSet<int> consumedEntryIndices,
         ref int nextFreeIdx)
     {
@@ -377,7 +387,7 @@ public static class ConsultationMemoService
 
             // 2. 의미 기반 자동 매칭 ({송장번호} <- 📦 송장, {날짜} <- 📅 날짜, {금액} <- 💰 금액)
             var semanticMatch = freeMemos.FirstOrDefault(m =>
-                !consumedEntryIndices.Contains(m.EntryIndex) && MatchesSemanticKind(key, m.Value));
+                !consumedEntryIndices.Contains(m.EntryIndex) && MatchesSemanticKind(key, m.Value, m.Kind));
             if (!string.IsNullOrEmpty(semanticMatch.Value))
             {
                 consumedEntryIndices.Add(semanticMatch.EntryIndex);

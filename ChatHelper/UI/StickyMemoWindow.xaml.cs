@@ -22,11 +22,45 @@ public partial class StickyMemoWindow : Window
     private readonly List<MemoEntry> _entries = new();
     private IntPtr _targetHwnd = IntPtr.Zero;
     private bool _hasCustomPosition = false;
+    private System.Windows.Threading.DispatcherTimer? _loadingTimer;
+    private bool _loadingFlip;
 
     public event Action<int>? MemoCountChanged;
     public event Action<IntPtr>? OpenCombinerRequested;
     public event Action<string, IntPtr>? PasteSingleRequested;
     public event Action? DockToggleRequested;
+
+    public void SetOcrLoading(bool isLoading)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => SetOcrLoading(isLoading));
+            return;
+        }
+
+        if (isLoading)
+        {
+            LoadingBadge.Visibility = Visibility.Visible;
+            if (_loadingTimer == null)
+            {
+                _loadingTimer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(320)
+                };
+                _loadingTimer.Tick += (_, _) =>
+                {
+                    _loadingFlip = !_loadingFlip;
+                    TxtLoadingIcon.Text = _loadingFlip ? "⌛" : "⏳";
+                };
+            }
+            _loadingTimer.Start();
+        }
+        else
+        {
+            _loadingTimer?.Stop();
+            LoadingBadge.Visibility = Visibility.Collapsed;
+        }
+    }
 
     public void MarkCustomPosition() => _hasCustomPosition = true;
 
@@ -126,7 +160,7 @@ public partial class StickyMemoWindow : Window
     private void RenderCards()
     {
         MemoCountChanged?.Invoke(_entries.Count);
-        TxtMemoHeader.Text = $"📌 ChatGENIE 임시메모 ({_entries.Count})";
+        TxtMemoHeader.Text = $"ChatGENIE ({_entries.Count})";
         MemoCardsPanel.Children.Clear();
 
         if (_entries.Count == 0)
@@ -134,7 +168,7 @@ public partial class StickyMemoWindow : Window
             MemoCardsPanel.Children.Add(new TextBlock
             {
                 Text = "메모 없음\n\n직접추가(Enter) · 클립보드(\\+V)\n단어담기(\\+M) · 비우기(\\+C)",
-                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E")),
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#854D0E")),
                 FontSize = 11.5,
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 19,
@@ -151,13 +185,13 @@ public partial class StickyMemoWindow : Window
             var card = new Border
             {
                 Background = Brushes.White,
-                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FCD34D")),
+                BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EFE0A8")),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(7),
                 Padding = new Thickness(8, 6, 8, 6),
                 Margin = new Thickness(0, 0, 0, 6),
                 Cursor = Cursors.Hand,
-                ToolTip = "드래그해서 스무고개 변수 칸이나 채팅창에 놓기 · 더블클릭으로 즉시 입력"
+                ToolTip = "드래그해서 변수 칸/채팅창에 놓기 · 더블클릭으로 즉시 입력"
             };
             card.MouseMove += (s, e) =>
             {
@@ -182,20 +216,58 @@ public partial class StickyMemoWindow : Window
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+            string resolvedKind = ConsultationMemoService.ResolveMemoKind(entry);
+            string badgeBgHex = resolvedKind switch
+            {
+                "날짜" => "#2563EB",
+                "송장" => "#D97706",
+                "금액" => "#059669",
+                _ => "#B45309"
+            };
             var numBadge = new Border
             {
-                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(badgeBgHex)),
                 CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(5, 1, 5, 1),
-                Margin = new Thickness(0, 0, 6, 0),
-                VerticalAlignment = VerticalAlignment.Top
+                Padding = new Thickness(6, 2, 6, 2),
+                Margin = new Thickness(0, 0, 7, 0),
+                VerticalAlignment = VerticalAlignment.Top,
+                Cursor = Cursors.Hand,
+                ToolTip = "클릭하여 변수 타입 변경 (메모 / 송장 / 날짜 / 금액)"
             };
             numBadge.Child = new TextBlock
             {
-                Text = ConsultationMemoService.DetectMemoLabel(entry.Content, idx + 1),
+                Text = $"{ConsultationMemoService.DetectMemoLabel(entry.Content, idx + 1, entry.KindOverride)} ▾",
                 Foreground = Brushes.White,
                 FontSize = 10,
                 FontWeight = FontWeights.Bold
+            };
+            numBadge.MouseLeftButtonDown += (s, e) =>
+            {
+                e.Handled = true;
+                var menu = new ContextMenu();
+                foreach (var (kindVal, labelText) in new[]
+                {
+                    ("메모", "📝 메모"),
+                    ("송장", "📦 송장"),
+                    ("날짜", "📅 날짜"),
+                    ("금액", "💰 금액")
+                })
+                {
+                    var mi = new MenuItem
+                    {
+                        Header = labelText,
+                        IsChecked = string.Equals(resolvedKind, kindVal, StringComparison.Ordinal)
+                    };
+                    string chosenKind = kindVal;
+                    mi.Click += (_, _) =>
+                    {
+                        entry.KindOverride = chosenKind;
+                        RenderCards();
+                    };
+                    menu.Items.Add(mi);
+                }
+                menu.PlacementTarget = numBadge;
+                menu.IsOpen = true;
             };
             Grid.SetColumn(numBadge, 0);
             grid.Children.Add(numBadge);
@@ -336,20 +408,24 @@ public partial class StickyMemoWindow : Window
 
     private void BtnAddQuickMemo_Click(object sender, RoutedEventArgs e) => AddQuickMemoFromInput();
 
-    private void BtnDatePreset_Click(object sender, RoutedEventArgs e)
+    private void CmbDatePreset_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (sender is not Button btn || btn.Tag is not string tag) return;
-        var ko = System.Globalization.CultureInfo.GetCultureInfo("ko-KR");
-        string val = tag switch
+        if (CmbDatePreset == null || CmbDatePreset.SelectedIndex <= 0) return;
+        if (CmbDatePreset.SelectedItem is ComboBoxItem item && item.Tag is string tag && !string.IsNullOrWhiteSpace(tag))
         {
-            "Today" => DateTime.Today.ToString("M월 d일 (ddd)", ko),
-            "Tomorrow" => DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko),
-            "TodayPm" => $"{DateTime.Today.ToString("M월 d일 (ddd)", ko)} 오후",
-            "TomorrowAm" => $"{DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko)} 오전",
-            _ => string.Empty
-        };
-        if (!string.IsNullOrWhiteSpace(val))
-            AddMemo(val, ResolveTargetWindow());
+            var ko = System.Globalization.CultureInfo.GetCultureInfo("ko-KR");
+            string val = tag switch
+            {
+                "Today" => DateTime.Today.ToString("M월 d일 (ddd)", ko),
+                "Tomorrow" => DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko),
+                "TodayPm" => $"{DateTime.Today.ToString("M월 d일 (ddd)", ko)} 오후",
+                "TomorrowAm" => $"{DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko)} 오전",
+                _ => string.Empty
+            };
+            if (!string.IsNullOrWhiteSpace(val))
+                AddMemo(val, ResolveTargetWindow());
+        }
+        CmbDatePreset.SelectedIndex = 0;
     }
 
     private void AddQuickMemoFromInput()
@@ -362,11 +438,19 @@ public partial class StickyMemoWindow : Window
 
     private async void BtnPasteClip_Click(object sender, RoutedEventArgs e)
     {
-        var res = await ClipboardSmartService.GetCustomerMessageAsync();
-        string clip = res.ExtractedText.Trim();
-        if (!string.IsNullOrWhiteSpace(clip))
+        SetOcrLoading(true);
+        try
         {
-            AddMemo(clip, _targetHwnd);
+            var res = await ClipboardSmartService.GetCustomerMessageAsync();
+            string clip = res.ExtractedText.Trim();
+            if (!string.IsNullOrWhiteSpace(clip))
+            {
+                AddMemo(clip, _targetHwnd);
+            }
+        }
+        finally
+        {
+            SetOcrLoading(false);
         }
     }
 
@@ -380,7 +464,7 @@ public partial class StickyMemoWindow : Window
 
     private void MainBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ChangedButton == MouseButton.Left && !(e.OriginalSource is TextBox) && !(e.OriginalSource is Button))
+        if (e.ChangedButton == MouseButton.Left && !(e.OriginalSource is TextBox) && !(e.OriginalSource is Button) && !CmbDatePreset.IsMouseOver)
         {
             _hasCustomPosition = true;
             try { DragMove(); } catch { }

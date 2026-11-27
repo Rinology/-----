@@ -313,26 +313,34 @@ public partial class MainWindow : Window
             }
             _ = Dispatcher.BeginInvoke(async () =>
             {
-                uint seqBefore = Win32Api.GetClipboardSequenceNumber();
-                var result = await ClipboardSmartService.GetCustomerMessageAsync();
-                string clip = result.ExtractedText.Trim();
-                bool isSelfAutoInjected = !result.IsFromImage
-                    && TextInjectionService.LastInjectedClipboardSeq != 0
-                    && seqBefore == TextInjectionService.LastInjectedClipboardSeq;
-                if (isSelfAutoInjected)
+                _stickyMemoWindow.SetOcrLoading(true);
+                try
                 {
-                    ShowNoticeBadge("⚠️ 새로 복사한 클립보드 내용이 없습니다", "#B45309");
-                    return;
+                    uint seqBefore = Win32Api.GetClipboardSequenceNumber();
+                    var result = await ClipboardSmartService.GetCustomerMessageAsync();
+                    string clip = result.ExtractedText.Trim();
+                    bool isSelfAutoInjected = !result.IsFromImage
+                        && TextInjectionService.LastInjectedClipboardSeq != 0
+                        && seqBefore == TextInjectionService.LastInjectedClipboardSeq;
+                    if (isSelfAutoInjected)
+                    {
+                        ShowNoticeBadge("⚠️ 새로 복사한 클립보드 내용이 없습니다", "#B45309");
+                        return;
+                    }
+                    if (!string.IsNullOrWhiteSpace(clip))
+                    {
+                        _stickyMemoWindow.AddMemo(clip, targetHwnd);
+                        string srcTag = result.IsFromImage ? "🖼️ 이미지 OCR" : "📋 클립보드";
+                        ShowNoticeBadge($"{srcTag} 메모 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
+                    }
+                    else
+                    {
+                        ShowNoticeBadge("⚠️ 클립보드가 비어 있습니다", "#B45309");
+                    }
                 }
-                if (!string.IsNullOrWhiteSpace(clip))
+                finally
                 {
-                    _stickyMemoWindow.AddMemo(clip, targetHwnd);
-                    string srcTag = result.IsFromImage ? "🖼️ 이미지 OCR" : "📋 클립보드";
-                    ShowNoticeBadge($"{srcTag} 메모 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
-                }
-                else
-                {
-                    ShowNoticeBadge("⚠️ 클립보드가 비어 있습니다", "#B45309");
+                    _stickyMemoWindow.SetOcrLoading(false);
                 }
             });
         };
