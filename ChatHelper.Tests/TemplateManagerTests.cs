@@ -265,6 +265,12 @@ public static class TemplateManagerTests
             string ampFixed = OcrService.NormalizeNumericOcrArtifacts("456-828&8150");
             Assert(ampFixed == "456-8280-8150", $"OCR '&' numeric artifact fix failed: '{ampFixed}'");
 
+            string hanjaZeroDashFixed = OcrService.NormalizeNumericOcrArtifacts("69013年 1802438");
+            Assert(hanjaZeroDashFixed == "690130-1802438", $"OCR '0-' Hanja artifact fix failed: '{hanjaZeroDashFixed}'");
+
+            string koEnFiltered = OcrService.FilterKoreanAndEnglishOnly("싯포스二> 중 ZOOM / 배달가방+거치대 셋ㅁ");
+            Assert(koEnFiltered == "싯포스> 중 ZOOM / 배달가방+거치대 셋", $"OCR Ko/En filter failed: '{koEnFiltered}'");
+
             string sanitized = ConsultationMemoService.SanitizeClipboardForVariable("송장번호", "송장\n입력\n456-8280-8146\n송장\n입력");
             Assert(sanitized == "456-8280-8146", $"Clipboard variable sanitization failed: '{sanitized}'");
         }

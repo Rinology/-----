@@ -53,8 +53,8 @@ public static class AppConstants
     public const string StatusRunningText = "자동완성 작동 중 (ON)";
     public const string StatusPausedText = "자동완성 일시정지 (OFF)";
 
-    public const string QuickSearchHotKeyHint = "[단축키: Alt+S  |  Tab: 목록/카테고리 이동]";
-    public const string QuickSearchBottomHelp = "↵ Enter: 입력  |  ↑/↓: 이동  |  Tab: 목록/카테고리 전환  |  Esc: 닫기";
+    public const string QuickSearchHotKeyHint = "[열기(Alt+S) | 카테고리(Tab)]";
+    public const string QuickSearchBottomHelp = "입력(Enter) | 이동(↑/↓) | 카테고리(Tab) | 닫기(Esc)";
 
     public const string NoticeSlashOnly = "※ '\\' 단독 즉시 실행 모드에서는 1번 항목이 즉시 치환되므로 추천 알약 형태가 [단일 알약 툴팁]으로 자동 고정됩니다.";
     public const string DefaultTriggerKey = "\\";

@@ -313,8 +313,17 @@ public partial class MainWindow : Window
             }
             _ = Dispatcher.BeginInvoke(async () =>
             {
+                uint seqBefore = Win32Api.GetClipboardSequenceNumber();
                 var result = await ClipboardSmartService.GetCustomerMessageAsync();
                 string clip = result.ExtractedText.Trim();
+                bool isSelfAutoInjected = !result.IsFromImage
+                    && TextInjectionService.LastInjectedClipboardSeq != 0
+                    && seqBefore == TextInjectionService.LastInjectedClipboardSeq;
+                if (isSelfAutoInjected)
+                {
+                    ShowNoticeBadge("⚠️ 새로 복사한 클립보드 내용이 없습니다", "#B45309");
+                    return;
+                }
                 if (!string.IsNullOrWhiteSpace(clip))
                 {
                     _stickyMemoWindow.AddMemo(clip, targetHwnd);

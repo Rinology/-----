@@ -332,9 +332,8 @@ public class KeyboardHookService : IDisposable
                 return Win32Api.CallNextHookEx(_hookId, nCode, wParam, lParam);
             }
 
-            // 실제 완성 트리거(\, 후보 표시 중 Tab / Shift+Space / \ 이후 숫자·A·E·M·F·N)일 때만
-            // 채널 대기 키를 플러시하고 _lock 경합을 허용해 일반 채팅 타이핑 렉을 원천 차단
-            if (!_hasCandidates && _configManager.Config.EnableConsultationMemo)
+            // 상담 메모 빠른 단축키(\+M, \+V, \+C, \+F, \+N)는 후보 유무(_hasCandidates)와 무관하게 우선 처리
+            if (_configManager.Config.EnableConsultationMemo)
             {
                 if (vkCode == Win32Api.VK_OEM_5)
                 {

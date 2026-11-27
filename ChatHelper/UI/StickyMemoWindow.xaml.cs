@@ -32,11 +32,7 @@ public partial class StickyMemoWindow : Window
 
     public void UpdateDockState(bool docked)
     {
-        if (BtnDockToggle != null)
-        {
-            BtnDockToggle.Content = docked ? "🔓 분리" : "🔗 붙이기";
-            BtnDockToggle.ToolTip = docked ? "Xenie 창과 분리하기" : "Xenie 창 옆에 자석처럼 붙이기";
-        }
+        // 자석 도킹은 숨은 기능(근접 스냅 / Xenie 측 버튼)으로 동작
     }
 
     public int MemoCount => _entries.Count;
@@ -112,9 +108,11 @@ public partial class StickyMemoWindow : Window
 
     private void ShowAtPosition()
     {
+        var workArea = SystemParameters.WorkArea;
+        Height = Math.Min(760, Math.Max(440, workArea.Height - 40));
+
         if (!_hasCustomPosition)
         {
-            var workArea = SystemParameters.WorkArea;
             Left = Math.Max(workArea.Left + 12, workArea.Right - Width - 20);
             Top = Math.Max(workArea.Top + 12, workArea.Bottom - Height - 72);
         }
@@ -135,11 +133,11 @@ public partial class StickyMemoWindow : Window
         {
             MemoCardsPanel.Children.Add(new TextBlock
             {
-                Text = "아직 메모가 없습니다.\n\n• 위 입력창에 직접 적거나 📋 클립보드 클릭\n• 채팅창에서 단어 입력 후 \\+M\n• 복사 후 \\+V (이미지 OCR 포함)",
+                Text = "메모 없음\n\n직접추가(Enter) · 클립보드(\\+V)\n단어담기(\\+M) · 비우기(\\+C)",
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E")),
                 FontSize = 11.5,
                 TextWrapping = TextWrapping.Wrap,
-                LineHeight = 18,
+                LineHeight = 19,
                 Margin = new Thickness(8, 28, 8, 8)
             });
             return;

@@ -7,7 +7,11 @@ namespace ChatHelper.Services;
 
 public static class TextInjectionService
 {
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
     public static string LastInjectedText { get; private set; } = string.Empty;
+    public static uint LastInjectedClipboardSeq { get; private set; } = 0;
 
     public static void SendBackspaces(int count)
     {
@@ -54,6 +58,7 @@ public static class TextInjectionService
 
             // 1. 클립보드에 텍스트 복사 (OpenClipboard 점유 충돌 대비 최대 5회 재시도)
             SetClipboardTextWithRetry(text);
+            LastInjectedClipboardSeq = Win32Api.GetClipboardSequenceNumber();
 
             // 2. 대상 창으로 확실한 강제 포커스 복원 (공통 ForceForegroundWindow)
             if (targetHwnd != IntPtr.Zero)
@@ -64,13 +69,16 @@ public static class TextInjectionService
                 Thread.Sleep(110);
             }
 
-            // 혹시 Alt 키가 눌린 상태로 인식되어 있을 경우 안전하게 해제 후 Ctrl + V 전송
-            var releaseAlt = new[]
+            // 실제로 Alt 키가 눌려 있을 때만 안전하게 해제 (평소 \+Tab 등에서 불필요한 WM_SYSKEYUP으로 Win11 메모장 리본 팁이 뜨는 현상 방지)
+            if ((GetAsyncKeyState(Win32Api.VK_MENU) & 0x8000) != 0)
             {
-                CreateKeyInput(Win32Api.VK_LMENU, keyUp: true, extended: false),
-                CreateKeyInput(Win32Api.VK_MENU, keyUp: true, extended: false)
-            };
-            Win32Api.SendInput((uint)releaseAlt.Length, releaseAlt, Marshal.SizeOf<Win32Api.INPUT>());
+                var releaseAlt = new[]
+                {
+                    CreateKeyInput(Win32Api.VK_LMENU, keyUp: true, extended: false),
+                    CreateKeyInput(Win32Api.VK_MENU, keyUp: true, extended: false)
+                };
+                Win32Api.SendInput((uint)releaseAlt.Length, releaseAlt, Marshal.SizeOf<Win32Api.INPUT>());
+            }
 
             // 3. SendInput으로 Ctrl + V 원자적 전송 (키 풀림/순서 꼬임 원천 차단)
             SendKeyCombo(Win32Api.VK_CONTROL, Win32Api.VK_V);

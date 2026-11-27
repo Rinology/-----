@@ -33,7 +33,7 @@
                 <Grid Margin="14,0,8,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="템플릿 빠른 검색" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
-                        <TextBlock Text="Alt+S  ·  Tab: 카테고리 전환" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="열기(Alt+S)  ·  카테고리(Tab)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <Button Style="{DynamicResource ThemeCloseButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnClose_Click"/>
                 </Grid>
@@ -148,7 +148,7 @@
             <!-- 6. 하단 액션 바 -->
             <Grid Grid.Row="5" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center"
-                           Text="Enter 입력  ·  ↑/↓ 이동  ·  Tab 카테고리  ·  Esc 닫기"
+                           Text="입력(Enter)  ·  이동(↑/↓)  ·  카테고리(Tab)  ·  닫기(Esc)"
                            Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
 
                 <Button HorizontalAlignment="Right" VerticalAlignment="Center"

@@ -153,14 +153,17 @@ public static class OcrService
 
             if (!string.IsNullOrWhiteSpace(matchEn.Text) && ShouldPreferEnglishLine(koText, matchEn.Text))
             {
-                // 하이픈 주변 불필요한 공백 정리 및 숫자 사이 '&' 오인식 보정
+                // 하이픈 주변 불필요한 공백 정리 및 숫자 사이 '&' 오인식 보정 + 한/영/숫자/기본기호 정제
                 string cleanedEn = Regex.Replace(matchEn.Text, @"\s*-\s*", "-");
-                cleanedEn = NormalizeNumericOcrArtifacts(cleanedEn);
-                finalLines.Add(cleanedEn);
+                cleanedEn = FilterKoreanAndEnglishOnly(NormalizeNumericOcrArtifacts(cleanedEn));
+                if (!string.IsNullOrWhiteSpace(cleanedEn))
+                    finalLines.Add(cleanedEn);
             }
             else
             {
-                finalLines.Add(NormalizeNumericOcrArtifacts(koText));
+                string cleanedKo = FilterKoreanAndEnglishOnly(NormalizeNumericOcrArtifacts(koText));
+                if (!string.IsNullOrWhiteSpace(cleanedKo))
+                    finalLines.Add(cleanedKo);
             }
         }
 
@@ -168,12 +171,30 @@ public static class OcrService
     }
 
     /// <summary>
-    /// 숫자 송장번호 등에서 '0-'가 '&amp;'로 뭉개지는 OCR 오인식(예: 456-828&amp;8150 → 456-8280-8150)을 보정합니다.
+    /// OCR 결과에서 한자·특수도형 깨짐(예: 싯포스二>, 셋ㅁ)을 제거하고 한글·영문·숫자·기본 문장부호만 남깁니다.
+    /// </summary>
+    public static string FilterKoreanAndEnglishOnly(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return string.Empty;
+
+        // 특수 화살표/구분자(▶, ►, 二>)를 깔끔한 구분 공백 또는 '>'로 정규화
+        string s = line.Replace("▶", " > ").Replace("►", " > ").Replace("▷", " > ");
+        s = Regex.Replace(s, @"[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF]+", "");
+        // 한글(완성형 가-힣), 영문(A-Za-z), 숫자(0-9), 기본 문장부호만 허용 (깨진 단독 자모 ㅁ 등 제거)
+        s = Regex.Replace(s, @"[^\uAC00-\uD7A3A-Za-z0-9\s.,_+/()\[\]:~!?%>=-]", "");
+        s = Regex.Replace(s, @"\s{2,}", " ").Trim();
+        return s;
+    }
+
+    /// <summary>
+    /// 숫자 송장번호 등에서 '0-'가 '&amp;' 또는 한자(年 등)로 뭉개지는 OCR 오인식(예: 456-828&amp;8150, 69013年 1802438 → 690130-1802438)을 보정합니다.
     /// </summary>
     public static string NormalizeNumericOcrArtifacts(string line)
     {
         if (string.IsNullOrWhiteSpace(line)) return line;
-        return Regex.Replace(line, @"(?<=\d{3})&(?=\d{4})", "0-");
+        string s = Regex.Replace(line, @"(?<=\d{3})&(?=\d{4})", "0-");
+        s = Regex.Replace(s, @"(?<=\d)[\u4E00-\u9FFF]\s*(?=\d)", "0-");
+        return s;
     }
 
     private static bool ShouldPreferEnglishLine(string koText, string enText)

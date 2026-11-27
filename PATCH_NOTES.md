@@ -27,6 +27,34 @@
 
 ---
 
+## [v3.4.2] — 2026-11-27 (임시메모 세로 760px 확대 · 2줄 단축키 바 · 전체 UI `기능(단축키)` 간결화)
+
+### ✨ Added / Changed
+- **임시메모 창 세로 크기 확대 ([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs))**:
+  - 스무고개 조합기(`Xenie`, 760px)와 동일한 **세로 760px**(화면 높이에 맞춰 자동 보정)로 확대해 여러 메모 카드를 한눈에 볼 수 있도록 개선.
+  - 하단 안내 영역을 **위아래 2줄**로 넓혀 `열기/닫기(Alt+N) · 단어담기(\+M)` / `클립보드(\+V) · 비우기(\+C) · 조합기(\+N)` 문구가 잘리지 않도록 수정.
+- **전체 UI 설명 문구 간결화 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [QuickSearchWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml), [AppConstants.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Constants/AppConstants.cs))**:
+  - 장황한 문장형 설명을 제거하고 **`기능명(단축키)`** 형식(예: `복사(Ctrl+C)`, `입력(Enter)`)으로 일관되게 정리.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.4.1] — 2026-11-27 (OCR 한/영 정제 · Win11 메모장 리본 팁 방지 · `\+M`/`\+V` 타이밍/중복 차단 · 임시메모 UI 개선)
+
+### 🐛 Fixed
+- **OCR 한자/깨진 기호 제거 및 한글·영문·숫자 중심 정제 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - `FilterKoreanAndEnglishOnly`를 추가해 `싯포스二>`, `셋ㅁ` 같은 한자·단독 자모 깨짐을 제거하고 한글·영문·숫자·기본 문장부호만 깔끔하게 추출하도록 수정.
+- **메모장 등 자동완성 시 Windows 11 리본 단축키 팁(`F`, `E`, `V`...)이 뜨던 현상 해결 ([TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs))**:
+  - `FastPasteText`가 `Alt` 키가 눌려 있지 않을 때도 무조건 `VK_MENU` `keyUp`을 전송해 Win11 메모장 리본 메뉴가 활성화되던 문제를 실제 `Alt` 눌림 여부 확인 후 해제하도록 수정.
+- **`\ + M` 단어 담기 실패 & `\ + V` 시 직전 자동완성 알약이 담기던 문제 해결 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - `_memoSlashArmed`가 후보 유무(`_hasCandidates`)와 무관하게 우선 처리되도록 수정해 `\+M`이 채팅창으로 새어나가지 않도록 개선.
+  - `\+V` 실행 시 `GetClipboardSequenceNumber()`로 직전 자동완성 붙여넣기(`LastInjectedClipboardSeq`)와 동일한 텍스트는 제외해 알약 문구가 임시메모에 들어가지 않도록 차단.
+- **임시메모 UI 개선 ([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml))**:
+  - 헤더의 `붙이기` 버튼을 제거(자석 도킹은 숨은 기능으로 유지), 닫기(`✕`) 버튼을 `32×30` 크기로 확대, 창 너비(`360px`) 및 하단 바 줄바꿈(`TextWrapping="Wrap"`) 적용으로 하단 설명 잘림 해결.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.4.0] — 2026-11-27 (`답정너 · DapJeongNer / DapJNR` 브랜드 개편 & 구형 파일 정리)
 
 ### ✨ Added / Changed

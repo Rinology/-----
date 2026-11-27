@@ -69,10 +69,10 @@
                                       ToolTip="업무 프로필(스프레드시트) 즉시 전환"
                                       SelectionChanged="CmbMainProfile_SelectionChanged"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
-                                <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
+                                <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="빠른 검색(Alt+S)" Click="BtnQuickSearch_Click"/>
+                                <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호(Alt+X)" Click="BtnSymbolPicker_Click"/>
                                 <Button x:Name="BtnToggleMemo" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="클릭: Xenie &amp; 답정너 임시메모 기능 ON/OFF 전환"
+                                        ToolTip="메모 ON/OFF"
                                         Click="BtnToggleMemo_Click">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Ellipse x:Name="MemoDot" Width="7" Height="7" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -80,10 +80,10 @@
                                     </StackPanel>
                                 </Button>
                                 <Button x:Name="BtnOpenMemo" Content="임시메모" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="답정너 임시메모 열기/닫기 (Alt+N · \+M 단어담기 · \+V 클립보드 · \+C 비우기)"
+                                        ToolTip="임시메모(Alt+N) · 단어담기(\+M) · 클립보드(\+V) · 비우기(\+C)"
                                         Click="BtnOpenMemo_Click"/>
                                 <Button x:Name="BtnOpenCombiner" Content="Xenie" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="Xenie 답변 조합기 열기 (\+N · \+F / Ctrl+Shift+Enter 최종입력)"
+                                        ToolTip="스무고개 조합기(\+N) · 최종입력(\+F)"
                                         Click="BtnOpenCombiner_Click"/>
                                 <TextBlock x:Name="LblSyncStatus" Text="↻ 0" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"

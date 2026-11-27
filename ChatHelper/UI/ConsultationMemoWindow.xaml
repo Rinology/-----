@@ -33,7 +33,7 @@
                 <Grid Margin="14,0,8,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="🧩 Xenie · 답변 조합기" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
-                        <TextBlock Text="\+N  ·  키워드 입력(Enter)으로 좁히고, 메모 조각을 모아 최종 문장으로 완성" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="열기(\+N)  ·  좁히기(Enter)  ·  최종입력(\+F)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="BtnDockSticky" Content="🔗 임시메모 붙이기" Height="24" Padding="8,0" Margin="0,0,8,0"
@@ -267,7 +267,7 @@
                             Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="6"
                             Padding="8,6" Margin="0,6,0,0">
                         <StackPanel>
-                            <TextBlock Text="✏️ 감지된 변수 입력 (입력 시 위 최종 문장에 즉시 반영됩니다 · 📋 버튼으로 클립보드 채우기)"
+                            <TextBlock Text="변수 입력  ·  클립보드(📋)  ·  메모 카드 드래그"
                                        FontSize="11" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,5"/>
                             <WrapPanel x:Name="VariableInputsPanel" Orientation="Horizontal"/>
                         </StackPanel>
@@ -278,7 +278,7 @@
             <!-- 5. 하단 액션 바 -->
             <Grid Grid.Row="4" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center"
-                           Text="\+N 열기 · \+M 담기 · \+F / Ctrl+Shift+Enter 최종입력 · Enter 좁히기 · ↑/↓ 후보 선택 · Esc 닫기"
+                           Text="후보이동(↑/↓) · 좁히기/담기(Enter) · 최종입력(\+F / Ctrl+Shift+Enter) · 닫기(Esc)"
                            Foreground="{DynamicResource ThemeSubText}" FontSize="11" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">

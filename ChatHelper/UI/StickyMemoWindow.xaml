@@ -5,7 +5,7 @@
         WindowStyle="None"
         ResizeMode="NoResize"
         Background="#FFFDF5"
-        Width="330" Height="370"
+        Width="360" Height="760"
         ShowActivated="False"
         Focusable="False"
         ShowInTaskbar="False"
@@ -26,10 +26,10 @@
             MouseLeftButtonDown="MainBorder_MouseLeftButtonDown">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="36"/>
+                <RowDefinition Height="38"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="38"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- 1. 포스트잇 헤더 -->
@@ -40,25 +40,21 @@
                                    Foreground="#92400E" FontWeight="Bold" FontSize="12.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button x:Name="BtnDockToggle" Content="🔗 붙이기" Height="24" Margin="0,0,3,0" Padding="7,0"
-                                FontSize="10.5" FontWeight="SemiBold" Background="#FFFFFF" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1"
-                                Cursor="Hand" Focusable="False" ToolTip="Xenie 창 옆에 자석처럼 붙이기 / 분리"
-                                Click="BtnDockToggle_Click"/>
-                        <Button Content="📋" Width="26" Height="24" Margin="0,0,3,0" Padding="0"
-                                FontSize="11.5" Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
-                                Cursor="Hand" Focusable="False" ToolTip="클립보드(텍스트/이미지 OCR) 내용 담기 (\+V)"
+                        <Button Content="📋" Width="28" Height="26" Margin="0,0,3,0" Padding="0"
+                                FontSize="12" Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
+                                Cursor="Hand" Focusable="False" ToolTip="클립보드(\+V)"
                                 Click="BtnPasteClip_Click"/>
-                        <Button Content="🧩 Xenie" Height="24" Margin="0,0,3,0" Padding="7,0"
-                                FontSize="10.5" FontWeight="Bold" Background="#FFFFFF" Foreground="#1E3A8A" BorderBrush="#93C5FD" BorderThickness="1"
-                                Cursor="Hand" Focusable="False" ToolTip="Xenie 답변 조합기 열기 (\+N)"
+                        <Button Content="🧩 Xenie" Height="26" Margin="0,0,3,0" Padding="8,0"
+                                FontSize="11" FontWeight="Bold" Background="#FFFFFF" Foreground="#1E3A8A" BorderBrush="#93C5FD" BorderThickness="1"
+                                Cursor="Hand" Focusable="False" ToolTip="스무고개 조합기(\+N)"
                                 Click="BtnOpenCombiner_Click"/>
-                        <Button Content="🧹" Width="24" Height="24" Margin="0,0,3,0" Padding="0"
-                                FontSize="11" Background="Transparent" Foreground="#B45309" BorderThickness="0"
-                                Cursor="Hand" Focusable="False" ToolTip="메모 전체 비우기 (\+C)"
+                        <Button Content="🧹" Width="26" Height="26" Margin="0,0,2,0" Padding="0"
+                                FontSize="12" Background="Transparent" Foreground="#B45309" BorderThickness="0"
+                                Cursor="Hand" Focusable="False" ToolTip="비우기(\+C)"
                                 Click="BtnClearAll_Click"/>
-                        <Button Content="✕" Width="24" Height="24" Padding="0"
-                                FontSize="11" FontWeight="Bold" Background="Transparent" Foreground="#78350F" BorderThickness="0"
-                                Cursor="Hand" Focusable="False" ToolTip="메모지 숨기기 (Alt+N으로 다시 열기)"
+                        <Button Content="✕" Width="32" Height="30" Padding="0"
+                                FontSize="14" FontWeight="Bold" Background="Transparent" Foreground="#78350F" BorderThickness="0"
+                                Cursor="Hand" Focusable="False" ToolTip="닫기(Alt+N)"
                                 Click="BtnClose_Click"/>
                     </StackPanel>
                 </Grid>
@@ -103,11 +99,14 @@
                 <StackPanel x:Name="MemoCardsPanel"/>
             </ScrollViewer>
 
-            <!-- 4. 하단 안내 바 -->
-            <Border Grid.Row="3" Background="#FEF9C3" BorderBrush="#FDE68A" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,0">
-                <TextBlock VerticalAlignment="Center"
-                           Text="Alt+N 열기/닫기 · \+M 단어담기 · \+V 클립보드/OCR · \+C 비우기"
-                           FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+            <!-- 4. 하단 2줄 단축키 안내 바 -->
+            <Border Grid.Row="3" Background="#FEF9C3" BorderBrush="#FDE68A" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,7">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="열기/닫기(Alt+N)  ·  단어담기(\+M)"
+                               FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                    <TextBlock Text="클립보드(\+V)  ·  비우기(\+C)  ·  조합기(\+N)"
+                               FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" Margin="0,3,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                </StackPanel>
             </Border>
         </Grid>
     </Border>
