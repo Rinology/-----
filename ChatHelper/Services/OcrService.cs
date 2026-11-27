@@ -153,17 +153,27 @@ public static class OcrService
 
             if (!string.IsNullOrWhiteSpace(matchEn.Text) && ShouldPreferEnglishLine(koText, matchEn.Text))
             {
-                // 하이픈 주변 불필요한 공백 정리 (예: "456 - 8280 - 8146" -> "456-8280-8146")
+                // 하이픈 주변 불필요한 공백 정리 및 숫자 사이 '&' 오인식 보정
                 string cleanedEn = Regex.Replace(matchEn.Text, @"\s*-\s*", "-");
+                cleanedEn = NormalizeNumericOcrArtifacts(cleanedEn);
                 finalLines.Add(cleanedEn);
             }
             else
             {
-                finalLines.Add(koText);
+                finalLines.Add(NormalizeNumericOcrArtifacts(koText));
             }
         }
 
         return string.Join(Environment.NewLine, finalLines);
+    }
+
+    /// <summary>
+    /// 숫자 송장번호 등에서 '0-'가 '&amp;'로 뭉개지는 OCR 오인식(예: 456-828&amp;8150 → 456-8280-8150)을 보정합니다.
+    /// </summary>
+    public static string NormalizeNumericOcrArtifacts(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return line;
+        return Regex.Replace(line, @"(?<=\d{3})&(?=\d{4})", "0-");
     }
 
     private static bool ShouldPreferEnglishLine(string koText, string enText)

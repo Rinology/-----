@@ -5,8 +5,8 @@ namespace ChatHelper.Models;
 public class AppConfig
 {
     // 버전 정보
-    public string Version { get; set; } = "v3.0.0";
-    public string BuildDate { get; set; } = "2026-11-26";
+    public string Version { get; set; } = "v3.3.0";
+    public string BuildDate { get; set; } = "2026-11-27";
 
     // 로그인 및 세션 관리 (보안상 평문 아이디는 디스크에 저장하지 않고 DPAPI 암호화 토큰만 선택 저장)
     [JsonIgnore]

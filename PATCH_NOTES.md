@@ -27,6 +27,42 @@
 
 ---
 
+## [v3.4.0] — 2026-11-27 (`답정너 · DapJeongNer / DapJNR` 브랜드 개편 & 구형 파일 정리)
+
+### ✨ Added / Changed
+- **브랜드명 및 실행 파일명 개편 (`ChatHelper` → `답정너 · DapJeongNer / DapJNR`)**:
+  - [ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj) `<AssemblyName>DapJeongNer</AssemblyName>` 적용으로 빌드 출력 실행 파일을 [publish/DapJeongNer.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/DapJeongNer.exe)로 전환.
+  - 도킹 바(`MainWindow`), 제어판(`ControlPanelWindow`), 로그인(`LoginWindow`), 임시메모(`StickyMemoWindow`), 트레이 아이콘(`TrayIconService`), 단축키 안내(`HotkeyValidator`) 등 사용자 화면 전체를 **`답정너 (DapJNR / DapJeongNer)`**로 통일.
+  - 모든 WPF 폰트/리소스 `pack://` URI를 `DapJeongNer;component`로 일괄 갱신.
+
+### 🗑️ Removed
+- 완료된 구형 계획서 및 구버전 배치 파일 정리: `REFACTORING_AND_IMPROVEMENT_PLAN.md`, `docs/PLAN_v3.3.md`, `run.bat`, 구 실행 파일 `publish/ChatHelper.exe`.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.3.0] — 2026-11-27 (임시메모 입력/자석 도킹 분리 버그 수정 · 변수 클립보드 정제/OCR `&` 보정 · 미리보기 되돌리기/비우기 & 날짜 프리셋)
+
+### ✨ Added / Changed
+- **`Xenie` 최종 완성 문장 미리보기 `↩ 되돌리기` · `🧹 비우기` 버튼 추가 ([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - 직접 수정하다가 망쳤을 때 자동 조합 원본으로 즉시 복구하는 `↩ 되돌리기` 및 내용만 비우는 `🧹 비우기` 버튼 추가.
+- **임시메모 · Xenie 단축키 안내 강화 ([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml))**:
+  - 하단 바 및 마스터창 버튼 툴팁에 `Alt+N`, `\+M`, `\+V`, `\+C`, `\+F`, `Ctrl+Shift+Enter` 등 핵심 단축키를 상시 노출.
+- **기본 날짜 변수 원클릭 프리셋 추가 ([StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - `📅 오늘`, `📅 내일`, `🕒 금일 오후`, `🕒 내일 오전` 원클릭 프리셋 버튼을 임시메모 상단과 `Xenie` 날짜 계열 변수 칸 옆에 추가.
+
+### 🐛 Fixed
+- **자석 도킹 분리 후 재스냅 방지 쿨다운(1.5초) & 명확한 `🔗 붙이기`/`🔓 분리` 버튼 적용 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml))**:
+  - 임시메모와 `Xenie`를 분리한 직후 다시 달라붙던 문제를 1.5초 쿨다운(`_dockCooldownUntil`)과 `IsVisibleChanged` 정렬 동기화로 해결.
+- **임시메모 `[입력]` 버튼 클릭 시 대상 채팅창 미입력 수정 ([StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [TextInjectionService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/TextInjectionService.cs))**:
+  - 유효 대상 창 폴백(`_targetHwnd` → `GetForegroundWindow()` → `_hookService.LastTargetHwnd`) 및 안내 배지 추가, `FastPasteText` 포커스 대기시간 안정화(`110ms`).
+- **변수 `📋` 클립보드 다중줄/UI 잡음 정제 및 OCR `&` 오인식 보정 ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs), [OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - `송장\n입력\n456-8280-8146...`처럼 여러 줄/UI 단어가 섞여 들어갈 때 의미 패턴에 맞는 단일 줄만 정제 추출(`SanitizeClipboardForVariable`).
+  - 숫자 사이 `0-`가 `&`로 뭉개지는 OCR 오인식(`456-828&8150` → `456-8280-8150`) 자동 보정(`NormalizeNumericOcrArtifacts`).
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.1.0] — 2026-11-27 (초경량 포스트잇 메모지 `StickyMemoWindow` ↔ 스무고개 답변 조합기 2-트랙 분리)
 
 ### ✨ Added / Changed

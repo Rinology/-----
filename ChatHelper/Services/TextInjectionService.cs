@@ -61,7 +61,7 @@ public static class TextInjectionService
                 Win32Api.ForceForegroundWindow(targetHwnd);
 
                 // Chrome 및 웹 브라우저가 포커스 및 웹 캐럿을 완전히 회복할 시간 보장
-                Thread.Sleep(90);
+                Thread.Sleep(110);
             }
 
             // 혹시 Alt 키가 눌린 상태로 인식되어 있을 경우 안전하게 해제 후 Ctrl + V 전송

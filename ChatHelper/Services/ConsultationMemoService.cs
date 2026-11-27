@@ -299,6 +299,57 @@ public static class ConsultationMemoService
         return resolved;
     }
 
+    private static readonly HashSet<string> UiNoiseWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "송장", "입력", "삭제", "줄나누기", "복사", "붙여넣기", "닫기", "+ 추가", "추가"
+    };
+
+    /// <summary>
+    /// 여러 줄 클립보드나 UI 잔여 텍스트가 섞인 경우 변수 의미에 맞는 단일 줄 값을 정제해 반환합니다.
+    /// </summary>
+    public static string SanitizeClipboardForVariable(string varName, string? rawClipboard)
+    {
+        if (string.IsNullOrWhiteSpace(rawClipboard))
+            return string.Empty;
+
+        var lines = rawClipboard
+            .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(l => l.Trim())
+            .Where(l => !string.IsNullOrWhiteSpace(l) && !UiNoiseWords.Contains(l))
+            .ToList();
+
+        if (lines.Count == 0)
+            return string.Empty;
+
+        string key = varName ?? string.Empty;
+        string? matched = null;
+
+        if (key.Contains("송장", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("번호", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("연락처", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("전화", StringComparison.OrdinalIgnoreCase))
+        {
+            matched = lines.FirstOrDefault(l => Regex.IsMatch(l, @"\d[\d\-]{4,}"));
+        }
+        else if (key.Contains("날짜", StringComparison.OrdinalIgnoreCase) ||
+                 key.Contains("예약", StringComparison.OrdinalIgnoreCase) ||
+                 key.EndsWith("일", StringComparison.OrdinalIgnoreCase) ||
+                 key.Contains("date", StringComparison.OrdinalIgnoreCase))
+        {
+            matched = lines.FirstOrDefault(l =>
+                Regex.IsMatch(l, @"\d{4}[\-/\.]\d{1,2}[\-/]\d{1,2}|\d{1,2}월\s*\d{1,2}일|오늘|내일|금일"));
+        }
+        else if (key.Contains("금액", StringComparison.OrdinalIgnoreCase) ||
+                 key.Contains("가격", StringComparison.OrdinalIgnoreCase) ||
+                 key.Contains("비용", StringComparison.OrdinalIgnoreCase))
+        {
+            matched = lines.FirstOrDefault(l => Regex.IsMatch(l, @"\d[\d,]*\s*원?"));
+        }
+
+        string chosen = matched ?? lines[0];
+        return Regex.Replace(chosen, @"[\r\n]+", " ").Trim();
+    }
+
     /// <summary>
     /// 본문 내 {1}, {메모}, {날짜} 등의 자리표시자를 자유 메모 값으로 자동 치환합니다.
     /// </summary>

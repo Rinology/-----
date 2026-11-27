@@ -114,7 +114,7 @@ public class TrayIconService : IDisposable
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
             uCallbackMessage = WM_TRAYICON,
             hIcon = GetAppIconHandle(),
-            szTip = "ChatHelper (실행 중 - 클릭하여 열기)"
+            szTip = "답정너 DapJNR (실행 중 - 클릭하여 열기)"
         };
 
         _isCreated = Shell_NotifyIcon(NIM_ADD, ref data);
@@ -171,7 +171,7 @@ public class TrayIconService : IDisposable
 
         try
         {
-            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 1, "💻 ChatHelper 제어판 열기 (설정/커맨드)");
+            Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 1, "💻 답정너(DapJNR) 제어판 열기 (설정/커맨드)");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 2, "🖥️ 상태표시창 보이기");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_STRING, 3, "🔍 빠른 검색 열기 (Alt+S)");
             Win32Api.AppendMenu(hMenu, Win32Api.MF_SEPARATOR, 0, "");

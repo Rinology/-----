@@ -3,8 +3,8 @@ namespace ChatHelper.Constants;
 public static class AppConstants
 {
     // 애플리케이션 메타데이터
-    public const string AppName = "ChatHelper";
-    public const string AppVersion = "v3.0.0";
+    public const string AppName = "DapJeongNer";
+    public const string AppVersion = "v3.4.0";
     public const string DefaultTheme = "FluentLight";
 
     // 파일 및 리소스 경로
@@ -45,10 +45,10 @@ public static class AppConstants
 
     // UI 메시지 및 타이틀
     public const string TitleQuickSearch = "템플릿 빠른 검색 및 추천";
-    public const string TitleControlPanel = "ChatHelper 종합 제어판 & 환경 설정";
-    public const string TitleLogin = "ChatHelper 사용자 로그온";
-    public const string TitleStatusRunning = "ChatHelper - 실행 중";
-    public const string TitleStatusPaused = "ChatHelper - 일시정지됨";
+    public const string TitleControlPanel = "답정너 (DapJeongNer) 종합 제어판 & 환경 설정";
+    public const string TitleLogin = "답정너 (DapJNR) 사용자 로그온";
+    public const string TitleStatusRunning = "답정너 (DapJNR) - 실행 중";
+    public const string TitleStatusPaused = "답정너 (DapJNR) - 일시정지됨";
 
     public const string StatusRunningText = "자동완성 작동 중 (ON)";
     public const string StatusPausedText = "자동완성 일시정지 (OFF)";

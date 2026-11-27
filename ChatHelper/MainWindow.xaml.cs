@@ -169,7 +169,7 @@ public partial class MainWindow : Window
         else
         {
             var user = _authService.CurrentUser;
-            _trayIconService?.ShowBalloon($"ChatHelper 실행 중 ({user?.UserId})",
+            _trayIconService?.ShowBalloon($"답정너 (DapJNR) 실행 중 ({user?.UserId})",
                 "도킹 바 또는 트레이 아이콘에서 설정 및 검색을 열 수 있습니다.");
         }
     }
@@ -342,6 +342,8 @@ public partial class MainWindow : Window
         _consultationMemoWindow.DockStickyRequested += () => ToggleMagneticDock();
         _stickyMemoWindow.LocationChanged += (_, _) => OnStickyMemoLocationChanged();
         _consultationMemoWindow.LocationChanged += (_, _) => OnXenieLocationChanged();
+        _stickyMemoWindow.IsVisibleChanged += (_, _) => SyncDockVisibilityState();
+        _consultationMemoWindow.IsVisibleChanged += (_, _) => SyncDockVisibilityState();
 
         _stickyMemoWindow.OpenCombinerRequested += (targetHwnd) =>
         {
@@ -350,7 +352,14 @@ public partial class MainWindow : Window
 
         _stickyMemoWindow.PasteSingleRequested += (memoText, targetHwnd) =>
         {
-            IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _hookService.LastTargetHwnd;
+            IntPtr fg = Win32Api.GetForegroundWindow();
+            IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd
+                : (Win32Api.IsValidTargetWindow(fg) ? fg : _hookService.LastTargetHwnd);
+            if (!Win32Api.IsValidTargetWindow(dst))
+            {
+                ShowNoticeBadge("⚠️ 입력할 채팅창을 먼저 클릭해 주세요", "#B45309");
+                return;
+            }
             Task.Run(() => TextInjectionService.FastPasteText(memoText, dst));
         };
 
@@ -971,12 +980,22 @@ public partial class MainWindow : Window
     private bool _isMagneticDocked = false;
     private bool _dockedOnRight = true;
     private bool _isSyncingDockPosition = false;
+    private DateTime _dockCooldownUntil = DateTime.MinValue;
+
+    private void SyncDockVisibilityState()
+    {
+        if (_isMagneticDocked && _consultationMemoWindow.IsVisible && _stickyMemoWindow.IsVisible)
+        {
+            AlignStickyToXenie();
+        }
+    }
 
     private void ToggleMagneticDock()
     {
         if (_isMagneticDocked)
         {
             _isMagneticDocked = false;
+            _dockCooldownUntil = DateTime.UtcNow.AddSeconds(1.5);
             _stickyMemoWindow.UpdateDockState(false);
             _consultationMemoWindow.UpdateDockState(false);
             ShowNoticeBadge("🔓 임시메모 ↔ Xenie 분리됨", "#64748B");
@@ -1042,6 +1061,9 @@ public partial class MainWindow : Window
             }
             return;
         }
+
+        // 분리 직후 1.5초 동안은 근접 자동 스냅 억제 (의도치 않은 재도킹 방지)
+        if (DateTime.UtcNow < _dockCooldownUntil) return;
 
         // 근접 자석 스냅: 22px 이내로 Xenie 좌/우 테두리에 닿으면 자동 붙이기
         double gapRight = Math.Abs(_stickyMemoWindow.Left - (_consultationMemoWindow.Left + _consultationMemoWindow.Width + 6));

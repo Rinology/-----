@@ -34,7 +34,7 @@ public partial class StickyMemoWindow : Window
     {
         if (BtnDockToggle != null)
         {
-            BtnDockToggle.Content = docked ? "🔓" : "🔗";
+            BtnDockToggle.Content = docked ? "🔓 분리" : "🔗 붙이기";
             BtnDockToggle.ToolTip = docked ? "Xenie 창과 분리하기" : "Xenie 창 옆에 자석처럼 붙이기";
         }
     }
@@ -128,7 +128,7 @@ public partial class StickyMemoWindow : Window
     private void RenderCards()
     {
         MemoCountChanged?.Invoke(_entries.Count);
-        TxtMemoHeader.Text = $"📌 챗헬프 임시메모 ({_entries.Count})";
+        TxtMemoHeader.Text = $"📌 답정너 임시메모 ({_entries.Count})";
         MemoCardsPanel.Children.Clear();
 
         if (_entries.Count == 0)
@@ -175,7 +175,7 @@ public partial class StickyMemoWindow : Window
             {
                 if (e.ClickCount == 2)
                 {
-                    PasteSingleRequested?.Invoke(entry.Content, _targetHwnd);
+                    PasteSingleRequested?.Invoke(entry.Content, ResolveTargetWindow());
                 }
             };
 
@@ -230,7 +230,7 @@ public partial class StickyMemoWindow : Window
                 Focusable = false,
                 ToolTip = "이 메모를 채팅창에 바로 입력"
             };
-            btnPaste.Click += (s, e) => PasteSingleRequested?.Invoke(entry.Content, _targetHwnd);
+            btnPaste.Click += (s, e) => PasteSingleRequested?.Invoke(entry.Content, ResolveTargetWindow());
 
             var btnDel = new Button
             {
@@ -306,6 +306,19 @@ public partial class StickyMemoWindow : Window
         }
     }
 
+    private IntPtr ResolveTargetWindow()
+    {
+        if (Win32Api.IsValidTargetWindow(_targetHwnd))
+            return _targetHwnd;
+        IntPtr fg = Win32Api.GetForegroundWindow();
+        if (Win32Api.IsValidTargetWindow(fg))
+        {
+            _targetHwnd = fg;
+            return fg;
+        }
+        return IntPtr.Zero;
+    }
+
     private void TxtQuickMemo_PreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         var helper = new WindowInteropHelper(this);
@@ -324,6 +337,22 @@ public partial class StickyMemoWindow : Window
     }
 
     private void BtnAddQuickMemo_Click(object sender, RoutedEventArgs e) => AddQuickMemoFromInput();
+
+    private void BtnDatePreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string tag) return;
+        var ko = System.Globalization.CultureInfo.GetCultureInfo("ko-KR");
+        string val = tag switch
+        {
+            "Today" => DateTime.Today.ToString("M월 d일 (ddd)", ko),
+            "Tomorrow" => DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko),
+            "TodayPm" => $"{DateTime.Today.ToString("M월 d일 (ddd)", ko)} 오후",
+            "TomorrowAm" => $"{DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko)} 오전",
+            _ => string.Empty
+        };
+        if (!string.IsNullOrWhiteSpace(val))
+            AddMemo(val, ResolveTargetWindow());
+    }
 
     private void AddQuickMemoFromInput()
     {

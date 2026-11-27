@@ -1,6 +1,7 @@
-# 💻 ChatHelper v3.2 (Modern Fluent / Xenie Edition)
+# 💻 답정너 — DapJeongNer (DapJNR) v3.4 (Modern Fluent / Xenie Edition)
 
-**C# .NET 8 네이티브 · Zero-Lag(0ms) · 초슬림 플로팅 HUD 도킹 바 · 한글 IME 정밀 동기화 · 구글 시트(GAS) 중앙 프로필 연동** 기반의 사내 CS/물류 실무용 초경량 채팅 도우미입니다.
+> *"답은 이미 시트에 정해져 있고, 너는 엔터만 쳐."*  
+**C# .NET 8 네이티브 · Zero-Lag(0ms) · 초슬림 플로팅 HUD 도킹 바 · 한글 IME 정밀 동기화 · 구글 시트(GAS) 중앙 프로필 연동** 기반의 사내 CS/물류 실무용 초경량 채팅 도우미입니다. (구 ChatHelper)
 
 > 📄 버전별 상세 변경 이력은 [PATCH_NOTES.md](file:///C:/Users/taerin/Desktop/채팅도우미/PATCH_NOTES.md), 회귀 테스트 기준선은 [docs/BASELINE_STATUS.md](file:///C:/Users/taerin/Desktop/채팅도우미/docs/BASELINE_STATUS.md)를 참고하세요.
 
@@ -51,7 +52,7 @@
 > C# .NET 관례에 따라 빌드 및 실행 경로는 **`publish/`** 하나로 통일합니다. (과거 Python 시절의 `dist/` 폴더는 사용하지 않습니다.)
 
 ### 1. 바로 실행
-- [publish/ChatHelper.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatHelper.exe) 실행 (직원 배포 시 `.env` 파일 불필요)
+- [publish/DapJeongNer.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/DapJeongNer.exe) 실행 (직원 배포 시 `.env` 파일 불필요)
 
 ### 2. 다른 컴퓨터에서 `git pull` 후 동일하게 빌드하기
 ```powershell

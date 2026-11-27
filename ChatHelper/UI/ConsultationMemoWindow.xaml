@@ -32,8 +32,8 @@
             <Border Grid.Row="0" Background="{DynamicResource ThemeTitleBg}" BorderBrush="{DynamicResource ThemePanelBorder}" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0" Cursor="SizeAll" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="14,0,8,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="🧩 Xenie · 답변 조합기" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
-                        <TextBlock Text="\+N  ·  키워드 입력(Enter)으로 좁히고, 메모 조각을 모아 최종 문장으로 완성" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="🧩 Xenie · 답변 조합기" Foreground="{DynamicResource ThemeTitleText}" FontWeight="Bold" FontSize="13" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock Text="\+N  ·  키워드 입력(Enter)으로 좁히고, 메모 조각을 모아 최종 문장으로 완성" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="10,2,0,0" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button x:Name="BtnDockSticky" Content="🔗 임시메모 붙이기" Height="24" Padding="8,0" Margin="0,0,8,0"
@@ -68,7 +68,7 @@
                                      BorderThickness="0"
                                      Padding="12,4"
                                      FontSize="13"
-                                     FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"
+                                     FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"
                                      VerticalContentAlignment="Center"
                                      TextChanged="TxtKeywordInput_TextChanged"/>
                             <Button x:Name="BtnClearInput" Grid.Column="1" Content="✕"
@@ -117,7 +117,7 @@
 
                         <TextBlock x:Name="TxtCandidateHint" Grid.Row="0" Margin="4,0,4,6"
                                    Text="🔍 키워드를 입력해 후보를 좁히세요 (0건)"
-                                   FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeSubText}" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
+                                   FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeSubText}" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
 
                         <ListBox x:Name="LstCandidates" Grid.Row="1"
                                  Background="Transparent" BorderThickness="0" Padding="0"
@@ -228,6 +228,16 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="↩ 되돌리기" Height="26" Padding="8,0" Margin="0,0,4,0" FontSize="11"
+                                    Background="{DynamicResource ThemeBg}" Foreground="{DynamicResource ThemeAccentText}"
+                                    BorderBrush="{DynamicResource ThemeAccentBorder}" BorderThickness="1" Cursor="Hand"
+                                    ToolTip="직접 수정한 내용을 원래 조합된 문장으로 되돌립니다"
+                                    Click="BtnRestorePreview_Click"/>
+                            <Button Content="🧹 비우기" Height="26" Padding="8,0" Margin="0,0,8,0" FontSize="11"
+                                    Background="Transparent" Foreground="#B91C1C"
+                                    BorderBrush="#FECACA" BorderThickness="1" Cursor="Hand"
+                                    ToolTip="미리보기 내용만 비웁니다 (담아둔 메모는 유지)"
+                                    Click="BtnClearPreview_Click"/>
                             <TextBlock Text="연결 형식:" FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <ComboBox x:Name="CmbJoinMode" Width="155" Height="26" FontSize="11.5" VerticalContentAlignment="Center" SelectionChanged="CmbJoinMode_SelectionChanged">
                                 <ComboBoxItem Content="문단 구분 (빈 줄)" Tag="Paragraph" IsSelected="True"/>
@@ -245,7 +255,7 @@
                              TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
                              FontSize="12.5"
-                             FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"
+                             FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"
                              Padding="8,6"
                              Background="{DynamicResource ThemeBg}"
                              Foreground="{DynamicResource ThemeText}"
@@ -268,8 +278,8 @@
             <!-- 5. 하단 액션 바 -->
             <Grid Grid.Row="4" Margin="14,0,14,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock VerticalAlignment="Center"
-                           Text="↑/↓ 후보 선택 · Enter 좁히기/담기 · Ctrl+Enter 최종 완성 입력 · Esc 닫기"
-                           Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
+                           Text="\+N 열기 · \+M 담기 · \+F / Ctrl+Shift+Enter 최종입력 · Enter 좁히기 · ↑/↓ 후보 선택 · Esc 닫기"
+                           Foreground="{DynamicResource ThemeSubText}" FontSize="11" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="📋 전체 복사"

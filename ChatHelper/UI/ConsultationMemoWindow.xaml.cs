@@ -574,13 +574,51 @@ public partial class ConsultationMemoWindow : Window
             clipBtn.Click += async (s, e) =>
             {
                 var res = await ClipboardSmartService.GetCustomerMessageAsync();
-                string clip = res.ExtractedText.Trim();
+                string clip = ConsultationMemoService.SanitizeClipboardForVariable(key, res.ExtractedText);
                 if (!string.IsNullOrWhiteSpace(clip))
                 {
                     tb.Text = clip;
                 }
             };
             boxStack.Children.Add(clipBtn);
+
+            // 날짜/일정 변수인 경우 오늘·내일·금일 오후·내일 오전 원클릭 프리셋 제공
+            bool isDateOrTimeVar = key.Contains("날짜", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("일정", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("예약", StringComparison.OrdinalIgnoreCase)
+                || key.EndsWith("일", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("date", StringComparison.OrdinalIgnoreCase);
+            if (isDateOrTimeVar)
+            {
+                var ko = System.Globalization.CultureInfo.GetCultureInfo("ko-KR");
+                var presets = new (string Label, string Value)[]
+                {
+                    ("📅 오늘", DateTime.Today.ToString("M월 d일 (ddd)", ko)),
+                    ("📅 내일", DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko)),
+                    ("🕒 금일 오후", $"{DateTime.Today.ToString("M월 d일 (ddd)", ko)} 오후"),
+                    ("🕒 내일 오전", $"{DateTime.Today.AddDays(1).ToString("M월 d일 (ddd)", ko)} 오전")
+                };
+                foreach (var (label, val) in presets)
+                {
+                    var pBtn = new Button
+                    {
+                        Content = label,
+                        Height = 24,
+                        Margin = new Thickness(4, 0, 0, 0),
+                        Padding = new Thickness(7, 0, 7, 0),
+                        FontSize = 10.5,
+                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE")),
+                        Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")),
+                        BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")),
+                        BorderThickness = new Thickness(1),
+                        Cursor = Cursors.Hand,
+                        Focusable = false,
+                        ToolTip = $"클릭하여 '{val}' 입력"
+                    };
+                    pBtn.Click += (s, e) => tb.Text = val;
+                    boxStack.Children.Add(pBtn);
+                }
+            }
 
             // 비개발자 친화형 원클릭 임시메모 선택 알약
             for (int mIdx = 0; mIdx < Math.Min(_externalStickyMemos.Count, 4); mIdx++)
@@ -711,6 +749,17 @@ public partial class ConsultationMemoWindow : Window
     {
         if (IsLoaded)
             RebuildFinalPreview();
+    }
+
+    private void BtnRestorePreview_Click(object sender, RoutedEventArgs e)
+    {
+        RebuildFinalPreview();
+    }
+
+    private void BtnClearPreview_Click(object sender, RoutedEventArgs e)
+    {
+        TxtFinalPreview.Clear();
+        TxtFinalPreview.Focus();
     }
 
     private void BtnCopyFinal_Click(object sender, RoutedEventArgs e)

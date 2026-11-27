@@ -45,5 +45,5 @@
    ```
    *(최초 `git pull` 직후 `obj/`가 없는 새 컴퓨터에서는 `--no-restore`를 빼고 1회 실행)*
 4. **실행 파일 위치**:
-   - 모든 환경에서 빌드 결과물은 [publish/ChatHelper.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/ChatHelper.exe) 단일 경로만 사용합니다.
+   - 모든 환경에서 빌드 결과물은 [publish/DapJeongNer.exe](file:///C:/Users/taerin/Desktop/채팅도우미/publish/DapJeongNer.exe) 단일 경로만 사용합니다.
    - 만약 .NET 8 Desktop Runtime이 설치되지 않은 외부 PC로 단일 파일(`.exe` 1개)을 추출해야 할 때만 선택적으로 `dotnet publish ChatHelper\ChatHelper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish`를 사용합니다.

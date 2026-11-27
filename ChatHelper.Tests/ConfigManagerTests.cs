@@ -34,7 +34,7 @@ public static class ConfigManagerTests
             Assert(manager.Config.CompleteKeyMode == "SlashTab", "Default CompleteKeyMode should be 'SlashTab'");
             Assert(HotkeyValidator.ValidateHotkey("Q").IsConflict, "Single key without modifier must report conflict");
             Assert(HotkeyValidator.ValidateHotkey("Alt+X").IsConflict, "Internal hotkey Alt+X must report conflict");
-            Assert(!HotkeyValidator.ValidateHotkey("Alt+Q").IsConflict, "Default Alt+Q must be valid");
+            Assert(!HotkeyValidator.ValidateHotkey("Alt+Q", currentOwnHotkey: "Alt+Q").IsConflict, "Default Alt+Q must be valid");
             Assert(File.Exists(testConfig), "Default config file should be created on disk");
         }
         finally

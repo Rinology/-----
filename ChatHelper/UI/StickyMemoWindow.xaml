@@ -1,7 +1,7 @@
 <Window x:Class="ChatHelper.UI.StickyMemoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="챗헬프 임시메모"
+        Title="답정너 임시메모"
         WindowStyle="None"
         ResizeMode="NoResize"
         Background="#FFFDF5"
@@ -36,12 +36,12 @@
             <Border Grid.Row="0" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="0,0,0,1" CornerRadius="9,9,0,0" Cursor="SizeAll">
                 <Grid Margin="10,0,6,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="TxtMemoHeader" Text="📌 챗헬프 임시메모 (0)"
-                                   Foreground="#92400E" FontWeight="Bold" FontSize="12.5" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
+                        <TextBlock x:Name="TxtMemoHeader" Text="📌 답정너 임시메모 (0)"
+                                   Foreground="#92400E" FontWeight="Bold" FontSize="12.5" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button x:Name="BtnDockToggle" Content="🔗" Width="24" Height="24" Margin="0,0,3,0" Padding="0"
-                                FontSize="11" Background="#FFFFFF" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1"
+                        <Button x:Name="BtnDockToggle" Content="🔗 붙이기" Height="24" Margin="0,0,3,0" Padding="7,0"
+                                FontSize="10.5" FontWeight="SemiBold" Background="#FFFFFF" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1"
                                 Cursor="Hand" Focusable="False" ToolTip="Xenie 창 옆에 자석처럼 붙이기 / 분리"
                                 Click="BtnDockToggle_Click"/>
                         <Button Content="📋" Width="26" Height="24" Margin="0,0,3,0" Padding="0"
@@ -64,23 +64,39 @@
                 </Grid>
             </Border>
 
-            <!-- 2. 빠른 직접 메모 입력 줄 -->
-            <Grid Grid.Row="1" Margin="8,8,8,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="TxtQuickMemo" Grid.Column="0" Height="28" FontSize="11.5" Padding="7,3"
-                         VerticalContentAlignment="Center" Background="#FFFFFF" Foreground="#1E293B"
-                         BorderBrush="#FCD34D" BorderThickness="1"
-                         ToolTip="송장번호나 메모를 직접 입력하고 Enter로 추가하세요"
-                         PreviewMouseDown="TxtQuickMemo_PreviewMouseDown"
-                         KeyDown="TxtQuickMemo_KeyDown"/>
-                <Button Grid.Column="1" Content="+ 추가" Height="28" Padding="9,0" Margin="5,0,0,0"
-                        FontSize="11" FontWeight="Bold" Background="#FDE68A" Foreground="#78350F"
-                        BorderBrush="#F59E0B" BorderThickness="1" Cursor="Hand" Focusable="False"
-                        Click="BtnAddQuickMemo_Click"/>
-            </Grid>
+            <!-- 2. 빠른 직접 메모 입력 줄 + 기본 날짜 프리셋 -->
+            <StackPanel Grid.Row="1" Margin="8,8,8,4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="TxtQuickMemo" Grid.Column="0" Height="28" FontSize="11.5" Padding="7,3"
+                             VerticalContentAlignment="Center" Background="#FFFFFF" Foreground="#1E293B"
+                             BorderBrush="#FCD34D" BorderThickness="1"
+                             ToolTip="송장번호나 메모를 직접 입력하고 Enter로 추가하세요"
+                             PreviewMouseDown="TxtQuickMemo_PreviewMouseDown"
+                             KeyDown="TxtQuickMemo_KeyDown"/>
+                    <Button Grid.Column="1" Content="+ 추가" Height="28" Padding="9,0" Margin="5,0,0,0"
+                            FontSize="11" FontWeight="Bold" Background="#FDE68A" Foreground="#78350F"
+                            BorderBrush="#F59E0B" BorderThickness="1" Cursor="Hand" Focusable="False"
+                            Click="BtnAddQuickMemo_Click"/>
+                </Grid>
+                <WrapPanel Margin="0,5,0,0">
+                    <Button Content="📅 오늘" Tag="Today" Height="22" Padding="7,0" Margin="0,0,4,0" FontSize="10.5"
+                            Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
+                            Cursor="Hand" Focusable="False" Click="BtnDatePreset_Click"/>
+                    <Button Content="📅 내일" Tag="Tomorrow" Height="22" Padding="7,0" Margin="0,0,4,0" FontSize="10.5"
+                            Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
+                            Cursor="Hand" Focusable="False" Click="BtnDatePreset_Click"/>
+                    <Button Content="🕒 금일 오후" Tag="TodayPm" Height="22" Padding="7,0" Margin="0,0,4,0" FontSize="10.5"
+                            Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
+                            Cursor="Hand" Focusable="False" Click="BtnDatePreset_Click"/>
+                    <Button Content="🕒 내일 오전" Tag="TomorrowAm" Height="22" Padding="7,0" FontSize="10.5"
+                            Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
+                            Cursor="Hand" Focusable="False" Click="BtnDatePreset_Click"/>
+                </WrapPanel>
+            </StackPanel>
 
             <!-- 3. 메모 카드 목록 (드래그 앤 드롭 지원) -->
             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="8,4,8,4">
@@ -90,8 +106,8 @@
             <!-- 4. 하단 안내 바 -->
             <Border Grid.Row="3" Background="#FEF9C3" BorderBrush="#FDE68A" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,0">
                 <TextBlock VerticalAlignment="Center"
-                           Text="\+M 담기 · \+V 클립보드 · 카드 드래그→변수 입력 · Xenie 옆 붙이기"
-                           FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
+                           Text="Alt+N 열기/닫기 · \+M 단어담기 · \+V 클립보드/OCR · \+C 비우기"
+                           FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="pack://application:,,,/DapJeongNer;component/Assets/Fonts/#Paperlogy"/>
             </Border>
         </Grid>
     </Border>

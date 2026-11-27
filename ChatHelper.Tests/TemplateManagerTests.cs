@@ -245,7 +245,7 @@ public static class TemplateManagerTests
             Assert(resolvedTracking == "내일 오전 출고 송장: 456-8280-8146",
                 $"Semantic variable match failed: '{resolvedTracking}'");
 
-            // OCR 이중 엔진(ko+en) 줄바꿈 보존 및 한자/한글 오인식 보정 테스트
+            // OCR 이중 엔진(ko+en) 줄바꿈 보존 및 한자/한글/숫자 '&' 오인식 보정 테스트
             var koLines = new List<(double Y, string Text)>
             {
                 (10.0, "456-828堡8146"),
@@ -261,6 +261,12 @@ public static class TemplateManagerTests
             string ocrCombined = OcrService.SelectBestOcrLines(koLines, enLines);
             string expectedOcr = string.Join(Environment.NewLine, new[] { "456-8280-8146", "456-8280-8161", "배송 문의드립니다" });
             Assert(ocrCombined == expectedOcr, $"OCR line/numeric selection failed: '{ocrCombined}'");
+
+            string ampFixed = OcrService.NormalizeNumericOcrArtifacts("456-828&8150");
+            Assert(ampFixed == "456-8280-8150", $"OCR '&' numeric artifact fix failed: '{ampFixed}'");
+
+            string sanitized = ConsultationMemoService.SanitizeClipboardForVariable("송장번호", "송장\n입력\n456-8280-8146\n송장\n입력");
+            Assert(sanitized == "456-8280-8146", $"Clipboard variable sanitization failed: '{sanitized}'");
         }
         finally
         {
