@@ -201,6 +201,24 @@ public class KeyboardHookService : IDisposable
                 {
                     mapped = Win32Api.MapVirtualKey((uint)scanCode, Win32Api.MAPVK_VSC_TO_VK_EX);
                 }
+                if (mapped <= 0)
+                {
+                    mapped = cleanScan switch
+                    {
+                        0x32 => Win32Api.VK_M,
+                        0x2F => Win32Api.VK_V,
+                        0x2E => Win32Api.VK_C,
+                        0x21 => Win32Api.VK_F,
+                        0x31 => Win32Api.VK_N,
+                        0x2B => Win32Api.VK_OEM_5,
+                        0x0F => Win32Api.VK_TAB,
+                        0x1F => 'S',
+                        0x2D => Win32Api.VK_X,
+                        0x14 => Win32Api.VK_T,
+                        0x10 => 'Q',
+                        _ => 0
+                    };
+                }
                 if (mapped > 0)
                 {
                     vkCode = mapped;
@@ -355,15 +373,20 @@ public class KeyboardHookService : IDisposable
                             ? bufHangul
                             : (!string.IsNullOrWhiteSpace(LastRecognizedToken) ? LastRecognizedToken : bufRaw);
                         token = token.TrimStart('\\', '/').Trim();
+                        _buffer.Clear();
+                        LastRecognizedToken = string.Empty;
+                        ClearCandidates(cancelAi: true);
+
                         if (!string.IsNullOrWhiteSpace(token))
                         {
                             int bsCount = token.Length + 1;
-                            _buffer.Clear();
-                            LastRecognizedToken = string.Empty;
-                            ClearCandidates(cancelAi: true);
                             MemoAddRequested?.Invoke(null, token, currentFgHwnd, bsCount);
-                            return (IntPtr)1;
                         }
+                        else
+                        {
+                            Task.Run(() => TextInjectionService.SendBackspaces(1));
+                        }
+                        return (IntPtr)1;
                     }
                     if (vkCode == Win32Api.VK_V)
                     {
@@ -703,10 +726,8 @@ public class KeyboardHookService : IDisposable
                 string curBuf = _buffer.GetRawText();
                 bool isMathBuf = _configManager.Config.EnableMathCalc && MathCalcHelper.LooksLikePartialMath(curBuf);
 
-                // 수식("5 * 10 =") 입력 중이거나 1회 띄어쓰기 자연어 구문("배송 안내")은 유지,
-                // 그 외 일반 긴 문장은 버퍼/알약을 즉시 닫음
-                if ((isMathBuf && _buffer.Length <= 25) ||
-                    (_buffer.Length >= 2 && _buffer.Length <= 15 && !curBuf.Contains(' ')))
+                // 수식("5 * 10 =") 입력 중이거나 단어 담기/자연어 구문("단어를 담아보자" 등 최대 40자)은 유지
+                if ((isMathBuf && _buffer.Length <= 25) || _buffer.Length <= 40)
                 {
                     _buffer.Append(' ');
                     EvaluateCandidates();

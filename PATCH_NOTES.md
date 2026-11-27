@@ -27,6 +27,18 @@
 
 ---
 
+## [v3.4.3] — 2026-11-27 (한글 IME 단축키 선점 강화 · `\+M` 긴 구문 버퍼 보존 및 키 누수 차단)
+
+### 🐛 Fixed
+- **한글 IME 조합 중(`VK_PROCESSKEY`) 단축키 스캔코드 직접 매핑 폴백 추가 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - `MapVirtualKey`가 실패하는 환경에서도 하드웨어 스캔코드(`M`/`V`/`C`/`F`/`N`/`\`/`Tab`/`S`/`X`/`T`)로 답정너 단축키를 우선 가로채도록 보강.
+- **`\ + M` (`\ㅡ`) 단어 담기 실패 및 `\m` 채팅창 잔류 수정 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - `VK_SPACE` 버퍼 유지 길이를 15자 → 40자로 확장해 2~3어절 구문도 끊기지 않고 메모에 담기도록 수정.
+  - `\+M` 입력 시 `token` 유무와 관계없이 `M` 키를 항상 가로채(`return (IntPtr)1;`) 채팅창에 `\m`이 찍히거나 `m`만 메모에 들어가는 현상을 차단.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.4.2] — 2026-11-27 (임시메모 세로 760px 확대 · 2줄 단축키 바 · 전체 UI `기능(단축키)` 간결화)
 
 ### ✨ Added / Changed
