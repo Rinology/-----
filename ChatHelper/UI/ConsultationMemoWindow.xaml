@@ -116,7 +116,7 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock x:Name="TxtCandidateHint" Grid.Row="0" Margin="4,0,4,6"
-                                   Text="🔍 키워드를 입력해 후보를 좁히세요 (0건)"
+                                   Text="🔍 키워드 · 제목 · 본문 문장으로 검색해 후보를 좁히세요 (0건)"
                                    FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeSubText}" FontFamily="pack://application:,,,/ChatGENIE;component/Assets/Fonts/#Paperlogy"/>
 
                         <ListBox x:Name="LstCandidates" Grid.Row="1"
@@ -186,7 +186,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
 
-                        <Button Grid.Row="2" Content="📝 현재 입력어를 자유 메모로 바로 담기"
+                        <Button Grid.Row="2" Content="+ 검색창에 적은 문구 그대로 추가"
                                 Margin="0,6,0,0" Padding="10,6" FontSize="11.5" FontWeight="SemiBold"
                                 Background="#F8FAFC" Foreground="{DynamicResource ThemeText}"
                                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1"
@@ -238,14 +238,17 @@
                                     BorderBrush="#FECACA" BorderThickness="1" Cursor="Hand"
                                     ToolTip="미리보기 내용만 비웁니다 (담아둔 메모는 유지)"
                                     Click="BtnClearPreview_Click"/>
-                            <TextBlock Text="연결 형식:" FontSize="11.5" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <ComboBox x:Name="CmbJoinMode" Width="155" Height="26" FontSize="11.5" VerticalContentAlignment="Center" SelectionChanged="CmbJoinMode_SelectionChanged">
+                            <TextBlock Text="연결:" FontSize="11" Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <ComboBox x:Name="CmbJoinMode" Width="138" Height="26" FontSize="11" VerticalContentAlignment="Center" SelectionChanged="CmbJoinMode_SelectionChanged">
                                 <ComboBoxItem Content="문단 구분 (빈 줄)" Tag="Paragraph" IsSelected="True"/>
                                 <ComboBoxItem Content="줄바꿈으로 연결" Tag="LineBreak"/>
                                 <ComboBoxItem Content="번호 매기기 (1. 2. 3.)" Tag="Numbered"/>
                                 <ComboBoxItem Content="불릿 목록 (•)" Tag="Bulleted"/>
                             </ComboBox>
-                            <CheckBox x:Name="ChkClearAfterInsert" Content="입력 후 메모 비우기" IsChecked="True" Margin="10,0,0,0" FontSize="11.5" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkConsumeStickyMemos" Content="사용한 임시메모 삭제" IsChecked="True" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"
+                                      ToolTip="완성 입력 시 변수에 사용된 임시메모 카드를 자동으로 삭제하고 남은 다음 변수로 이어서 채웁니다"/>
+                            <CheckBox x:Name="ChkClearAfterInsert" Content="입력 후 조합칸 비우기" IsChecked="False" Margin="8,0,0,0" FontSize="11" VerticalAlignment="Center"
+                                      ToolTip="체크 시 입력 후 우측 조합 목록을 모두 비웁니다 (여러 송장을 연속 입력할 때는 체크 해제 권장)"/>
                         </StackPanel>
                     </Grid>
 

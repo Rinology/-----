@@ -4,6 +4,41 @@
 
 ---
 
+## [v3.5.5] — 2026-11-28 (연속 변수 입력 UX & 임시메모 자동 소모 연동 · 문장/제목 검색 보강 · 알약 하단 강조 및 단축키 분리 · UI/메모 통합 테마)
+
+### ✨ Added / Changed
+- **답변조합기(`Xenie`) 연속 입력 시 창 유지 및 사용한 임시메모 자동 소모 연동 ([ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs), [MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs))**:
+  - 최종 완성 입력 후 창이 닫히지 않고 유지되도록 변경해, 여러 송장번호를 연속으로 안내할 수 있도록 개선.
+  - **`사용한 임시메모 삭제`** 체크박스(기본 체크)와 **`입력 후 조합칸 비우기`** 체크박스(기본 해제)를 분리하여, 완성 입력 시 변수에 사용된 임시메모 카드가 자동 삭제되고 남은 다음 임시메모(송장/날짜 등)가 변수 칸에 자동 세팅되도록 연동.
+  - 어색했던 `"📝 현재 입력어를 자유 메모로 바로 담기"` 버튼 문구를 **`"+ 검색창에 적은 문구 그대로 추가"`**로 직관화.
+- **답변조합기 제목·본문 문장·한글 IME 조합 중 검색 개선 ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs))**:
+  - 한글 조사(`은/는/이/가/을/를/으로` 등) 자동 제거 매칭, 한글 입력 중 마지막 자음(`ㄱ~ㅎ`) 초성 프리픽스 매칭, 여러 어절 문장 입력 시 부분 일치(OR 합산) 폴백을 추가해 단축 키워드(`ds`)뿐만 아니라 제목이나 문장 검색이 끊김 없이 동작하도록 개선.
+- **추천 알약 `{}` 변수 하단/테두리 강조 및 `\` 명령키 안내 분리 ([SuggestionBar.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs))**:
+  - 텍스트 `{}` 표기 대신 **두꺼운 하단/테두리 강조(`#F59E0B`, 하단 3.5px)**로 변수 포함 알약을 시각적으로 즉시 구분.
+  - 인식 헤더 바로 아래에 **`명령키 [ \ ] 누른 뒤 ➔ 1번 [Tab] · 번호 선택 [1~9]`** 안내 줄을 배치하고, 개별 알약에는 `\+` 반복 없이 **`[Tab] 제목`**, **`[2] 제목`**, **`[3] 제목`**으로 간결하게 표시.
+- **UI 테마와 `ChatGENIE` 메모장 강조 색상 통합 및 실시간 미리보기 추가 ([ThemeManager.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ThemeManager.cs), [ControlPanelWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml), [ControlPanelWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ControlPanelWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs))**:
+  - 별도 텍스트 라디오 버튼 대신 **UI 통합 테마 컬러** 하나로 통합하되, `ChatGENIE` 메모장은 선택한 테마보다 한 단계 더 선명하게 강조된 팔레트(`GetEmphasizedMemoPalette`)가 자동 적용되도록 개편하고 우측 실시간 예시 화면에 메모장 미리보기 카드를 추가.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
+## [v3.5.4] — 2026-11-28 (코드 품질·보안 감사 및 스파게티 중복 로직 정리 · 컴파일러 경고 0건 달성)
+
+### 🐛 Fixed
+- **`\+M` 이전 단어(`_lastNonSlashWord`) 잔류 버그 차단 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - `\` 뒤에 일반 단축어(`\dz`)가 이어지거나 템플릿 치환 완료(`CompleteSelection`), `Enter`/`Esc`/`Delete`/방향키 입력, 외부 창 전환, `Ctrl`/`Alt`/`Win` 조합키 입력 시 `_lastNonSlashWord`와 `_memoSlashArmed`가 즉시 초기화되도록 보강하여 과거 단어가 뒤늦게 담기는 현상 원천 차단.
+
+### 🧹 Removed / Refactored (스파게티 코드 방지 및 경량화)
+- **키훅 내 중복 메모 단축키 분기 통합 ([KeyboardHookService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/KeyboardHookService.cs))**:
+  - `HookCallback`과 `TryHandleCompletionTrigger` 두 곳에 중복 존재하던 `\+M`, `\+V`, `\+C`, `\+F`, `\+N` 분기를 `HookCallback` 단일 경로로 통합(약 65줄 중복 제거).
+- **미사용 이벤트·필드 정리 및 컴파일러 경고 12건 → 0건 달성 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs), [SuggestionBar.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/SuggestionBar.xaml.cs), [QuickSearchWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/QuickSearchWindow.xaml.cs))**:
+  - `CS8604`(null 참조 가능성), `CS4014`(비대기 비동기 호출), `CS0067`/`CS0414`(폐기된 이벤트 및 미사용 필드) 전량 정리.
+- **`publish/` 중복 OCR 모델 폴더(`models\v5`, 13.7MB) 자동 제거 ([ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj))**:
+  - `Assets\Ocr`의 한국어 PP-OCRv5 모델만 유지하고 NuGet 기본 라틴어 중복 모델 폴더는 배포 시 자동 삭제되도록 개선.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.5.3] — 2026-11-28 (`\+M` 단어담기 버그 수정 · 메모장 색상 설정 추가 · 알약 `{}` 변수 표시)
 
 ### 🐛 Fixed

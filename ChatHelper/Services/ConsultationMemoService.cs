@@ -82,6 +82,29 @@ public static class ConsultationMemoService
             }
         }
 
+        // 여러 어절 문장 입력 시 모든 어절 AND 조건으로 0건이면, 부분 일치(OR 합산) 폴백으로 제목·본문 문장 검색 지원
+        if (scored.Count == 0 && allTerms.Count >= 2)
+        {
+            foreach (var item in templates)
+            {
+                int partialScore = 0;
+                int matchedCount = 0;
+                foreach (var term in allTerms)
+                {
+                    int s = ScoreSingleTerm(item, term);
+                    if (s > 0)
+                    {
+                        partialScore += s;
+                        matchedCount++;
+                    }
+                }
+                if (matchedCount > 0)
+                {
+                    scored.Add((item, partialScore + matchedCount * 25));
+                }
+            }
+        }
+
         return scored
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.Item.Keyword, StringComparer.OrdinalIgnoreCase)
@@ -89,11 +112,23 @@ public static class ConsultationMemoService
             .ToList();
     }
 
+    private static string StripKoreanParticle(string word)
+    {
+        if (word.Length < 3) return word;
+        foreach (var suffix in new[] { "에서는", "으로부터", "으로", "에서", "에게", "까지", "부터", "은", "는", "이", "가", "을", "를", "에", "의", "로", "도", "만" })
+        {
+            if (word.EndsWith(suffix, StringComparison.Ordinal) && word.Length - suffix.Length >= 2)
+                return word[..^suffix.Length];
+        }
+        return word;
+    }
+
     private static int ScoreSingleTerm(TemplateItem item, string term)
     {
         string q = term.Trim().ToLowerInvariant();
         if (string.IsNullOrEmpty(q)) return 0;
         string qNoSpace = q.Replace(" ", "");
+        string qStem = StripKoreanParticle(q);
 
         string kw = item.Keyword?.ToLowerInvariant() ?? string.Empty;
         string ckw = item.ContentKeyword?.ToLowerInvariant() ?? string.Empty;
@@ -111,16 +146,58 @@ public static class ConsultationMemoService
         if (cat.Contains(q)) score += 20;
         if (content.Contains(q) || content.Replace(" ", "").Contains(qNoSpace)) score += 15;
 
+        // 조사가 붙은 자연어 어절(예: "배송은", "송장번호를") 매칭
+        if (score == 0 && qStem != q)
+        {
+            if (kw.Contains(qStem)) score += 45;
+            if (ckw.Contains(qStem)) score += 40;
+            if (title.Contains(qStem)) score += 35;
+            if (content.Contains(qStem)) score += 15;
+        }
+
+        // 한글 IME 입력 도중 마지막 글자가 자음(ㄱ~ㅎ)으로 조합 중인 경우 (예: "배송ㅇ" -> "배송안내" 매칭)
+        if (score == 0 && q.Length >= 2 && q[^1] >= '\u3131' && q[^1] <= '\u314E')
+        {
+            string prefix = q[..^1];
+            char trailingCho = q[^1];
+            if (MatchesPrefixPlusChoseong(title, prefix, trailingCho) ||
+                MatchesPrefixPlusChoseong(ckw, prefix, trailingCho) ||
+                MatchesPrefixPlusChoseong(kw, prefix, trailingCho) ||
+                MatchesPrefixPlusChoseong(content, prefix, trailingCho))
+            {
+                score += 32;
+            }
+        }
+
         if (score == 0 && HangulAssembler.IsChoseongQuery(q))
         {
-            string kwCho = HangulAssembler.ExtractChoseong(item.Keyword).Replace(" ", "").ToLowerInvariant();
-            string ckwCho = HangulAssembler.ExtractChoseong(item.ContentKeyword).Replace(" ", "").ToLowerInvariant();
-            string titleCho = HangulAssembler.ExtractChoseong(item.Title).Replace(" ", "").ToLowerInvariant();
+            string kwCho = HangulAssembler.ExtractChoseong(item.Keyword ?? string.Empty).Replace(" ", "").ToLowerInvariant();
+            string ckwCho = HangulAssembler.ExtractChoseong(item.ContentKeyword ?? string.Empty).Replace(" ", "").ToLowerInvariant();
+            string titleCho = HangulAssembler.ExtractChoseong(item.Title ?? string.Empty).Replace(" ", "").ToLowerInvariant();
             if (kwCho.Contains(qNoSpace) || ckwCho.Contains(qNoSpace) || titleCho.Contains(qNoSpace))
                 score += 35;
         }
 
         return score;
+    }
+
+    private static bool MatchesPrefixPlusChoseong(string target, string prefix, char trailingCho)
+    {
+        if (string.IsNullOrEmpty(target) || string.IsNullOrEmpty(prefix)) return false;
+        int idx = target.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        while (idx >= 0)
+        {
+            int nextIdx = idx + prefix.Length;
+            while (nextIdx < target.Length && target[nextIdx] == ' ') nextIdx++;
+            if (nextIdx < target.Length)
+            {
+                string nextCho = HangulAssembler.ExtractChoseong(target[nextIdx].ToString());
+                if (nextCho.Length > 0 && nextCho[0] == trailingCho)
+                    return true;
+            }
+            idx = target.IndexOf(prefix, idx + 1, StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
     }
 
     /// <summary>

@@ -34,6 +34,7 @@
       <SensitivePublishFiles Include="$(PublishDir)config.json;$(PublishDir)*.log;$(PublishDir)*.csv;$(PublishDir).env;$(PublishDir)*.tmp" />
     </ItemGroup>
     <Delete Files="@(SensitivePublishFiles)" />
+    <RemoveDir Directories="$(PublishDir)models" />
   </Target>
 
 </Project>

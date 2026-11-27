@@ -36,7 +36,6 @@ public class KeyboardHookService : IDisposable
     public event Action<IntPtr, int>? MemoFinalizeRequested;
     public event Action<IntPtr>? MemoDetailRequested;
     public event Action<IntPtr>? MemoClearRequested;
-    public event Action<IntPtr>? QuickRegisterHotkeyTriggered;
     public event Action<TemplateItem>? ItemAutoCompleted;
     public Func<string, string>? TemplateContentResolver { get; set; }
     public event Action<string, string>? RecognitionStateChanged;
@@ -317,16 +316,6 @@ public class KeyboardHookService : IDisposable
                 }
             }
 
-            /* 바로등록 기능 임시 비활성화
-            // Alt + R 드래그 선택 문장 시트 바로등록 호출 (왼쪽 Alt + R)
-            if (isLeftAltPressed && !isCtrlPressed && (vkCode == Win32Api.VK_R || scanCode == Win32Api.SCAN_R))
-            {
-                IntPtr fgHwnd = Win32Api.GetForegroundWindow();
-                QuickRegisterHotkeyTriggered?.Invoke(fgHwnd);
-                return (IntPtr)1;
-            }
-            */
-
             // 자동완성이 일시정지(OFF) 상태이면 패스
             if (!_configManager.Config.IsEnabled)
             {
@@ -344,6 +333,7 @@ public class KeyboardHookService : IDisposable
             // Ctrl, 왼쪽 Alt, Win 조합 단축키 입력 시 백그라운드 버퍼 초기화 요청
             if (isCtrlPressed || isLeftAltPressed || isWinPressed)
             {
+                _memoSlashArmed = false;
                 if (_hasCandidates)
                 {
                     _keyChannel.Writer.TryWrite((Win32Api.VK_ESCAPE, false, IntPtr.Zero));
@@ -534,7 +524,6 @@ public class KeyboardHookService : IDisposable
 
         if ((_triggerArmed || (GetAsyncKeyState(Win32Api.VK_OEM_5) & 0x8000) != 0) &&
             (vkCode == Win32Api.VK_A || vkCode == Win32Api.VK_E ||
-             (_configManager.Config.EnableConsultationMemo && (vkCode == Win32Api.VK_M || vkCode == Win32Api.VK_V || vkCode == Win32Api.VK_C || vkCode == Win32Api.VK_F || vkCode == Win32Api.VK_N)) ||
              (vkCode >= Win32Api.VK_1 && vkCode <= Win32Api.VK_9)))
             return true;
 
@@ -621,67 +610,6 @@ public class KeyboardHookService : IDisposable
                 }
             }
 
-            if ((isSlashHeld || _triggerArmed) && _configManager.Config.EnableConsultationMemo)
-            {
-                if (vkCode == Win32Api.VK_M)
-                {
-                    string bufHangul = _buffer.GetHangulText().Trim();
-                    string token = !string.IsNullOrWhiteSpace(bufHangul)
-                        ? bufHangul
-                        : LastRecognizedToken;
-                    token = token.TrimStart('\\', '/').Trim();
-                    if (string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(_lastNonSlashWord))
-                        token = _lastNonSlashWord;
-                    _lastNonSlashWord = string.Empty;
-                    int bsCount = Math.Max(_currentMatchedLen, token.Length);
-                    IntPtr target = _lastTargetHwnd;
-                    _triggerArmed = false;
-                    _buffer.Clear();
-                    LastRecognizedToken = string.Empty;
-                    ClearCandidates(cancelAi: true);
-                    MemoAddRequested?.Invoke(null, token, target, bsCount);
-                    return true;
-                }
-                if (vkCode == Win32Api.VK_V)
-                {
-                    IntPtr target = _lastTargetHwnd;
-                    _triggerArmed = false;
-                    _buffer.Clear();
-                    ClearCandidates();
-                    MemoClipboardRequested?.Invoke(target, 0);
-                    return true;
-                }
-                if (vkCode == Win32Api.VK_C)
-                {
-                    IntPtr target = _lastTargetHwnd;
-                    _triggerArmed = false;
-                    _buffer.Clear();
-                    LastRecognizedToken = string.Empty;
-                    ClearCandidates();
-                    Task.Run(() => TextInjectionService.SendBackspaces(1));
-                    MemoClearRequested?.Invoke(target);
-                    return true;
-                }
-                if (vkCode == Win32Api.VK_F && _hasActiveMemos)
-                {
-                    IntPtr target = _lastTargetHwnd;
-                    _triggerArmed = false;
-                    _buffer.Clear();
-                    ClearCandidates();
-                    MemoFinalizeRequested?.Invoke(target, 0);
-                    return true;
-                }
-                if (vkCode == Win32Api.VK_N)
-                {
-                    IntPtr target = _lastTargetHwnd;
-                    _triggerArmed = false;
-                    _buffer.Clear();
-                    ClearCandidates();
-                    MemoDetailRequested?.Invoke(target);
-                    return true;
-                }
-            }
-
             _triggerArmed = false;
             return false;
         }
@@ -712,6 +640,8 @@ public class KeyboardHookService : IDisposable
                 if (_lastTargetHwnd != IntPtr.Zero && _lastTargetHwnd != currentHwnd)
                 {
                     _buffer.Clear();
+                    _lastNonSlashWord = string.Empty;
+                    _memoSlashArmed = false;
                     ClearCandidates();
                 }
                 _lastTargetHwnd = currentHwnd;
@@ -731,6 +661,8 @@ public class KeyboardHookService : IDisposable
                 or Win32Api.VK_LEFT or Win32Api.VK_UP or Win32Api.VK_RIGHT or Win32Api.VK_DOWN)
             {
                 _buffer.Clear();
+                _lastNonSlashWord = string.Empty;
+                _memoSlashArmed = false;
                 ClearCandidates();
                 return;
             }
@@ -799,6 +731,11 @@ public class KeyboardHookService : IDisposable
                     if (!string.IsNullOrWhiteSpace(prevWord))
                         _lastNonSlashWord = prevWord;
                     _buffer.Clear();
+                }
+                else
+                {
+                    // '\' 뒤에 일반 글자(예: \dz)가 입력되면 \+M 대기용 이전 단어는 즉시 폐기하여 오동작 방지
+                    _lastNonSlashWord = string.Empty;
                 }
 
                 _buffer.Append(inputChar.Value);
@@ -1042,6 +979,8 @@ public class KeyboardHookService : IDisposable
         bool useShiftHome = _isNaturalLanguageMode;
         _isReplacing = true;
         _buffer.Clear();
+        _lastNonSlashWord = string.Empty;
+        _memoSlashArmed = false;
         _triggerArmed = false;
         ClearCandidates();
 
@@ -1070,6 +1009,8 @@ public class KeyboardHookService : IDisposable
         lock (_lock)
         {
             _buffer.Clear();
+            _lastNonSlashWord = string.Empty;
+            _memoSlashArmed = false;
             ClearCandidates();
         }
     }

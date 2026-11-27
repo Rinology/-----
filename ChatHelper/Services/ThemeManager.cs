@@ -28,6 +28,21 @@ public static class ThemeManager
         };
     }
 
+    /// <summary>
+    /// 선택한 UI 테마 색상보다 한 단계 더 선명하고 강조된 ChatGENIE 임시메모 전용 팔레트
+    /// </summary>
+    public static (string Bg, string HeaderBg, string BorderHex, string TextHex, string AddBg) GetEmphasizedMemoPalette(string? accentName)
+    {
+        return (accentName ?? "Blue").Trim() switch
+        {
+            "Green" => ("#E6FAF0", "#C6F3DF", "#10B981", "#064E3B", "#A7F3D0"),
+            "Lavender" => ("#F2ECFF", "#E2D6FF", "#8B5CF6", "#4C1D95", "#DDD6FE"),
+            "Peach" => ("#FEF8E0", "#FDEDB4", "#F59E0B", "#78350F", "#FDE68A"),
+            "Pink" => ("#FFEFF7", "#FBD8EA", "#EC4899", "#831843", "#FBCFE8"),
+            _ => ("#EBF4FF", "#D2E5FF", "#3B82F6", "#1E3A8A", "#BFDBFE")
+        };
+    }
+
     public static void ApplyTheme(string? themeName = ThemeFluentLight, string? accentColor = null)
     {
         try

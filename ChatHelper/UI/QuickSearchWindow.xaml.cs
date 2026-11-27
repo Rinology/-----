@@ -15,7 +15,6 @@ public partial class QuickSearchWindow : Window
     private readonly ConfigManager _configManager;
     private IntPtr _targetHwnd = IntPtr.Zero;
     private string _selectedCategory = "전체";
-    private bool _isActionModalOpen = false;
     private DateTime _openedAt = DateTime.MinValue;
 
     public event Action<TemplateItem, IntPtr>? ItemSelected;
@@ -352,7 +351,6 @@ public partial class QuickSearchWindow : Window
 
     public void OpenAddAndUploadDialog(Window? ownerWindow = null, string? initialKeyword = null)
     {
-        _isActionModalOpen = true;
         try
         {
             string seedKw = !string.IsNullOrWhiteSpace(initialKeyword)
@@ -438,7 +436,6 @@ public partial class QuickSearchWindow : Window
         }
         finally
         {
-            _isActionModalOpen = false;
         }
     }
 

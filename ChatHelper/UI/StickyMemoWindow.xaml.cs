@@ -26,9 +26,7 @@ public partial class StickyMemoWindow : Window
     private bool _loadingFlip;
 
     public event Action<int>? MemoCountChanged;
-    public event Action<IntPtr>? OpenCombinerRequested;
     public event Action<string, IntPtr>? PasteSingleRequested;
-    public event Action? DockToggleRequested;
 
     public void SetOcrLoading(bool isLoading)
     {
@@ -76,6 +74,7 @@ public partial class StickyMemoWindow : Window
     {
         InitializeComponent();
         _configManager = configManager;
+        ThemeManager.ThemeChanged += () => Dispatcher.BeginInvoke(ApplyThemeColor);
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -88,15 +87,10 @@ public partial class StickyMemoWindow : Window
 
     private (string Bg, string HeaderBg, string Border, string AccentText, string AddBg) GetMemoPalette()
     {
-        return (_configManager.Config.MemoColor ?? "Yellow") switch
-        {
-            "White" => ("#FFFFFF", "#F8FAFC", "#CBD5E1", "#334155", "#E2E8F0"),
-            "Blue" => ("#F4F9FF", "#E8F2FF", "#93C5FD", "#1E3A8A", "#DBEAFE"),
-            "Mint" => ("#F3FCF8", "#E6F7EF", "#86EFAC", "#065F46", "#D1FAE5"),
-            "Lavender" => ("#F9F7FF", "#F0EBFF", "#C4B5FD", "#5B21B6", "#EDE9FE"),
-            "Pink" => ("#FFF7FA", "#FCEBF1", "#F9A8D4", "#9D174D", "#FCE7F3"),
-            _ => ("#FFFDF8", "#FEF9E7", "#E8D284", "#854D0E", "#FEF3C7") // Yellow (연노랑 기본)
-        };
+        string accent = !string.IsNullOrWhiteSpace(ThemeManager.CurrentAccent)
+            ? ThemeManager.CurrentAccent
+            : (_configManager.Config.AccentColor ?? "Blue");
+        return ThemeManager.GetEmphasizedMemoPalette(accent);
     }
 
     public void ApplyThemeColor()
@@ -164,6 +158,31 @@ public partial class StickyMemoWindow : Window
     {
         _entries.Clear();
         RenderCards();
+    }
+
+    /// <summary>
+    /// 답변조합기(Xenie)에서 변수로 사용된 임시메모 항목들을 자동으로 소모(삭제)합니다.
+    /// </summary>
+    public void RemoveUsedMemos(IReadOnlyList<string> usedValues)
+    {
+        if (usedValues == null || usedValues.Count == 0 || _entries.Count == 0)
+            return;
+
+        bool changed = false;
+        foreach (var val in usedValues)
+        {
+            if (string.IsNullOrWhiteSpace(val)) continue;
+            string target = val.Trim();
+            int idx = _entries.FindIndex(e => string.Equals(e.Content?.Trim(), target, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0)
+            {
+                _entries.RemoveAt(idx);
+                changed = true;
+            }
+        }
+
+        if (changed)
+            RenderCards();
     }
 
     public void ToggleWindow(IntPtr targetHwnd)
@@ -500,10 +519,6 @@ public partial class StickyMemoWindow : Window
             SetOcrLoading(false);
         }
     }
-
-    private void BtnDockToggle_Click(object sender, RoutedEventArgs e) => DockToggleRequested?.Invoke();
-
-    private void BtnOpenCombiner_Click(object sender, RoutedEventArgs e) => OpenCombinerRequested?.Invoke(_targetHwnd);
 
     private void BtnClearAll_Click(object sender, RoutedEventArgs e) => ClearMemos();
 

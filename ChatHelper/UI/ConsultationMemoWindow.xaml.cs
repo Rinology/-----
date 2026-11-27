@@ -43,10 +43,9 @@ public partial class ConsultationMemoWindow : Window
     }
 
     public event Action<string, IntPtr>? FinalTextReady;
-    public event Action<IReadOnlyList<MemoEntry>>? EntriesSynced;
     public event Action<int>? MemoCountChanged;
-    public event Action<string>? RegisterSheetRequested;
     public event Action? DockStickyRequested;
+    public event Action<IReadOnlyList<string>>? StickyMemosConsumed;
 
     public int MemoCount => _memoEntries.Count;
     public IReadOnlyList<MemoEntry> Entries => _memoEntries;
@@ -106,10 +105,16 @@ public partial class ConsultationMemoWindow : Window
         if (string.IsNullOrWhiteSpace(finalText)) return;
 
         IntPtr dst = Win32Api.IsValidTargetWindow(targetHwnd) ? targetHwnd : _targetHwnd;
-        if (ChkClearAfterInsert.IsChecked != false)
-            ClearMemos();
+        ConsumeStickyMemosAndAdvance(composed);
 
-        Hide();
+        if (ChkClearAfterInsert.IsChecked == true)
+            ClearMemos();
+        else
+            RebuildFinalPreview();
+
+        if (IsVisible)
+            FlashBorderHighlight();
+
         if (backspaceCount > 0)
         {
             Task.Run(() => TextInjectionService.ReplaceText(backspaceCount, finalText, dst, useShiftHome: false));
@@ -117,6 +122,27 @@ public partial class ConsultationMemoWindow : Window
         else
         {
             FinalTextReady?.Invoke(finalText, dst);
+        }
+    }
+
+    private void ConsumeStickyMemosAndAdvance(string composedText)
+    {
+        var usedValues = new List<string>();
+        var vars = ConsultationMemoService.ExtractPlaceholderNames(composedText);
+        foreach (var v in vars)
+        {
+            if (_variableValues.TryGetValue(v, out var val) && !string.IsNullOrWhiteSpace(val))
+            {
+                usedValues.Add(val.Trim());
+            }
+        }
+
+        // 수동 입력값 초기화하여 다음 임시메모가 자동으로 채워지도록 준비
+        _variableValues.Clear();
+
+        if (ChkConsumeStickyMemos?.IsChecked != false && usedValues.Count > 0)
+        {
+            StickyMemosConsumed?.Invoke(usedValues);
         }
     }
 
@@ -252,9 +278,9 @@ public partial class ConsultationMemoWindow : Window
             LstCandidates.SelectedIndex = 0;
 
         if (_keywordChips.Count == 0 && string.IsNullOrEmpty(input))
-            TxtCandidateHint.Text = $"🔍 키워드를 입력해 후보를 좁히세요 (전체 {filtered.Count}건)";
+            TxtCandidateHint.Text = $"🔍 키워드 · 제목 · 본문 문장으로 검색해 후보를 좁히세요 (전체 {filtered.Count}건)";
         else
-            TxtCandidateHint.Text = $"🎯 스무고개 조건 [{string.Join(" + ", _keywordChips.Concat(string.IsNullOrEmpty(input) ? Array.Empty<string>() : new[] { input }))}] → {filtered.Count}건 일치";
+            TxtCandidateHint.Text = $"🎯 검색 조건 [{string.Join(" + ", _keywordChips.Concat(string.IsNullOrEmpty(input) ? Array.Empty<string>() : new[] { input }))}] → {filtered.Count}건 일치";
     }
 
     private void RenderKeywordChips()
@@ -326,7 +352,7 @@ public partial class ConsultationMemoWindow : Window
         {
             MemoEntriesPanel.Children.Add(new TextBlock
             {
-                Text = "아직 달아둔 메모가 없습니다.\n좌측에서 템플릿의 [+ 담기]를 누르거나\n자유 메모로 추가해 상담 답변을 모아보세요.",
+                Text = "아직 담아둔 답변이 없습니다.\n좌측 목록에서 [+ 담기]를 누르거나\n검색창 문구를 그대로 추가해 보세요.",
                 Foreground = (Brush)(TryFindResource("ThemeSubText") ?? Brushes.Gray),
                 FontSize = 12,
                 TextAlignment = TextAlignment.Center,
@@ -530,9 +556,20 @@ public partial class ConsultationMemoWindow : Window
         }
 
         VariableInputsBar.Visibility = Visibility.Visible;
+        var autoAssignedStickyIndices = new HashSet<int>();
         foreach (var varName in vars)
         {
             string key = varName;
+            if (!_variableValues.TryGetValue(key, out var existing) || string.IsNullOrWhiteSpace(existing))
+            {
+                string? autoVal = FindMatchingExternalStickyValue(key, autoAssignedStickyIndices);
+                if (!string.IsNullOrWhiteSpace(autoVal))
+                {
+                    existing = autoVal;
+                    _variableValues[key] = autoVal;
+                }
+            }
+
             var boxStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 4), VerticalAlignment = VerticalAlignment.Center };
             boxStack.Children.Add(new TextBlock
             {
@@ -551,7 +588,7 @@ public partial class ConsultationMemoWindow : Window
                 FontSize = 11.5,
                 Padding = new Thickness(6, 2, 6, 2),
                 VerticalContentAlignment = VerticalAlignment.Center,
-                Text = _variableValues.TryGetValue(key, out var existing) ? existing : string.Empty,
+                Text = existing ?? string.Empty,
                 Tag = key
             };
             tb.TextChanged += (s, e) =>
@@ -647,6 +684,45 @@ public partial class ConsultationMemoWindow : Window
 
             VariableInputsPanel.Children.Add(boxStack);
         }
+    }
+
+    private string? FindMatchingExternalStickyValue(string varName, HashSet<int> usedIndices)
+    {
+        if (_externalStickyMemos.Count == 0) return null;
+
+        string targetKind = (varName.Contains("송장") || varName.Contains("운송장") || varName.Contains("번호")) ? "송장"
+            : (varName.Contains("날짜") || varName.Contains("일정") || varName.Contains("시간") || varName.EndsWith("일")) ? "날짜"
+            : (varName.Contains("금액") || varName.Contains("비용") || varName.Contains("가격")) ? "금액"
+            : string.Empty;
+
+        if (!string.IsNullOrEmpty(targetKind))
+        {
+            for (int i = 0; i < _externalStickyMemos.Count; i++)
+            {
+                if (usedIndices.Contains(i)) continue;
+                var m = _externalStickyMemos[i];
+                string val = m.Content?.Trim() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(val)) continue;
+                if (string.Equals(ConsultationMemoService.ResolveMemoKind(m), targetKind, StringComparison.Ordinal))
+                {
+                    usedIndices.Add(i);
+                    return val;
+                }
+            }
+        }
+
+        for (int i = 0; i < _externalStickyMemos.Count; i++)
+        {
+            if (usedIndices.Contains(i)) continue;
+            string val = _externalStickyMemos[i].Content?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(val))
+            {
+                usedIndices.Add(i);
+                return val;
+            }
+        }
+
+        return null;
     }
 
     private void AddCandidateToMemo(TemplateItem item)
@@ -780,6 +856,9 @@ public partial class ConsultationMemoWindow : Window
         if (string.IsNullOrEmpty(finalText)) return;
 
         IntPtr targetHwnd = _targetHwnd;
+        string composed = ConsultationMemoService.ComposeFinalText(_memoEntries, GetSelectedJoinMode());
+        ConsumeStickyMemosAndAdvance(composed);
+
         if (ChkClearAfterInsert.IsChecked == true)
         {
             _memoEntries.Clear();
@@ -788,8 +867,12 @@ public partial class ConsultationMemoWindow : Window
             RenderKeywordChips();
             RenderMemoEntries();
         }
+        else
+        {
+            RebuildFinalPreview();
+        }
 
-        Hide();
+        FlashBorderHighlight();
         FinalTextReady?.Invoke(finalText, targetHwnd);
     }
 

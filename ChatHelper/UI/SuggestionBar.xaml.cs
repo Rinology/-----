@@ -24,7 +24,6 @@ public partial class SuggestionBar : Window
     public event Action<TemplateItem, IntPtr>? SelectionReplaceRequested;
     public event Action<string, string, IntPtr>? TranslationRetranslateRequested;
     public event Action<TemplateItem?, string, IntPtr, int>? MemoPinRequested;
-    public event Action<string>? QuickRegisterRequested;
     public event Action? AutoHideExpired;
 
     public void SetRecognizedToken(string token)
@@ -81,6 +80,7 @@ public partial class SuggestionBar : Window
             RecognitionHeaderBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FECACA"));
             TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B91C1C"));
             TxtRecognitionHeader.Text = $"[미일치] \"{token}\"";
+            if (TxtCommandKeyGuide != null) TxtCommandKeyGuide.Visibility = Visibility.Collapsed;
         }
         else if (statusMode == "WAITING")
         {
@@ -90,6 +90,7 @@ public partial class SuggestionBar : Window
             TxtRecognitionHeader.Text = string.IsNullOrWhiteSpace(token)
                 ? "[대기중] 입력 대기..."
                 : $"[인식중] \"{token}\"";
+            if (TxtCommandKeyGuide != null) TxtCommandKeyGuide.Visibility = Visibility.Collapsed;
         }
         else
         {
@@ -98,6 +99,26 @@ public partial class SuggestionBar : Window
             TxtRecognitionHeader.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"));
             string displayToken = string.IsNullOrWhiteSpace(token) ? $"{matchedLen}자" : $"\"{token}\" ({matchedLen}자)";
             TxtRecognitionHeader.Text = $"인식: {displayToken}";
+            if (TxtCommandKeyGuide != null)
+            {
+                string trig = _configManager.Config.TriggerKey ?? "\\";
+                string cMode = _configManager.Config.CompleteKeyMode ?? "SlashTab";
+                if (cMode == "SlashOnly")
+                {
+                    TxtCommandKeyGuide.Text = $"명령키 [ {trig} ] 단독 입력 시 1번 즉시 완성";
+                    TxtCommandKeyGuide.Visibility = Visibility.Visible;
+                }
+                else if (cMode == "ShiftSpace")
+                {
+                    TxtCommandKeyGuide.Text = "완성 단축키: [Shift+Space]";
+                    TxtCommandKeyGuide.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    TxtCommandKeyGuide.Text = $"명령키 [ {trig} ] 누른 뒤  ➔  1번 [Tab]  ·  번호 선택 [1~9]";
+                    TxtCommandKeyGuide.Visibility = Visibility.Visible;
+                }
+            }
         }
 
         if (BtnQuickRegisterToken != null)
@@ -281,7 +302,7 @@ public partial class SuggestionBar : Window
         {
             "SlashOnly" => trigger,
             "ShiftSpace" => "Shift+Space",
-            _ => $"{trigger}+Tab"
+            _ => "Tab"
         };
 
         int scale = _configManager.Config.PillScale;
@@ -344,15 +365,16 @@ public partial class SuggestionBar : Window
                 var preview = topItem.Content.Trim().Replace("\r\n", " ").Replace("\n", " ");
                 if (preview.Length > maxPreviewLen) preview = preview[..maxPreviewLen] + "...";
                 bool topHasVars = ConsultationMemoService.ContainsPlaceholders(topItem.Content);
-                string topVarMark = topHasVars ? " {}" : string.Empty;
+                var varHighlightBorder = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
 
                 var btn = new Button
                 {
-                    Content = $"{topItem.Title}{topVarMark} — {preview}",
+                    Content = $"{topItem.Title} — {preview}",
                     Style = TryFindResource("ThemeDockButtonStyle") as Style,
                     Foreground = (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                     Background = Brushes.Transparent,
-                    BorderThickness = new Thickness(0),
+                    BorderBrush = topHasVars ? varHighlightBorder : Brushes.Transparent,
+                    BorderThickness = topHasVars ? new Thickness(0, 0, 0, 2.5) : new Thickness(0),
                     Cursor = Cursors.Hand,
                     FontSize = contentFontSize,
                     FontWeight = FontWeights.SemiBold,
@@ -362,7 +384,7 @@ public partial class SuggestionBar : Window
                 if (topHasVars)
                 {
                     var varNames = ConsultationMemoService.ExtractPlaceholderNames(topItem.Content);
-                    btn.ToolTip = $"변수 포함 템플릿: {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
+                    btn.ToolTip = $"변수 포함 템플릿 (하단 강조): {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
                 }
                 btn.Click += (s, e) => SelectItem(topItem);
                 ItemsPanel.Children.Add(btn);
@@ -394,21 +416,21 @@ public partial class SuggestionBar : Window
                 var borderBrush = (Brush)(TryFindResource("ThemeBorder") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1")));
                 var btnStyle = TryFindResource("ThemeButtonStyle") as Style;
 
+                var varAccentBorder = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
                 for (int i = 0; i < visibleSheetItems.Count; i++)
                 {
                     var item = visibleSheetItems[i];
-                    string keyHint = (i == 0) ? tabKeyHint : $"{trigger}+{i + 1}";
+                    string keyHint = (i == 0) ? tabKeyHint : $"{i + 1}";
                     bool hasVars = ConsultationMemoService.ContainsPlaceholders(item.Content);
-                    string varSuffix = hasVars ? " {}" : string.Empty;
 
                     var chip = new Button
                     {
-                        Content = $"[{keyHint}] {item.Title}{varSuffix}",
+                        Content = $"[{keyHint}] {item.Title}",
                         Style = btnStyle,
                         Foreground = (i == 0) ? accentText : (Brush)(TryFindResource("ThemeText") ?? Brushes.Black),
                         Background = (i == 0) ? accentBrush : kbdBg,
-                        BorderBrush = (i == 0) ? accentBorder : borderBrush,
-                        BorderThickness = new Thickness(1),
+                        BorderBrush = hasVars ? varAccentBorder : ((i == 0) ? accentBorder : borderBrush),
+                        BorderThickness = hasVars ? new Thickness(1.5, 1.5, 1.5, 3.5) : new Thickness(1),
                         Margin = new Thickness(0, 0, 6, 5),
                         Padding = badgePadding,
                         Cursor = Cursors.Hand,
@@ -420,7 +442,7 @@ public partial class SuggestionBar : Window
                     if (hasVars)
                     {
                         var varNames = ConsultationMemoService.ExtractPlaceholderNames(item.Content);
-                        chip.ToolTip = $"변수 포함 템플릿: {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
+                        chip.ToolTip = $"변수 포함 템플릿 (하단/테두리 강조): {string.Join(", ", varNames.Select(v => "{" + v + "}"))}";
                     }
                     chip.Click += (s, e) => SelectItem(item);
                     ItemsPanel.Children.Add(chip);

@@ -439,8 +439,8 @@
                                 <!-- 포인트 컬러 (실제 컬러 원형 스와치 표시) -->
                                 <Border Background="{DynamicResource ThemeSurfaceBg}" BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
                                     <StackPanel>
-                                        <TextBlock Text="UI 포인트 컬러 (Windows 11 Fluent 라이트)" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,4"/>
-                                        <TextBlock Text="화이트 베이스 위에 적용할 포인트 컬러를 선택하세요. 우측 예시 화면과 창에 즉시 반영됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" Margin="0,0,0,10"/>
+                                        <TextBlock Text="UI 통합 테마 컬러 (알약 · 마스터창 · ChatGENIE 메모장)" FontWeight="Bold" FontSize="14.5" Margin="0,0,0,4"/>
+                                        <TextBlock Text="선택한 테마 컬러가 전체 UI에 통합 적용되며, ChatGENIE 메모장은 한 단계 더 선명하게 강조되어 우측 미리보기에 즉시 표시됩니다." Foreground="{DynamicResource ThemeSubText}" FontSize="11.5" Margin="0,0,0,10" TextWrapping="Wrap"/>
                                         <WrapPanel Orientation="Horizontal">
                                             <RadioButton x:Name="RadioAccentBlue" GroupName="UiAccentGroup" Margin="6,4,16,4" IsChecked="True" Checked="RadioAccent_Checked">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -569,16 +569,6 @@
                                             <RadioButton x:Name="RadioMemoOpacity70" Content="70% 많이 비침" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
                                         </WrapPanel>
 
-                                        <TextBlock Text="ChatGENIE 메모장 색상:" FontWeight="SemiBold" FontSize="12.5" Margin="0,2,0,4"/>
-                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                            <RadioButton x:Name="RadioMemoColorYellow" Content="연노랑(기본)" Margin="6,3,14,3" IsChecked="True" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioMemoColorWhite" Content="화이트" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioMemoColorBlue" Content="스카이블루" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioMemoColorMint" Content="민트" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioMemoColorLavender" Content="라벤더" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
-                                            <RadioButton x:Name="RadioMemoColorPink" Content="피치핑크" Margin="6,3,14,3" Checked="DesignOption_Changed"/>
-                                        </WrapPanel>
-
                                         <CheckBox x:Name="ChkShowStatusWindow" Content="화면 중앙 하단 및 작업표시줄에 마스터 도킹 바 항상 보이기" Margin="6,4,0,2" IsChecked="True" FontWeight="SemiBold"/>
                                         <TextBlock Text="  (체크 해제 시 작업표시줄에서 숨겨지고 트레이 아이콘으로만 작동합니다.)" Foreground="{DynamicResource ThemeSubText}" FontSize="11" Margin="6,0,0,0"/>
                                     </StackPanel>
@@ -648,17 +638,45 @@
                                                     VerticalAlignment="Top"
                                                     Margin="12,26,12,0">
                                                 <StackPanel>
-                                                    <Border Background="#E2E8F0" CornerRadius="4" Padding="6,2" Margin="0,0,0,6">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <TextBlock Text="인식됨: &quot;배송&quot;  (⏱ 12s)" FontSize="10.5" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                                            <TextBlock Grid.Column="1" Text="✕" FontSize="10.5" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" ToolTip="우측 상단 ✕ 버튼으로 언제든 닫기 가능"/>
-                                                        </Grid>
+                                                    <Border Background="#E2E8F0" CornerRadius="4" Padding="6,3" Margin="0,0,0,6">
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Text="인식됨: &quot;배송&quot;  (⏱ 12s)" FontSize="10.5" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                                <TextBlock Grid.Column="1" Text="✕" FontSize="10.5" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" ToolTip="우측 상단 ✕ 버튼으로 언제든 닫기 가능"/>
+                                                            </Grid>
+                                                            <TextBlock Text="명령키 [ \ ] 누른 뒤  ➔  1번 [Tab]  ·  번호 선택 [1~9]" FontSize="9.5" FontWeight="SemiBold" Foreground="#0369A1" Margin="0,2,0,0"/>
+                                                        </StackPanel>
                                                     </Border>
                                                     <WrapPanel x:Name="PreviewPillItemsPanel" Orientation="Horizontal"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- 우측 하단: ChatGENIE 임시메모 강조 테마 실시간 프리뷰 -->
+                                            <Border x:Name="PreviewStickyMemoBorder"
+                                                    Width="168"
+                                                    Background="#EBF4FF"
+                                                    BorderBrush="#3B82F6"
+                                                    BorderThickness="1.5"
+                                                    CornerRadius="7"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Bottom"
+                                                    Margin="0,0,8,6">
+                                                <StackPanel>
+                                                    <Border x:Name="PreviewStickyHeaderBorder" Background="#D2E5FF" BorderBrush="#3B82F6" BorderThickness="0,0,0,1" CornerRadius="6,6,0,0" Padding="7,4">
+                                                        <TextBlock x:Name="PreviewStickyHeaderText" Text="ChatGENIE (2) · 강조 테마" FontSize="10" FontWeight="Bold" Foreground="#1E3A8A"/>
+                                                    </Border>
+                                                    <StackPanel Margin="6,5">
+                                                        <Border Background="#FFFFFF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="4" Padding="5,3" Margin="0,0,0,3">
+                                                            <TextBlock Text="📦 송장  690130-1802" FontSize="9.5" Foreground="#1E293B"/>
+                                                        </Border>
+                                                        <Border Background="#FFFFFF" BorderBrush="#93C5FD" BorderThickness="1" CornerRadius="4" Padding="5,3">
+                                                            <TextBlock Text="📅 날짜  11월 28일 오후" FontSize="9.5" Foreground="#1E293B"/>
+                                                        </Border>
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>

@@ -163,17 +163,6 @@ public partial class ControlPanelWindow : Window
         else
             RadioMemoOpacity100.IsChecked = true;
 
-        // 메모장 색상
-        switch (cfg.MemoColor)
-        {
-            case "White": RadioMemoColorWhite.IsChecked = true; break;
-            case "Blue": RadioMemoColorBlue.IsChecked = true; break;
-            case "Mint": RadioMemoColorMint.IsChecked = true; break;
-            case "Lavender": RadioMemoColorLavender.IsChecked = true; break;
-            case "Pink": RadioMemoColorPink.IsChecked = true; break;
-            default: RadioMemoColorYellow.IsChecked = true; break;
-        }
-
         if (cfg.DisplayMode == "HorizontalBar")
             RadioModeHorizontal.IsChecked = true;
         else if (cfg.DisplayMode == "ManualOnly")
@@ -541,14 +530,6 @@ public partial class ControlPanelWindow : Window
         else if (RadioMemoOpacity90?.IsChecked == true) cfg.MemoOpacity = 0.90;
         else cfg.MemoOpacity = 1.0;
 
-        // 메모장 색상 저장
-        if (RadioMemoColorWhite?.IsChecked == true) cfg.MemoColor = "White";
-        else if (RadioMemoColorBlue?.IsChecked == true) cfg.MemoColor = "Blue";
-        else if (RadioMemoColorMint?.IsChecked == true) cfg.MemoColor = "Mint";
-        else if (RadioMemoColorLavender?.IsChecked == true) cfg.MemoColor = "Lavender";
-        else if (RadioMemoColorPink?.IsChecked == true) cfg.MemoColor = "Pink";
-        else cfg.MemoColor = "Yellow";
-
         cfg.ShowStatusWindow = ChkShowStatusWindow.IsChecked == true;
         cfg.EnableMathCalc = ChkEnableMathCalc.IsChecked == true;
         cfg.EnableConsultationMemo = ChkEnableConsultationMemo.IsChecked == true;
@@ -653,6 +634,18 @@ public partial class ControlPanelWindow : Window
             : RadioMemoOpacity80?.IsChecked == true ? 0.80
             : RadioMemoOpacity90?.IsChecked == true ? 0.90 : 1.0;
 
+        if (PreviewStickyMemoBorder != null && PreviewStickyHeaderBorder != null && PreviewStickyHeaderText != null)
+        {
+            var (mBgHex, mHeaderHex, mBorderHex, mTextHex, _) = ThemeManager.GetEmphasizedMemoPalette(GetSelectedAccentColor());
+            var mBorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(mBorderHex));
+            PreviewStickyMemoBorder.Opacity = memoAlpha;
+            PreviewStickyMemoBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(mBgHex));
+            PreviewStickyMemoBorder.BorderBrush = mBorderBrush;
+            PreviewStickyHeaderBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(mHeaderHex));
+            PreviewStickyHeaderBorder.BorderBrush = mBorderBrush;
+            PreviewStickyHeaderText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(mTextHex));
+        }
+
         int scale = RadioPillScale1?.IsChecked == true ? 1
             : RadioPillScale3?.IsChecked == true ? 3
             : RadioPillScale4?.IsChecked == true ? 4
@@ -685,21 +678,23 @@ public partial class ControlPanelWindow : Window
         else if (!isMulti)
         {
             var badge = new Border { Background = accentBrush, BorderBrush = borderBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(5), Padding = chipPad, Margin = new Thickness(0, 0, 6, 0) };
-            badge.Child = new TextBlock { Text = "[Shift+Space] 배송안내 — 오늘 출고됩니다.", Foreground = accentTextBrush, FontSize = chipFont, FontWeight = FontWeights.SemiBold };
+            badge.Child = new TextBlock { Text = "[Tab] 배송안내 — 오늘 출고됩니다.", Foreground = accentTextBrush, FontSize = chipFont, FontWeight = FontWeights.SemiBold };
             PreviewPillItemsPanel.Children.Add(badge);
         }
         else
         {
             int count = (CmbMaxCandidates?.SelectedIndex >= 0) ? Math.Min(4, CmbMaxCandidates.SelectedIndex + 3) : 3;
-            string[] samples = { "배송안내", "출고일정", "송장조회", "배송지변경" };
+            string[] samples = { "배송안내", "송장안내(변수)", "출고일정", "배송지변경" };
+            var varHighlightBorder = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
             for (int i = 0; i < count; i++)
             {
-                string keyHint = i == 0 ? "Shift+Space" : (useNum ? $"\\+{i + 1}" : $"후보{i + 1}");
+                string keyHint = i == 0 ? "Tab" : (useNum ? $"{i + 1}" : $"후보{i + 1}");
+                bool isVarSample = (i == 1);
                 var chip = new Border
                 {
                     Background = i == 0 ? accentBrush : softBrush,
-                    BorderBrush = borderBrush,
-                    BorderThickness = new Thickness(1),
+                    BorderBrush = isVarSample ? varHighlightBorder : borderBrush,
+                    BorderThickness = isVarSample ? new Thickness(1.5, 1.5, 1.5, 3.5) : new Thickness(1),
                     CornerRadius = new CornerRadius(5),
                     Padding = chipPad,
                     Margin = new Thickness(0, 0, 6, 4)

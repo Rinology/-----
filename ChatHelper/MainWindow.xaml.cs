@@ -148,7 +148,7 @@ public partial class MainWindow : Window
             // 템플릿이 이미 로컬/원격으로 정상 로드되어 있으면 오프라인 경고를 띄우지 않음
             _isOfflineMode = !success && _templateManager.Templates.Count == 0;
             if (success) _lastSyncTime = DateTime.Now;
-            Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(() =>
             {
                 UpdateStatusUi();
                 if (success)
@@ -360,17 +360,12 @@ public partial class MainWindow : Window
             }
         };
 
-        _stickyMemoWindow.DockToggleRequested += () => ToggleMagneticDock();
         _consultationMemoWindow.DockStickyRequested += () => ToggleMagneticDock();
+        _consultationMemoWindow.StickyMemosConsumed += usedValues => _stickyMemoWindow.RemoveUsedMemos(usedValues);
         _stickyMemoWindow.LocationChanged += (_, _) => OnStickyMemoLocationChanged();
         _consultationMemoWindow.LocationChanged += (_, _) => OnXenieLocationChanged();
         _stickyMemoWindow.IsVisibleChanged += (_, _) => SyncDockVisibilityState();
         _consultationMemoWindow.IsVisibleChanged += (_, _) => SyncDockVisibilityState();
-
-        _stickyMemoWindow.OpenCombinerRequested += (targetHwnd) =>
-        {
-            OpenConsultationMemo(targetHwnd);
-        };
 
         _stickyMemoWindow.PasteSingleRequested += (memoText, targetHwnd) =>
         {
@@ -383,11 +378,6 @@ public partial class MainWindow : Window
                 return;
             }
             Task.Run(() => TextInjectionService.FastPasteText(memoText, dst));
-        };
-
-        _consultationMemoWindow.RegisterSheetRequested += (editedContent) =>
-        {
-            Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(null, editedContent));
         };
 
         _hookService.MemoFinalizeRequested += (targetHwnd, bsCount) =>
@@ -430,11 +420,6 @@ public partial class MainWindow : Window
             Task.Run(() => TextInjectionService.FastPasteText(finalText, dst));
         };
 
-        _hookService.QuickRegisterHotkeyTriggered += (targetHwnd) =>
-        {
-            _ = HandleSelectionQuickRegisterAsync(targetHwnd);
-        };
-
         _suggestionBar.SelectionReplaceRequested += (item, targetHwnd) =>
         {
             Task.Run(() => TextInjectionService.FastPasteText(item.Content, targetHwnd));
@@ -472,11 +457,6 @@ public partial class MainWindow : Window
                 string resolved = ResolveTemplatePlaceholdersSync(item.Content);
                 TextInjectionService.ReplaceText(matchedLen, resolved, targetHwnd, useShiftHome);
             });
-        };
-
-        _suggestionBar.QuickRegisterRequested += (recognizedWord) =>
-        {
-            Dispatcher.BeginInvoke(() => _ = HandleQuickRegisterAsync(recognizedWord));
         };
 
         _suggestionBar.TranslationRetranslateRequested += (originalText, newDirection, targetHwnd) =>
@@ -643,7 +623,7 @@ public partial class MainWindow : Window
     {
         if (!_configManager.Config.EnableKoToEnTranslation)
         {
-            Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(() =>
             {
                 AddStatusLog("ℹ️ 번역 기능이 꺼져 있습니다. 제어판에서 '구글 번역'을 켜주세요.");
                 ShowNoticeBadge("ℹ️ 제어판에서 번역을 켜주세요", "#B45309");
@@ -654,7 +634,7 @@ public partial class MainWindow : Window
         string selected = await Task.Run(() => TextInjectionService.CaptureSelectedText(targetHwnd));
         if (string.IsNullOrWhiteSpace(selected))
         {
-            Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(() =>
             {
                 AddStatusLog("⚠️ 번역할 문장을 먼저 마우스로 드래그(선택)한 뒤 Alt+T를 눌러주세요.");
                 ShowNoticeBadge("⚠️ 번역할 문장을 드래그 후 Alt+T", "#B45309");
@@ -1433,7 +1413,7 @@ public partial class MainWindow : Window
                 {
                     _isOfflineMode = false;
                     _lastSyncTime = DateTime.Now;
-                    Dispatcher.BeginInvoke(() =>
+                    _ = Dispatcher.BeginInvoke(() =>
                     {
                         UpdateStatusUi();
                         ShowNoticeBadge($"✅ 갱신완료! ({_templateManager.Templates.Count}개)", "#006000");
