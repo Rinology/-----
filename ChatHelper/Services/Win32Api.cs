@@ -156,6 +156,36 @@ public static class Win32Api
     [DllImport("user32.dll")]
     public static extern uint GetClipboardSequenceNumber();
 
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    public static readonly IntPtr HWND_TOPMOST = new(-1);
+    public const uint SWP_NOSIZE = 0x0001;
+    public const uint SWP_NOMOVE = 0x0002;
+    public const uint SWP_NOACTIVATE = 0x0010;
+
+    /// <summary>
+    /// 멀티 윈도우/모니터 전환 시에도 창이 다른 프로그램 뒤로 밀리지 않도록 Topmost(WS_EX_TOPMOST)를 강제합니다.
+    /// </summary>
+    public static void EnforceTopmost(System.Windows.Window window, bool toolWindow = true, bool noActivate = false)
+    {
+        try
+        {
+            var helper = new System.Windows.Interop.WindowInteropHelper(window);
+            if (helper.Handle == IntPtr.Zero) return;
+
+            int exStyle = GetWindowLong(helper.Handle, GWL_EXSTYLE);
+            int targetEx = exStyle | WS_EX_TOPMOST;
+            if (toolWindow) targetEx |= WS_EX_TOOLWINDOW;
+            if (noActivate) targetEx |= WS_EX_NOACTIVATE;
+            if (targetEx != exStyle)
+                SetWindowLong(helper.Handle, GWL_EXSTYLE, targetEx);
+
+            SetWindowPos(helper.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+        catch { }
+    }
+
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
 

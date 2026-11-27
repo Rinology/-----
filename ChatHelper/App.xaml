@@ -7,6 +7,16 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Themes/Win98Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            <FontFamily x:Key="ThemeFontFamily">pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy</FontFamily>
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
+            </Style>
+            <Style TargetType="{x:Type Control}">
+                <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
+            </Style>
+            <Style TargetType="{x:Type TextBlock}">
+                <Setter Property="FontFamily" Value="{StaticResource ThemeFontFamily}"/>
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

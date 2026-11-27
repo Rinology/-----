@@ -132,7 +132,7 @@ public partial class QuickSearchWindow : Window
                 Margin = new Thickness(0, 0, 5, 0),
                 Padding = new Thickness(10, 4, 10, 4),
                 FontSize = 11.5,
-                FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
                 FontWeight = isSelected ? FontWeights.Bold : FontWeights.Normal,
                 Cursor = Cursors.Hand,
                 Background = isSelected

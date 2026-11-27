@@ -7,7 +7,7 @@
         Background="{DynamicResource ThemeHudBg}"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
-        Topmost="False"
+        Topmost="True"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display"
@@ -49,7 +49,7 @@
                             Padding="6,3" Margin="0,0,6,0" ToolTip="클릭하여 자동완성 ON/OFF 전환" Click="BtnTogglePause_Click">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock x:Name="LblRunningStatus" Text="ON" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="Malgun Gothic, Segoe UI"/>
+                            <TextBlock x:Name="LblRunningStatus" Text="ON" FontSize="11.5" FontWeight="Bold" Foreground="{DynamicResource ThemeText}" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
                         </StackPanel>
                     </Button>
 
@@ -72,18 +72,18 @@
                                 <Button Content="검색" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="템플릿 빠른 검색 (Alt+Q)" Click="BtnQuickSearch_Click"/>
                                 <Button Content="기호" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="특수기호 입력 (Alt+X)" Click="BtnSymbolPicker_Click"/>
                                 <Button x:Name="BtnToggleMemo" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="클릭: 상담 스무고개 메모 HUD ON/OFF 전환"
+                                        ToolTip="클릭: Xenie &amp; 챗헬프 임시메모 기능 ON/OFF 전환"
                                         Click="BtnToggleMemo_Click">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <Ellipse x:Name="MemoDot" Width="7" Height="7" Fill="#16A34A" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                         <TextBlock x:Name="TxtMemoToggle" Text="메모" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource ThemeText}"/>
                                     </StackPanel>
                                 </Button>
-                                <Button x:Name="BtnOpenMemo" Content="메모지" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="초경량 포스트잇 메모지 열기/닫기 (단축키: Alt+N)"
+                                <Button x:Name="BtnOpenMemo" Content="임시메모" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
+                                        ToolTip="챗헬프 임시메모 열기/닫기 (단축키: Alt+N)"
                                         Click="BtnOpenMemo_Click"/>
-                                <Button x:Name="BtnOpenCombiner" Content="스무고개" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
-                                        ToolTip="스무고개 답변 조합기 열기 (\+N)"
+                                <Button x:Name="BtnOpenCombiner" Content="Xenie" Style="{DynamicResource ThemeDockButtonStyle}" Padding="6,3"
+                                        ToolTip="Xenie 답변 조합기 열기 (\+N)"
                                         Click="BtnOpenCombiner_Click"/>
                                 <TextBlock x:Name="LblSyncStatus" Text="↻ 0" FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource ThemeSubText}" VerticalAlignment="Center"
@@ -93,7 +93,7 @@
                                 <Button x:Name="BtnToggleLog" Content="로그" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="실시간 상태 로그 열기/닫기" Click="BtnToggleLog_Click"/>
                                 <Button Content="설정" Style="{DynamicResource ThemeDockButtonStyle}" ToolTip="제어판 열기" Click="BtnControlPanel_Click"/>
                                 <Border x:Name="BadgeNotice" Visibility="Collapsed" Background="#16A34A" CornerRadius="10" Padding="7,2" VerticalAlignment="Center" Margin="4,0,0,0">
-                                    <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="Malgun Gothic, Segoe UI"/>
+                                    <TextBlock x:Name="TxtNotice" Text="완료" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="10.5" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
                                 </Border>
                             </StackPanel>
                         </Grid>
@@ -152,7 +152,7 @@
                         BorderThickness="1" CornerRadius="8" Padding="6" Height="120">
                     <ListBox x:Name="LstLiveLog" BorderThickness="0" Background="Transparent"
                              Foreground="{DynamicResource ThemeText}"
-                             FontSize="11" FontFamily="Consolas, Malgun Gothic"
+                             FontSize="11" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
                 </Border>
             </StackPanel>

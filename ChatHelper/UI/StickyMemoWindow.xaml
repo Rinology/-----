@@ -1,7 +1,7 @@
 <Window x:Class="ChatHelper.UI.StickyMemoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="상담 포스트잇 메모"
+        Title="챗헬프 임시메모"
         WindowStyle="None"
         ResizeMode="NoResize"
         Background="#FFFDF5"
@@ -36,17 +36,21 @@
             <Border Grid.Row="0" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="0,0,0,1" CornerRadius="9,9,0,0" Cursor="SizeAll">
                 <Grid Margin="10,0,6,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock x:Name="TxtMemoHeader" Text="📌 포스트잇 메모 (0)"
-                                   Foreground="#92400E" FontWeight="Bold" FontSize="12.5" FontFamily="Malgun Gothic, Segoe UI"/>
+                        <TextBlock x:Name="TxtMemoHeader" Text="📌 챗헬프 임시메모 (0)"
+                                   Foreground="#92400E" FontWeight="Bold" FontSize="12.5" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="BtnDockToggle" Content="🔗" Width="24" Height="24" Margin="0,0,3,0" Padding="0"
+                                FontSize="11" Background="#FFFFFF" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1"
+                                Cursor="Hand" Focusable="False" ToolTip="Xenie 창 옆에 자석처럼 붙이기 / 분리"
+                                Click="BtnDockToggle_Click"/>
                         <Button Content="📋" Width="26" Height="24" Margin="0,0,3,0" Padding="0"
                                 FontSize="11.5" Background="#FFFFFF" Foreground="#92400E" BorderBrush="#FCD34D" BorderThickness="1"
                                 Cursor="Hand" Focusable="False" ToolTip="클립보드(텍스트/이미지 OCR) 내용 담기 (\+V)"
                                 Click="BtnPasteClip_Click"/>
-                        <Button Content="🧩 스무고개" Height="24" Margin="0,0,3,0" Padding="7,0"
+                        <Button Content="🧩 Xenie" Height="24" Margin="0,0,3,0" Padding="7,0"
                                 FontSize="10.5" FontWeight="Bold" Background="#FFFFFF" Foreground="#1E3A8A" BorderBrush="#93C5FD" BorderThickness="1"
-                                Cursor="Hand" Focusable="False" ToolTip="스무고개 답변 조합기 열기 (\+N)"
+                                Cursor="Hand" Focusable="False" ToolTip="Xenie 답변 조합기 열기 (\+N)"
                                 Click="BtnOpenCombiner_Click"/>
                         <Button Content="🧹" Width="24" Height="24" Margin="0,0,3,0" Padding="0"
                                 FontSize="11" Background="Transparent" Foreground="#B45309" BorderThickness="0"
@@ -86,8 +90,8 @@
             <!-- 4. 하단 안내 바 -->
             <Border Grid.Row="3" Background="#FEF9C3" BorderBrush="#FDE68A" BorderThickness="0,1,0,0" CornerRadius="0,0,9,9" Padding="10,0">
                 <TextBlock VerticalAlignment="Center"
-                           Text="\+M 담기 · \+V 클립보드 · 카드 드래그→변수 입력"
-                           FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="Malgun Gothic, Segoe UI"/>
+                           Text="\+M 담기 · \+V 클립보드 · 카드 드래그→변수 입력 · Xenie 옆 붙이기"
+                           FontSize="10.5" FontWeight="SemiBold" Foreground="#92400E" FontFamily="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
             </Border>
         </Grid>
     </Border>

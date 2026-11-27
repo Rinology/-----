@@ -23,6 +23,7 @@ public partial class ConsultationMemoWindow : Window
     private List<MemoEntry> _externalStickyMemos = new();
     private bool _suppressPreviewRebuild = false;
     private bool _navigatedCandidateList = false;
+    private bool _hasCustomPosition = false;
 
     public void SetExternalStickyMemos(IReadOnlyList<MemoEntry>? stickyMemos)
     {
@@ -30,10 +31,22 @@ public partial class ConsultationMemoWindow : Window
         RebuildFinalPreview();
     }
 
+    public void MarkCustomPosition() => _hasCustomPosition = true;
+
+    public void UpdateDockState(bool docked)
+    {
+        if (BtnDockSticky != null)
+        {
+            BtnDockSticky.Content = docked ? "🔓 임시메모 분리" : "🔗 임시메모 붙이기";
+            BtnDockSticky.ToolTip = docked ? "챗헬프 임시메모 창을 분리합니다" : "챗헬프 임시메모 창을 옆에 자석처럼 붙입니다";
+        }
+    }
+
     public event Action<string, IntPtr>? FinalTextReady;
     public event Action<IReadOnlyList<MemoEntry>>? EntriesSynced;
     public event Action<int>? MemoCountChanged;
     public event Action<string>? RegisterSheetRequested;
+    public event Action? DockStickyRequested;
 
     public int MemoCount => _memoEntries.Count;
     public IReadOnlyList<MemoEntry> Entries => _memoEntries;
@@ -141,6 +154,9 @@ public partial class ConsultationMemoWindow : Window
             }
         }
         catch { }
+
+        Loaded += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
+        Deactivated += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -161,9 +177,22 @@ public partial class ConsultationMemoWindow : Window
                 _targetHwnd = resolvedHwnd;
         }
 
-        var workArea = SystemParameters.WorkArea;
-        Left = workArea.Left + (workArea.Width - Width) / 2.0;
-        Top = workArea.Top + (workArea.Height - Height) / 2.0;
+        // B안: 이미 열려 있는 상태에서 재호출 시 위치 이동·포커스 강탈 없이 제자리 유지 + 테두리 강조만 표시
+        if (IsVisible)
+        {
+            RefreshCandidates();
+            RenderMemoEntries();
+            Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
+            FlashBorderHighlight();
+            return;
+        }
+
+        if (!_hasCustomPosition)
+        {
+            var workArea = SystemParameters.WorkArea;
+            Left = workArea.Left + (workArea.Width - Width) / 2.0;
+            Top = workArea.Top + (workArea.Height - Height) / 2.0;
+        }
 
         RefreshCandidates();
         RenderMemoEntries();
@@ -175,6 +204,7 @@ public partial class ConsultationMemoWindow : Window
         Topmost = true;
         Show();
         WindowState = WindowState.Normal;
+        Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: false);
         Win32Api.SetWindowAlpha(this, winAlpha);
 
         var helper = new WindowInteropHelper(this);
@@ -192,6 +222,24 @@ public partial class ConsultationMemoWindow : Window
                 Keyboard.Focus(TxtKeywordInput);
             }
         });
+    }
+
+    private void FlashBorderHighlight()
+    {
+        if (MainWindowBorder == null) return;
+        var origBrush = MainWindowBorder.BorderBrush;
+        var origThick = MainWindowBorder.BorderThickness;
+        MainWindowBorder.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB"));
+        MainWindowBorder.BorderThickness = new Thickness(2.5);
+
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(550) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            MainWindowBorder.BorderBrush = origBrush;
+            MainWindowBorder.BorderThickness = origThick;
+        };
+        timer.Start();
     }
 
     private void RefreshCandidates()
@@ -488,7 +536,7 @@ public partial class ConsultationMemoWindow : Window
             var boxStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 10, 4), VerticalAlignment = VerticalAlignment.Center };
             boxStack.Children.Add(new TextBlock
             {
-                Text = $"{key}:",
+                Text = $"{ConsultationMemoService.GetFriendlyVariableLabel(key)}:",
                 FontSize = 11.5,
                 FontWeight = FontWeights.Bold,
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A")),
@@ -498,7 +546,7 @@ public partial class ConsultationMemoWindow : Window
 
             var tb = new TextBox
             {
-                Width = 150,
+                Width = 140,
                 Height = 26,
                 FontSize = 11.5,
                 Padding = new Thickness(6, 2, 6, 2),
@@ -521,7 +569,7 @@ public partial class ConsultationMemoWindow : Window
                 Margin = new Thickness(3, 0, 0, 0),
                 Padding = new Thickness(0),
                 Cursor = Cursors.Hand,
-                ToolTip = $"클립보드(텍스트/이미지 OCR) 내용을 {{{key}}}에 채우기"
+                ToolTip = $"클립보드(텍스트/이미지 OCR) 내용을 {key} 칸에 채우기"
             };
             clipBtn.Click += async (s, e) =>
             {
@@ -533,6 +581,31 @@ public partial class ConsultationMemoWindow : Window
                 }
             };
             boxStack.Children.Add(clipBtn);
+
+            // 비개발자 친화형 원클릭 임시메모 선택 알약
+            for (int mIdx = 0; mIdx < Math.Min(_externalStickyMemos.Count, 4); mIdx++)
+            {
+                string memoVal = _externalStickyMemos[mIdx].Content?.Trim() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(memoVal) || memoVal.Contains('\n')) continue;
+                string shortVal = memoVal.Length > 12 ? memoVal[..12] + "…" : memoVal;
+                var memoPill = new Button
+                {
+                    Content = shortVal,
+                    Height = 24,
+                    Margin = new Thickness(4, 0, 0, 0),
+                    Padding = new Thickness(7, 0, 7, 0),
+                    FontSize = 10.5,
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")),
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E")),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FCD34D")),
+                    BorderThickness = new Thickness(1),
+                    Cursor = Cursors.Hand,
+                    Focusable = false,
+                    ToolTip = $"클릭하여 '{memoVal}' 값을 {key} 칸에 바로 넣기"
+                };
+                memoPill.Click += (s, e) => tb.Text = memoVal;
+                boxStack.Children.Add(memoPill);
+            }
 
             VariableInputsPanel.Children.Add(boxStack);
         }
@@ -732,10 +805,30 @@ public partial class ConsultationMemoWindow : Window
         }
     }
 
+    private void BtnDockSticky_Click(object sender, RoutedEventArgs e) => DockStickyRequested?.Invoke();
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left)
-            DragMove();
+        {
+            _hasCustomPosition = true;
+            try { DragMove(); } catch { }
+            SnapToMonitorEdge();
+        }
+    }
+
+    private void SnapToMonitorEdge()
+    {
+        try
+        {
+            var wa = SystemParameters.WorkArea;
+            const double snap = 18;
+            if (Math.Abs(Left - wa.Left) <= snap) Left = wa.Left;
+            else if (Math.Abs((Left + Width) - wa.Right) <= snap) Left = wa.Right - Width;
+            if (Math.Abs(Top - wa.Top) <= snap) Top = wa.Top;
+            else if (Math.Abs((Top + Height) - wa.Bottom) <= snap) Top = wa.Bottom - Height;
+        }
+        catch { }
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

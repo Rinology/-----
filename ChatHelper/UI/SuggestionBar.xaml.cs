@@ -337,7 +337,7 @@ public partial class SuggestionBar : Window
                     Foreground = (Brush)(TryFindResource("ThemeAccentText") ?? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A8A"))),
                     FontSize = badgeFontSize,
                     FontWeight = FontWeights.SemiBold,
-                    FontFamily = new FontFamily("Malgun Gothic, Segoe UI")
+                    FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily
                 };
                 ItemsPanel.Children.Add(badge);
 
@@ -354,7 +354,7 @@ public partial class SuggestionBar : Window
                     Cursor = Cursors.Hand,
                     FontSize = contentFontSize,
                     FontWeight = FontWeights.SemiBold,
-                    FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                    FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
                     Focusable = false
                 };
                 btn.Click += (s, e) => SelectItem(topItem);
@@ -404,7 +404,7 @@ public partial class SuggestionBar : Window
                         Padding = badgePadding,
                         Cursor = Cursors.Hand,
                         FontSize = contentFontSize - 2,
-                        FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                        FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
                         FontWeight = (i == 0) ? FontWeights.SemiBold : FontWeights.Normal,
                         Focusable = false
                     };
@@ -452,7 +452,7 @@ public partial class SuggestionBar : Window
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2563EB")),
             FontSize = 12,
             FontWeight = FontWeights.Bold,
-            FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+            FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
             VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(loadingTitle, 0);
@@ -474,7 +474,7 @@ public partial class SuggestionBar : Window
                 Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")),
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
-                FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
+                FontFamily = ChatHelper.Constants.ThemeColors.AppFontFamily,
                 Margin = new Thickness(0, 0, 0, 6)
             });
         }

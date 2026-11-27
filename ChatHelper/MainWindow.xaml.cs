@@ -331,11 +331,17 @@ public partial class MainWindow : Window
         _stickyMemoWindow.MemoCountChanged += (count) =>
         {
             _hookService.HasActiveMemos = count > 0 || _consultationMemoWindow.MemoCount > 0;
+            _consultationMemoWindow.SetExternalStickyMemos(_stickyMemoWindow.Entries);
             if (BtnOpenMemo != null)
             {
-                BtnOpenMemo.Content = count > 0 ? $"메모지 ({count})" : "메모지";
+                BtnOpenMemo.Content = count > 0 ? $"임시메모 ({count})" : "임시메모";
             }
         };
+
+        _stickyMemoWindow.DockToggleRequested += () => ToggleMagneticDock();
+        _consultationMemoWindow.DockStickyRequested += () => ToggleMagneticDock();
+        _stickyMemoWindow.LocationChanged += (_, _) => OnStickyMemoLocationChanged();
+        _consultationMemoWindow.LocationChanged += (_, _) => OnXenieLocationChanged();
 
         _stickyMemoWindow.OpenCombinerRequested += (targetHwnd) =>
         {
@@ -375,7 +381,7 @@ public partial class MainWindow : Window
                 });
             }
             _stickyMemoWindow.AddMemo(token, targetHwnd);
-            ShowNoticeBadge($"📌 메모지 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
+            ShowNoticeBadge($"📌 임시메모 담기 ({_stickyMemoWindow.MemoCount}개)", "#D97706");
         };
 
         _consultationMemoWindow.MemoCountChanged += (count) =>
@@ -383,7 +389,7 @@ public partial class MainWindow : Window
             _hookService.HasActiveMemos = count > 0 || _stickyMemoWindow.MemoCount > 0;
             if (BtnOpenCombiner != null)
             {
-                BtnOpenCombiner.Content = count > 0 ? $"스무고개 ({count})" : "스무고개";
+                BtnOpenCombiner.Content = count > 0 ? $"Xenie ({count})" : "Xenie";
             }
         };
 
@@ -487,6 +493,10 @@ public partial class MainWindow : Window
             _suggestionBar.Hide();
         }
 
+        // 마스터창도 다른 화면보다 위에 유지 (Topmost)
+        Topmost = true;
+        Win32Api.EnforceTopmost(this, toolWindow: false, noActivate: false);
+
         // 상담 메모 토글 상태 동기화
         if (MemoDot != null && TxtMemoToggle != null)
         {
@@ -497,12 +507,12 @@ public partial class MainWindow : Window
         if (BtnOpenMemo != null)
         {
             int cnt = _stickyMemoWindow?.MemoCount ?? 0;
-            BtnOpenMemo.Content = cnt > 0 ? $"메모지 ({cnt})" : "메모지";
+            BtnOpenMemo.Content = cnt > 0 ? $"임시메모 ({cnt})" : "임시메모";
         }
         if (BtnOpenCombiner != null)
         {
             int cCnt = _consultationMemoWindow?.MemoCount ?? 0;
-            BtnOpenCombiner.Content = cCnt > 0 ? $"스무고개 ({cCnt})" : "스무고개";
+            BtnOpenCombiner.Content = cCnt > 0 ? $"Xenie ({cCnt})" : "Xenie";
         }
 
         LblSubStatus.Text = $"{userId} ({planInfo}) | {keyHint}";
@@ -955,6 +965,96 @@ public partial class MainWindow : Window
         {
             AppLogger.Error("MainWindow", "QuickSearchWindow 열기 실패", ex);
             AddStatusLog($"❌ Alt+Q 검색창 열기 실패: {ex.Message}");
+        }
+    }
+
+    private bool _isMagneticDocked = false;
+    private bool _dockedOnRight = true;
+    private bool _isSyncingDockPosition = false;
+
+    private void ToggleMagneticDock()
+    {
+        if (_isMagneticDocked)
+        {
+            _isMagneticDocked = false;
+            _stickyMemoWindow.UpdateDockState(false);
+            _consultationMemoWindow.UpdateDockState(false);
+            ShowNoticeBadge("🔓 임시메모 ↔ Xenie 분리됨", "#64748B");
+            return;
+        }
+
+        if (!_consultationMemoWindow.IsVisible)
+            OpenConsultationMemo();
+        if (!_stickyMemoWindow.IsVisible)
+            _stickyMemoWindow.ToggleWindow(_hookService.LastTargetHwnd);
+
+        var workArea = SystemParameters.WorkArea;
+        _dockedOnRight = (_consultationMemoWindow.Left + _consultationMemoWindow.Width + _stickyMemoWindow.Width + 12) <= workArea.Right;
+        _isMagneticDocked = true;
+        AlignStickyToXenie();
+        _stickyMemoWindow.UpdateDockState(true);
+        _consultationMemoWindow.UpdateDockState(true);
+        ShowNoticeBadge("🔗 임시메모 ↔ Xenie 자석 붙이기", "#2563EB");
+    }
+
+    private void AlignStickyToXenie()
+    {
+        if (!_isMagneticDocked || !_consultationMemoWindow.IsVisible || !_stickyMemoWindow.IsVisible) return;
+        _isSyncingDockPosition = true;
+        try
+        {
+            _stickyMemoWindow.MarkCustomPosition();
+            _stickyMemoWindow.Left = _dockedOnRight
+                ? _consultationMemoWindow.Left + _consultationMemoWindow.Width + 6
+                : _consultationMemoWindow.Left - _stickyMemoWindow.Width - 6;
+            _stickyMemoWindow.Top = _consultationMemoWindow.Top;
+        }
+        finally
+        {
+            _isSyncingDockPosition = false;
+        }
+    }
+
+    private void OnXenieLocationChanged()
+    {
+        if (_isSyncingDockPosition || !_isMagneticDocked) return;
+        AlignStickyToXenie();
+    }
+
+    private void OnStickyMemoLocationChanged()
+    {
+        if (_isSyncingDockPosition || !_consultationMemoWindow.IsVisible || !_stickyMemoWindow.IsVisible) return;
+
+        if (_isMagneticDocked)
+        {
+            _isSyncingDockPosition = true;
+            try
+            {
+                _consultationMemoWindow.MarkCustomPosition();
+                _consultationMemoWindow.Left = _dockedOnRight
+                    ? _stickyMemoWindow.Left - _consultationMemoWindow.Width - 6
+                    : _stickyMemoWindow.Left + _stickyMemoWindow.Width + 6;
+                _consultationMemoWindow.Top = _stickyMemoWindow.Top;
+            }
+            finally
+            {
+                _isSyncingDockPosition = false;
+            }
+            return;
+        }
+
+        // 근접 자석 스냅: 22px 이내로 Xenie 좌/우 테두리에 닿으면 자동 붙이기
+        double gapRight = Math.Abs(_stickyMemoWindow.Left - (_consultationMemoWindow.Left + _consultationMemoWindow.Width + 6));
+        double gapLeft = Math.Abs((_stickyMemoWindow.Left + _stickyMemoWindow.Width + 6) - _consultationMemoWindow.Left);
+        bool verticalOverlap = Math.Abs(_stickyMemoWindow.Top - _consultationMemoWindow.Top) < 80;
+
+        if (verticalOverlap && (gapRight <= 22 || gapLeft <= 22))
+        {
+            _dockedOnRight = gapRight <= gapLeft;
+            _isMagneticDocked = true;
+            AlignStickyToXenie();
+            _stickyMemoWindow.UpdateDockState(true);
+            _consultationMemoWindow.UpdateDockState(true);
         }
     }
 

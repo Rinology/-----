@@ -33,7 +33,7 @@
         <Setter Property="Foreground" Value="#0F172A"/>
         <Setter Property="BorderBrush" Value="#9994A3B8"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="FontFamily" Value="Malgun Gothic, Segoe UI"/>
+        <Setter Property="FontFamily" Value="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="10,5"/>
@@ -70,7 +70,7 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="#0F172A"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="FontFamily" Value="Malgun Gothic, Segoe UI"/>
+        <Setter Property="FontFamily" Value="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
         <Setter Property="FontSize" Value="11.5"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Padding" Value="8,4"/>
@@ -102,7 +102,7 @@
         <Setter Property="Foreground" Value="#0F172A"/>
         <Setter Property="BorderBrush" Value="#9994A3B8"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="FontFamily" Value="Malgun Gothic, Segoe UI"/>
+        <Setter Property="FontFamily" Value="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="Padding" Value="8,5"/>
         <Setter Property="Template">
@@ -131,7 +131,7 @@
         <Setter Property="Foreground" Value="#0F172A"/>
         <Setter Property="BorderBrush" Value="#9994A3B8"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="FontFamily" Value="Malgun Gothic, Segoe UI"/>
+        <Setter Property="FontFamily" Value="pack://application:,,,/ChatHelper;component/Assets/Fonts/#Paperlogy"/>
         <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="Padding" Value="8,5"/>
         <Setter Property="Template">

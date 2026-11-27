@@ -7,6 +7,9 @@ namespace ChatHelper.Constants;
 /// </summary>
 public static class ThemeColors
 {
+    public static readonly FontFamily AppFontFamily =
+        new(new Uri("pack://application:,,,/ChatHelper;component/Assets/Fonts/"), "./#Paperlogy");
+
     public static readonly Brush Win98Navy = CreateFrozenBrush("#000080");
     public static readonly Brush Win98Silver = CreateFrozenBrush("#C0C0C0");
     public static readonly Brush Win98Face = CreateFrozenBrush("#D4D0C8");

@@ -233,6 +233,34 @@ public static class TemplateManagerTests
             string composedPlaceholder = ConsultationMemoService.ComposeFinalText(placeholderEntries, MemoJoinMode.Paragraph);
             Assert(composedPlaceholder == "확인 감사합니다. 내일 오전에 폴드7 건으로 방문하겠습니다.",
                 $"Placeholder substitution mismatch: '{composedPlaceholder}'");
+
+            // 의미 기반 변수 자동 매칭 테스트 (순서가 달라도 송장번호는 송장 패턴 메모에 매칭)
+            var mixedMemos = new List<MemoEntry>
+            {
+                new() { Keyword = "내일 오전", Category = "메모", Content = "내일 오전" },
+                new() { Keyword = "456-8280-8146", Category = "메모", Content = "456-8280-8146" }
+            };
+            string resolvedTracking = ConsultationMemoService.ResolveTemplateWithMemosOrClipboard(
+                "{날짜} 출고 송장: {송장번호}", mixedMemos, null);
+            Assert(resolvedTracking == "내일 오전 출고 송장: 456-8280-8146",
+                $"Semantic variable match failed: '{resolvedTracking}'");
+
+            // OCR 이중 엔진(ko+en) 줄바꿈 보존 및 한자/한글 오인식 보정 테스트
+            var koLines = new List<(double Y, string Text)>
+            {
+                (10.0, "456-828堡8146"),
+                (30.0, "456-828우8161"),
+                (50.0, "배송 문의드립니다")
+            };
+            var enLines = new List<(double Y, string Text)>
+            {
+                (10.0, "456-8280-8146"),
+                (30.0, "456-8280-8161"),
+                (50.0, "Baesong Muneui")
+            };
+            string ocrCombined = OcrService.SelectBestOcrLines(koLines, enLines);
+            string expectedOcr = string.Join(Environment.NewLine, new[] { "456-8280-8146", "456-8280-8161", "배송 문의드립니다" });
+            Assert(ocrCombined == expectedOcr, $"OCR line/numeric selection failed: '{ocrCombined}'");
         }
         finally
         {

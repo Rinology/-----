@@ -26,6 +26,18 @@ public partial class StickyMemoWindow : Window
     public event Action<int>? MemoCountChanged;
     public event Action<IntPtr>? OpenCombinerRequested;
     public event Action<string, IntPtr>? PasteSingleRequested;
+    public event Action? DockToggleRequested;
+
+    public void MarkCustomPosition() => _hasCustomPosition = true;
+
+    public void UpdateDockState(bool docked)
+    {
+        if (BtnDockToggle != null)
+        {
+            BtnDockToggle.Content = docked ? "🔓" : "🔗";
+            BtnDockToggle.ToolTip = docked ? "Xenie 창과 분리하기" : "Xenie 창 옆에 자석처럼 붙이기";
+        }
+    }
 
     public int MemoCount => _entries.Count;
     public IReadOnlyList<MemoEntry> Entries => _entries;
@@ -38,11 +50,9 @@ public partial class StickyMemoWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        var helper = new WindowInteropHelper(this);
-        int exStyle = Win32Api.GetWindowLong(helper.Handle, Win32Api.GWL_EXSTYLE);
-        Win32Api.SetWindowLong(helper.Handle, Win32Api.GWL_EXSTYLE,
-            exStyle | Win32Api.WS_EX_NOACTIVATE | Win32Api.WS_EX_TOOLWINDOW | Win32Api.WS_EX_TOPMOST);
+        Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
         ApplyOpacity();
+        Deactivated += (_, _) => Win32Api.EnforceTopmost(this, toolWindow: true, noActivate: true);
     }
 
     public void ApplyOpacity()
@@ -118,7 +128,7 @@ public partial class StickyMemoWindow : Window
     private void RenderCards()
     {
         MemoCountChanged?.Invoke(_entries.Count);
-        TxtMemoHeader.Text = $"📌 포스트잇 메모 ({_entries.Count})";
+        TxtMemoHeader.Text = $"📌 챗헬프 임시메모 ({_entries.Count})";
         MemoCardsPanel.Children.Clear();
 
         if (_entries.Count == 0)
@@ -184,7 +194,7 @@ public partial class StickyMemoWindow : Window
             };
             numBadge.Child = new TextBlock
             {
-                Text = $"{{{idx + 1}}}",
+                Text = ConsultationMemoService.DetectMemoLabel(entry.Content, idx + 1),
                 Foreground = Brushes.White,
                 FontSize = 10,
                 FontWeight = FontWeights.Bold
@@ -245,6 +255,48 @@ public partial class StickyMemoWindow : Window
             };
 
             actions.Children.Add(btnPaste);
+            if (entry.Content.Contains('\n'))
+            {
+                var btnSplit = new Button
+                {
+                    Content = "줄나누기",
+                    Padding = new Thickness(5, 1, 5, 1),
+                    Margin = new Thickness(0, 0, 2, 0),
+                    FontSize = 9.5,
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EFF6FF")),
+                    Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1D4ED8")),
+                    BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD")),
+                    BorderThickness = new Thickness(1),
+                    Cursor = Cursors.Hand,
+                    Focusable = false,
+                    ToolTip = "여러 줄 텍스트를 줄별로 개별 메모 카드로 나눕니다"
+                };
+                btnSplit.Click += (s, e) =>
+                {
+                    var lines = entry.Content
+                        .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(l => l.Trim())
+                        .Where(l => !string.IsNullOrWhiteSpace(l))
+                        .ToList();
+                    if (lines.Count > 1 && idx >= 0 && idx < _entries.Count)
+                    {
+                        _entries.RemoveAt(idx);
+                        for (int k = 0; k < lines.Count; k++)
+                        {
+                            string line = lines[k];
+                            _entries.Insert(idx + k, new MemoEntry
+                            {
+                                Keyword = line.Length > 14 ? line[..14] + "…" : line,
+                                Category = "메모",
+                                MemoNote = line,
+                                Content = line
+                            });
+                        }
+                        RenderCards();
+                    }
+                };
+                actions.Children.Add(btnSplit);
+            }
             actions.Children.Add(btnDel);
             Grid.SetColumn(actions, 2);
             grid.Children.Add(actions);
@@ -291,6 +343,8 @@ public partial class StickyMemoWindow : Window
         }
     }
 
+    private void BtnDockToggle_Click(object sender, RoutedEventArgs e) => DockToggleRequested?.Invoke();
+
     private void BtnOpenCombiner_Click(object sender, RoutedEventArgs e) => OpenCombinerRequested?.Invoke(_targetHwnd);
 
     private void BtnClearAll_Click(object sender, RoutedEventArgs e) => ClearMemos();
@@ -303,6 +357,21 @@ public partial class StickyMemoWindow : Window
         {
             _hasCustomPosition = true;
             try { DragMove(); } catch { }
+            SnapToMonitorEdge();
         }
+    }
+
+    private void SnapToMonitorEdge()
+    {
+        try
+        {
+            var wa = SystemParameters.WorkArea;
+            const double snap = 18;
+            if (Math.Abs(Left - wa.Left) <= snap) Left = wa.Left;
+            else if (Math.Abs((Left + Width) - wa.Right) <= snap) Left = wa.Right - Width;
+            if (Math.Abs(Top - wa.Top) <= snap) Top = wa.Top;
+            else if (Math.Abs((Top + Height) - wa.Bottom) <= snap) Top = wa.Bottom - Height;
+        }
+        catch { }
     }
 }

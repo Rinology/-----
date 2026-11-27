@@ -4,6 +4,29 @@
 
 ---
 
+## [v3.2.0] — 2026-11-27 (`Xenie` · `챗헬프 임시메모` 리브랜딩, OCR 줄바꿈/숫자 보정, 자석 도킹 & 페이퍼로지 폰트)
+
+### ✨ Added / Changed
+- **리브랜딩 (`챗헬프 임시메모` & `Xenie`) 및 멀티윈도우 최상단(`Topmost`) 유지 ([MainWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml), [StickyMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml), [ConsultationMemoWindow.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml), [Win32Api.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/Win32Api.cs))**:
+  - `포스트잇 메모` → **`챗헬프 임시메모`**, `스무고개 답변조합기` → **`Xenie`** 로 명칭 통일.
+  - 마스터창(`MainWindow`) 및 `Xenie` 창에 Win32 `EnforceTopmost`(`WS_EX_TOPMOST` + `HWND_TOPMOST`)를 적용해 멀티 모니터/타 프로그램 전환 시에도 항상 최상단에 유지되도록 개선.
+  - `Xenie` 창이 이미 열려 있을 때 재호출 시 화면 중앙 이동·포커스 강탈 없이 **현재 위치를 유지하며 테두리 하이라이트만 표시**하도록 개선.
+- **자석 도킹(화면 붙이기) & 가장자리 스냅 ([MainWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/MainWindow.xaml.cs), [StickyMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/StickyMemoWindow.xaml.cs), [ConsultationMemoWindow.xaml.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/UI/ConsultationMemoWindow.xaml.cs))**:
+  - `🔗 임시메모 붙이기` 버튼 또는 창 테두리 22px 근접 이동 시 `챗헬프 임시메모`와 `Xenie`가 자석처럼 붙어 함께 이동하며, 모니터 좌/우/상/하 가장자리 18px 스냅을 지원 (전역 마우스 훅 미사용으로 고주사율 모니터 무지연 유지).
+- **비개발자 친화적 변수 UX & 여러 줄 카드 나누기 ([ConsultationMemoService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/ConsultationMemoService.cs))**:
+  - 임시메모 카드의 `{1}`, `{2}` 배지를 **`📦 송장`**, **`📅 날짜`**, **`💰 금액`**, **`📝 메모 N`** 이름표로 자동 표시하고, `{송장번호}`/`{날짜}`/`{금액}` 변수에 의미 기반 자동 매칭 및 `Xenie` 변수 칸 원클릭 알약 선택 지원.
+  - 여러 줄 OCR/텍스트 메모 카드에 **`줄나누기`** 버튼 추가(기본 1개 카드로 줄바꿈 유지 저장, 필요 시 1클릭 분리).
+- **페이퍼로지(`Paperlogy`) 폰트 전역 내장 ([ChatHelper.csproj](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/ChatHelper.csproj), [App.xaml](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/App.xaml))**:
+  - `Paperlogy` 4종(`Regular`, `Medium`, `SemiBold`, `Bold`)을 앱 리소스로 내장해 별도 폰트 설치 없이 전 창에 일괄 적용.
+
+### 🐛 Fixed
+- **OCR 줄바꿈 소실 및 송장번호 한자/한글 오인식 해결 ([OcrService.cs](file:///C:/Users/taerin/Desktop/채팅도우미/ChatHelper/Services/OcrService.cs))**:
+  - `ocrResult.Lines` Y좌표 정렬을 통해 표/여러 줄 캡처 시 줄바꿈이 그대로 보존되도록 수정.
+  - 그레이스케일 대비 보정 + 한(`ko`)/영(`en`) 이중 OCR 엔진 교차 검증을 도입해 숫자/송장번호(`0-` → `堡`, `우`, `수` 등) 깨짐 현상 해결.
+- **GAS 재배포 필요 여부**: 불필요.
+
+---
+
 ## [v3.1.0] — 2026-11-27 (초경량 포스트잇 메모지 `StickyMemoWindow` ↔ 스무고개 답변 조합기 2-트랙 분리)
 
 ### ✨ Added / Changed

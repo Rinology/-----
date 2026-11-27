@@ -182,6 +182,52 @@ public static class ConsultationMemoService
         };
     }
 
+    public static string DetectMemoKind(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "메모";
+        string s = text.Trim();
+        if (Regex.IsMatch(s, @"^\d{3,4}-\d{3,4}-\d{3,5}$") || (s.Count(char.IsDigit) >= 8 && !s.Any(c => c >= '\uAC00' && c <= '\uD7A3')))
+            return "송장";
+        if (Regex.IsMatch(s, @"(오늘|내일|모레|오전|오후|월|화|수|목|금|토|일|\d{1,2}월\s*\d{1,2}일|\d{1,2}/\d{1,2}|\d{1,2}:\d{2})"))
+            return "날짜";
+        if (Regex.IsMatch(s, @"(\d[\d,]*\s*원|무료|유료)"))
+            return "금액";
+        return "메모";
+    }
+
+    public static string DetectMemoLabel(string? text, int index)
+    {
+        return DetectMemoKind(text) switch
+        {
+            "송장" => "📦 송장",
+            "날짜" => "📅 날짜",
+            "금액" => "💰 금액",
+            _ => $"📝 메모 {index}"
+        };
+    }
+
+    public static string GetFriendlyVariableLabel(string varName)
+    {
+        if (string.IsNullOrWhiteSpace(varName)) return "📝 값";
+        if (varName.Contains("송장") || varName.Contains("운송장") || varName.Contains("번호")) return $"📦 {varName}";
+        if (varName.Contains("날짜") || varName.Contains("일정") || varName.Contains("시간")) return $"📅 {varName}";
+        if (varName.Contains("금액") || varName.Contains("비용") || varName.Contains("가격")) return $"💰 {varName}";
+        if (varName.Contains("모델") || varName.Contains("제품")) return $"🚲 {varName}";
+        return $"📝 {varName}";
+    }
+
+    private static bool MatchesSemanticKind(string placeholderKey, string memoValue)
+    {
+        string kind = DetectMemoKind(memoValue);
+        if ((placeholderKey.Contains("송장") || placeholderKey.Contains("운송장") || placeholderKey.Contains("번호")) && kind == "송장")
+            return true;
+        if ((placeholderKey.Contains("날짜") || placeholderKey.Contains("일정") || placeholderKey.Contains("시간")) && kind == "날짜")
+            return true;
+        if ((placeholderKey.Contains("금액") || placeholderKey.Contains("비용") || placeholderKey.Contains("가격")) && kind == "금액")
+            return true;
+        return false;
+    }
+
     private static readonly Regex PlaceholderRegex = new(@"\{([^{}\r\n]{1,24})\}", RegexOptions.Compiled);
 
     public static bool ContainsPlaceholders(string? text)
@@ -278,7 +324,19 @@ public static class ConsultationMemoService
                 return target.Value;
             }
 
-            // 2. 일반 자리표시자 {메모}, {날짜}, {모델} 등 -> 순서대로 자유 메모 배정
+            // 2. 의미 기반 자동 매칭 ({송장번호} <- 📦 송장, {날짜} <- 📅 날짜, {금액} <- 💰 금액)
+            var semanticMatch = freeMemos.FirstOrDefault(m =>
+                !consumedEntryIndices.Contains(m.EntryIndex) && MatchesSemanticKind(key, m.Value));
+            if (!string.IsNullOrEmpty(semanticMatch.Value))
+            {
+                consumedEntryIndices.Add(semanticMatch.EntryIndex);
+                return semanticMatch.Value;
+            }
+
+            // 3. 일반 자리표시자 {메모}, {모델} 등 -> 미소비 자유 메모 순서대로 배정
+            while (localNext < freeMemos.Count && consumedEntryIndices.Contains(freeMemos[localNext].EntryIndex))
+                localNext++;
+
             if (localNext < freeMemos.Count)
             {
                 var target = freeMemos[localNext++];

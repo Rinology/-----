@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -13,58 +16,58 @@ using WpfImaging = System.Windows.Media.Imaging;
 namespace ChatHelper.Services;
 
 /// <summary>
-/// Windows 10/11 네이티브 내장 OCR 서비스 (0.05초 초고속 한글/영문 인식)
-/// 윈도우 10/11 캡처 도구(Win+Shift+S)의 32비트 DIB 투명(Alpha=0) 버그 완벽 자동 보정
+/// Windows 10/11 네이티브 내장 OCR 서비스 (0.05초 초고속 한글/영문/숫자 인식)
+/// - Win+Shift+S Alpha=0 투명 버그 자동 복구
+/// - ocrResult.Lines 기반 줄바꿈 보존
+/// - 한(ko) + 영(en) 이중 엔진 교차 검증으로 송장번호/숫자 한자·한글 오인식 방지
 /// </summary>
 public static class OcrService
 {
     private static OcrEngine? _koreanEngine;
+    private static OcrEngine? _englishEngine;
     private static readonly object _lock = new();
 
-    private static OcrEngine? GetEngine()
+    private static (OcrEngine? Ko, OcrEngine? En) GetEngines()
     {
-        if (_koreanEngine != null) return _koreanEngine;
+        if (_koreanEngine != null) return (_koreanEngine, _englishEngine);
 
         lock (_lock)
         {
-            if (_koreanEngine != null) return _koreanEngine;
+            if (_koreanEngine != null) return (_koreanEngine, _englishEngine);
 
             try
             {
-                var lang = new Language("ko");
-                if (OcrEngine.IsLanguageSupported(lang))
-                {
-                    _koreanEngine = OcrEngine.TryCreateFromLanguage(lang);
-                }
-
+                var ko = new Language("ko");
+                if (OcrEngine.IsLanguageSupported(ko))
+                    _koreanEngine = OcrEngine.TryCreateFromLanguage(ko);
                 _koreanEngine ??= OcrEngine.TryCreateFromUserProfileLanguages();
+
+                var en = new Language("en");
+                if (OcrEngine.IsLanguageSupported(en))
+                    _englishEngine = OcrEngine.TryCreateFromLanguage(en);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[OcrService] Engine init failed: {ex.Message}");
             }
 
-            return _koreanEngine;
+            return (_koreanEngine, _englishEngine);
         }
     }
 
     /// <summary>
-    /// 클립보드 또는 메모리의 WPF BitmapSource 이미지를 인식하여 한글 텍스트로 추출
+    /// 클립보드 또는 메모리의 WPF BitmapSource 이미지를 인식하여 줄바꿈이 보존된 텍스트로 추출
     /// </summary>
     public static async Task<string> RecognizeTextAsync(BitmapSource bitmapSource)
     {
         try
         {
-            var engine = GetEngine();
-            if (engine == null || bitmapSource == null)
-            {
+            var (koEngine, enEngine) = GetEngines();
+            if (koEngine == null || bitmapSource == null)
                 return string.Empty;
-            }
 
-            // 1. 캡처 도구의 Alpha=0 투명 버그 해결 및 이미지 정규화
             var normalizedSource = NormalizeForOcr(bitmapSource);
 
-            // 2. WPF BitmapSource를 PNG byte 배열로 변환
             byte[] bytes;
             using (var ms = new MemoryStream())
             {
@@ -76,7 +79,6 @@ public static class OcrService
 
             if (bytes.Length == 0) return string.Empty;
 
-            // 3. DataWriter를 통해 WinRT InMemoryRandomAccessStream에 안전하게 쓰기
             var ras = new InMemoryRandomAccessStream();
             using (var writer = new DataWriter(ras.GetOutputStreamAt(0)))
             {
@@ -91,8 +93,21 @@ public static class OcrService
             using var rawBitmap = await decoder.GetSoftwareBitmapAsync();
             using var softwareBitmap = Wgi.SoftwareBitmap.Convert(rawBitmap, Wgi.BitmapPixelFormat.Bgra8, Wgi.BitmapAlphaMode.Premultiplied);
 
-            var ocrResult = await engine.RecognizeAsync(softwareBitmap);
-            return ocrResult.Text?.Trim() ?? string.Empty;
+            var koResult = await koEngine.RecognizeAsync(softwareBitmap);
+            var koLines = ExtractLines(koResult);
+
+            List<(double Y, string Text)> enLines = new();
+            if (enEngine != null)
+            {
+                try
+                {
+                    var enResult = await enEngine.RecognizeAsync(softwareBitmap);
+                    enLines = ExtractLines(enResult);
+                }
+                catch { }
+            }
+
+            return SelectBestOcrLines(koLines, enLines);
         }
         catch (Exception ex)
         {
@@ -101,16 +116,86 @@ public static class OcrService
         }
     }
 
+    private static List<(double Y, string Text)> ExtractLines(OcrResult? result)
+    {
+        if (result?.Lines == null || result.Lines.Count == 0)
+            return new List<(double Y, string Text)>();
+
+        return result.Lines
+            .Select(l =>
+            {
+                double y = l.Words.Count > 0 ? l.Words.Min(w => w.BoundingRect.Top) : 0;
+                return (Y: y, Text: (l.Text ?? string.Empty).Trim());
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Text))
+            .OrderBy(x => x.Y)
+            .ToList();
+    }
+
     /// <summary>
-    /// 윈도우 캡처 도구(Win+Shift+S)에서 발생하는 32비트 DIB Alpha=0(완전 투명) 현상을 감지하여
-    /// 모든 픽셀의 Alpha를 255(완전 불투명)로 복원하고, 작은 말풍선 캡처는 2배 확대 및 최대 해상도 제한 내로 보정
+    /// 한국어(ko) OCR 줄과 영문/숫자(en) OCR 줄을 비교하여 줄바꿈을 보존하고,
+    /// 숫자·송장번호 줄에서 발생한 한자/한글 오인식을 영문 엔진 결과로 자동 보정합니다.
+    /// </summary>
+    public static string SelectBestOcrLines(
+        IReadOnlyList<(double Y, string Text)> koLines,
+        IReadOnlyList<(double Y, string Text)> enLines)
+    {
+        if (koLines.Count == 0 && enLines.Count == 0) return string.Empty;
+        if (koLines.Count == 0) return string.Join(Environment.NewLine, enLines.Select(l => l.Text));
+        if (enLines.Count == 0) return string.Join(Environment.NewLine, koLines.Select(l => l.Text));
+
+        var finalLines = new List<string>(koLines.Count);
+        foreach (var (y, koText) in koLines)
+        {
+            var matchEn = enLines
+                .OrderBy(e => Math.Abs(e.Y - y))
+                .FirstOrDefault(e => Math.Abs(e.Y - y) <= 18.0);
+
+            if (!string.IsNullOrWhiteSpace(matchEn.Text) && ShouldPreferEnglishLine(koText, matchEn.Text))
+            {
+                // 하이픈 주변 불필요한 공백 정리 (예: "456 - 8280 - 8146" -> "456-8280-8146")
+                string cleanedEn = Regex.Replace(matchEn.Text, @"\s*-\s*", "-");
+                finalLines.Add(cleanedEn);
+            }
+            else
+            {
+                finalLines.Add(koText);
+            }
+        }
+
+        return string.Join(Environment.NewLine, finalLines);
+    }
+
+    private static bool ShouldPreferEnglishLine(string koText, string enText)
+    {
+        bool hasHanja = koText.Any(c => c >= '\u4E00' && c <= '\u9FFF');
+        int koDigits = koText.Count(char.IsDigit);
+        int enDigits = enText.Count(char.IsDigit);
+
+        // 한자가 섞여 있고 영문 엔진 결과에 숫자가 더 많거나 같으면 영문 엔진 채택
+        if (hasHanja && enDigits >= koDigits)
+            return true;
+
+        // 숫자·하이픈 위주 라인에서 한글 자모/단일 음절이 숫자 사이에 끼어든 경우 (예: 456-828우8161)
+        bool hasStrayHangulBetweenDigits = Regex.IsMatch(koText, @"\d[\uAC00-\uD7A3\u3131-\u318E]\d");
+        if (hasStrayHangulBetweenDigits && enDigits > koDigits)
+            return true;
+
+        // 전체적으로 숫자가 4개 이상이고, 한글 완성 음절이 1개 이하이며, enDigits >= koDigits 인 코드/송장 줄
+        int hangulCount = koText.Count(c => c >= '\uAC00' && c <= '\uD7A3');
+        if (enDigits >= 4 && hangulCount <= 1 && enDigits >= koDigits)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// 윈도우 캡처 도구(Win+Shift+S) Alpha=0 복원 + 대비 강화(배경 노이즈 제거) + 고품질 확대 + 여백 추가
     /// </summary>
     private static BitmapSource NormalizeForOcr(BitmapSource src)
     {
         BitmapSource formatted = src;
 
-        // 1. 반드시 스케일링(TransformedBitmap) 전에 Bgra32 픽셀의 Alpha=0 투명 버그를 먼저 복원해야
-        // 보간 과정에서 RGB 채널이 0(검은색)으로 소실되지 않음!
         if (formatted.Format != PixelFormats.Bgra32)
         {
             formatted = new FormatConvertedBitmap(formatted, PixelFormats.Bgra32, null, 0);
@@ -132,32 +217,46 @@ public static class OcrService
             if (pixels[i] == 0) zeroAlphaCount++;
         }
 
-        if (sampleTotal > 0 && (double)zeroAlphaCount / sampleTotal > 0.90)
-        {
-            for (int i = 3; i < pixels.Length; i += 4)
-            {
-                pixels[i] = 255;
-            }
+        bool fixAlpha = sampleTotal > 0 && (double)zeroAlphaCount / sampleTotal > 0.90;
 
-            formatted = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+        // Alpha 복원 + 그레이스케일 대비 보정 (밝은 회색/파란 선택 배경을 흰색으로 밀어 표/숫자 인식률 극대화)
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            if (fixAlpha) pixels[i + 3] = 255;
+
+            int lum = (pixels[i + 2] * 299 + pixels[i + 1] * 587 + pixels[i] * 114) / 1000;
+            byte enhanced;
+            if (lum > 185) enhanced = 255;
+            else if (lum < 75) enhanced = 0;
+            else enhanced = (byte)((lum - 75) * 255 / 110);
+
+            pixels[i] = enhanced;
+            pixels[i + 1] = enhanced;
+            pixels[i + 2] = enhanced;
         }
 
-        // 2. Alpha 복원 완료 후 해상도 보정: 너무 큰 경우 축소(2400px 이하), 작은 1줄 캡처는 2~3배 확대
+        formatted = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+
+        // 2. 해상도 보정: 너무 큰 경우 축소, 좁거나 작은 표/문장 캡처는 최대 2200px 한도 내 2~3배 확대
         if (w > 2400 || h > 2400)
         {
             double scale = Math.Min(2400.0 / w, 2400.0 / h);
             formatted = new TransformedBitmap(formatted, new ScaleTransform(scale, scale));
         }
-        else if (h < 60 || w < 220)
+        else if (h < 60 || w < 240)
         {
-            formatted = new TransformedBitmap(formatted, new ScaleTransform(3.0, 3.0));
+            double scale = Math.Min(3.0, Math.Min(2200.0 / w, 2200.0 / h));
+            if (scale > 1.05)
+                formatted = new TransformedBitmap(formatted, new ScaleTransform(scale, scale));
         }
-        else if (h < 120 || w < 450)
+        else if (h < 200 || w < 520)
         {
-            formatted = new TransformedBitmap(formatted, new ScaleTransform(2.0, 2.0));
+            double scale = Math.Min(2.0, Math.Min(2200.0 / w, 2200.0 / h));
+            if (scale > 1.05)
+                formatted = new TransformedBitmap(formatted, new ScaleTransform(scale, scale));
         }
 
-        // 3. 경계에 바짝 잘린 1줄 숫자/텍스트 인식을 돕기 위해 24px 흰색 여백(Padding) 추가
+        // 3. 24px 흰색 여백 추가
         int pw = formatted.PixelWidth;
         int ph = formatted.PixelHeight;
         if (pw > 0 && ph > 0 && pw < 2300 && ph < 2300)
@@ -175,9 +274,7 @@ public static class OcrService
         }
 
         if (formatted.CanFreeze && !formatted.IsFrozen)
-        {
             formatted.Freeze();
-        }
 
         return formatted;
     }
